@@ -6,6 +6,7 @@
 .gradle/
 .kotlin/
 build/
+**/build/
 !gradle/wrapper/gradle-wrapper.jar
 !gradle-wrapper.jar
 gradle.properties.local
@@ -28,6 +29,7 @@ captures/
 # ── iOS & Xcode ─────────────────────────────────────────────
 Pods/
 Podfile.lock
+.build/
 DerivedData/
 *.ipa
 *.dSYM/
@@ -40,11 +42,11 @@ DerivedData/
 !default.mode2v3
 *.perspectivev3
 !default.perspectivev3
+*.xcworkspace/
+!*.xcworkspace/contents.xcworkspacedata
 xcuserdata/
 *.xccheckout
 *.xcscmblueprint
-*.xcworkspace/
-!*.xcworkspace/contents.xcworkspacedata
 .xcode.env.local
 
 # ── Web / JS / Wasm ─────────────────────────────────────────
@@ -57,6 +59,8 @@ kotlin-js-store/
 # IntelliJ / Android Studio
 .idea/
 *.iml
+*.ipr
+*.iws
 
 # JetBrains Fleet
 .fleet/
@@ -69,6 +73,7 @@ kotlin-js-store/
 
 # ── Secrets & Config local ───────────────────────────────────
 local.properties
+secrets.properties
 *.jks
 *.keystore
 google-services.json
@@ -76,6 +81,11 @@ GoogleService-Info.plist
 iosApp/iosApp/Config.xcconfig
 *.env
 *.env.local
+
+# ── Python (scripts de tooling / CI) ────────────────────────
+__pycache__/
+*.pyc
+.venv/
 
 # ── Logs, Profiling & Temp ───────────────────────────────────
 *.log
