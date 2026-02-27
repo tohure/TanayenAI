@@ -12,7 +12,6 @@ kotlin = "2.3.10"
 
 # Android X
 androidx-activity = "1.12.4"
-androidx-appcompat = "1.7.1"
 androidx-core = "1.17.0"
 androidx-espresso = "3.7.0"
 androidx-lifecycle = "2.9.6"
