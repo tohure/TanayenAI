@@ -34,7 +34,7 @@ jobs:
         run: ./gradlew ktlintCheck
 
       - name: Run shared unit tests
-        run: ./gradlew :shared:testDebugUnitTest
+        run: ./gradlew :shared:allTests
 
   # ── Build Android ───────────────────────────────────────────────────────────
   android-build:
