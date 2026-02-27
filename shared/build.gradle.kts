@@ -23,7 +23,7 @@ kotlin {
             isIncludeAndroidResources = true
         }
     }
-    
+
     listOf(
         iosArm64(),
         iosSimulatorArm64()
