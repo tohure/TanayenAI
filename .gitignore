@@ -7,8 +7,7 @@
 .kotlin/
 build/
 **/build/
-!gradle/wrapper/gradle-wrapper.jar
-!gradle-wrapper.jar
+
 gradle.properties.local
 
 # ── Android & Java ──────────────────────────────────────────
@@ -18,6 +17,7 @@ gradle.properties.local
 *.dex
 *.class
 *.jar
+!gradle/wrapper/gradle-wrapper.jar
 output-metadata.json
 bin/
 gen/
