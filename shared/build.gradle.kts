@@ -81,3 +81,11 @@ kotlin {
         }
     }
 }
+
+// Ktlint task para CI
+tasks.register<Exec>("ktlintCheck") {
+    group = "verification"
+    description = "Runs ktlint on Kotlin source files"
+    commandLine("ktlint", "--editorconfig=../.editorconfig", "src/**/*.kt")
+    workingDir(projectDir)
+}
