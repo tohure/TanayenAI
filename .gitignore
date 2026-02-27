@@ -1,0 +1,99 @@
+# ============================================================
+#  Kotlin Multiplatform — .gitignore
+# ============================================================
+
+# ── Kotlin / Gradle ─────────────────────────────────────────
+.gradle/
+.kotlin/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!gradle-wrapper.jar
+gradle.properties.local
+
+# ── Android & Java ──────────────────────────────────────────
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+*.jar
+output-metadata.json
+bin/
+gen/
+out/
+.cxx/
+.externalNativeBuild/
+captures/
+
+# ── iOS & Xcode ─────────────────────────────────────────────
+Pods/
+Podfile.lock
+DerivedData/
+*.ipa
+*.dSYM/
+*.moved-aside
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata/
+*.xccheckout
+*.xcscmblueprint
+*.xcworkspace/
+!*.xcworkspace/contents.xcworkspacedata
+.xcode.env.local
+
+# ── Web / JS / Wasm ─────────────────────────────────────────
+node_modules/
+.npm/
+kotlin-js-store/
+*.wasm
+
+# ── IDE ─────────────────────────────────────────────────────
+# IntelliJ / Android Studio
+.idea/
+*.iml
+
+# JetBrains Fleet
+.fleet/
+
+# Eclipse
+.classpath
+.project
+.metadata
+.settings/
+
+# ── Secrets & Config local ───────────────────────────────────
+local.properties
+*.jks
+*.keystore
+google-services.json
+GoogleService-Info.plist
+iosApp/iosApp/Config.xcconfig
+*.env
+*.env.local
+
+# ── Logs, Profiling & Temp ───────────────────────────────────
+*.log
+*.hprof
+lint/
+*.swp
+*.bak
+*~
+.navigation/
+replay_pid*/
+
+# ── OS ──────────────────────────────────────────────────────
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+$RECYCLE.BIN/
