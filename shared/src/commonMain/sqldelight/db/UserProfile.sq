@@ -1,0 +1,59 @@
+CREATE TABLE UserProfile (
+    id              TEXT NOT NULL PRIMARY KEY,
+    name            TEXT NOT NULL,
+    birth_date      TEXT NOT NULL,      -- ISO-8601: "1990-05-15"
+    sex             TEXT NOT NULL,      -- "MALE", "FEMALE"
+    height_cm       REAL NOT NULL,
+    goal            TEXT NOT NULL,      -- "LOSE_WEIGHT", "GAIN_MUSCLE", etc.
+    activity_level  TEXT NOT NULL,
+    synced          INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE ClinicalProfile (
+    user_id             TEXT NOT NULL PRIMARY KEY,
+    cholesterol_total   REAL,
+    hdl                 REAL,
+    ldl                 REAL,
+    triglycerides       REAL,
+    fasting_glucose     REAL,
+    hba1c               REAL,
+    systolic_pressure   INTEGER,
+    diastolic_pressure  INTEGER,
+    uric_acid           REAL,
+    recorded_at         TEXT NOT NULL,  -- ISO-8601 datetime del análisis
+    synced              INTEGER NOT NULL DEFAULT 0,
+    FOREIGN KEY (user_id) REFERENCES UserProfile(id)
+);
+
+-- Queries UserProfile
+insertUser:
+INSERT INTO UserProfile(id, name, birth_date, sex, height_cm, goal, activity_level, synced)
+VALUES (:id, :name, :birthDate, :sex, :heightCm, :goal, :activityLevel, 0);
+
+getUser:
+SELECT * FROM UserProfile WHERE id = :id;
+
+updateUser:
+UPDATE UserProfile
+SET name = :name, birth_date = :birthDate, sex = :sex, height_cm = :heightCm, goal = :goal, activity_level = :activityLevel, synced = 0
+WHERE id = :id;
+
+-- Queries ClinicalProfile
+upsertClinicalProfile:
+INSERT INTO ClinicalProfile(user_id, cholesterol_total, hdl, ldl, triglycerides, fasting_glucose, hba1c, systolic_pressure, diastolic_pressure, uric_acid, recorded_at, synced)
+VALUES (:userId, :cholesterolTotal, :hdl, :ldl, :triglycerides, :fastingGlucose, :hba1c, :systolicPressure, :diastolicPressure, :uricAcid, :recordedAt, 0)
+ON CONFLICT(user_id) DO UPDATE SET
+    cholesterol_total = excluded.cholesterol_total,
+    hdl = excluded.hdl,
+    ldl = excluded.ldl,
+    triglycerides = excluded.triglycerides,
+    fasting_glucose = excluded.fasting_glucose,
+    hba1c = excluded.hba1c,
+    systolic_pressure = excluded.systolic_pressure,
+    diastolic_pressure = excluded.diastolic_pressure,
+    uric_acid = excluded.uric_acid,
+    recorded_at = excluded.recorded_at,
+    synced = 0;
+
+getClinicalProfile:
+SELECT * FROM ClinicalProfile WHERE user_id = :userId;

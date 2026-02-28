@@ -15,6 +15,10 @@ kotlin {
 
     dependencies {
         implementation(projects.shared)
+        // Koin Android
+        implementation(libs.koin.android)
+        implementation(libs.koin.compose)
+
         implementation(libs.compose.runtime)
         implementation(libs.compose.foundation)
         implementation(libs.compose.material3)
@@ -29,12 +33,21 @@ kotlin {
 
 android {
     namespace = "dev.tohure.tanayenai"
-    compileSdk = libs.versions.android.compileSdk.get().toInt()
+    compileSdk =
+        libs.versions.android.compileSdk
+            .get()
+            .toInt()
 
     defaultConfig {
         applicationId = "dev.tohure.tanayenai"
-        minSdk = libs.versions.android.minSdk.get().toInt()
-        targetSdk = libs.versions.android.targetSdk.get().toInt()
+        minSdk =
+            libs.versions.android.minSdk
+                .get()
+                .toInt()
+        targetSdk =
+            libs.versions.android.targetSdk
+                .get()
+                .toInt()
         versionCode = 1
         versionName = "1.0"
     }

@@ -10,8 +10,14 @@ plugins {
 kotlin {
     androidLibrary {
         namespace = "dev.tohure.tanayenai.shared"
-        compileSdk = libs.versions.android.compileSdk.get().toInt()
-        minSdk = libs.versions.android.minSdk.get().toInt()
+        compileSdk =
+            libs.versions.android.compileSdk
+                .get()
+                .toInt()
+        minSdk =
+            libs.versions.android.minSdk
+                .get()
+                .toInt()
 
         compilerOptions {
             jvmTarget = JvmTarget.JVM_21
@@ -26,7 +32,7 @@ kotlin {
 
     listOf(
         iosArm64(),
-        iosSimulatorArm64()
+        iosSimulatorArm64(),
     ).forEach { iosTarget ->
         iosTarget.binaries.framework {
             baseName = "Shared"
@@ -72,12 +78,13 @@ kotlin {
             implementation(libs.kotlin.test)
         }
     }
+}
 
-    sqldelight {
-        databases {
-            create("TanayenDatabase") {
-                packageName.set("dev.tohure.tanayenai.db")
-            }
+sqldelight {
+    databases {
+        create("TanayenDatabase") {
+            packageName.set("dev.tohure.tanayenai.db")
+            dialect(libs.sqldelight.dialect.sqlite)
         }
     }
 }

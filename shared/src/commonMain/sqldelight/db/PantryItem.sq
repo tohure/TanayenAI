@@ -1,0 +1,45 @@
+CREATE TABLE PantryItem (
+    id           TEXT NOT NULL PRIMARY KEY,
+    user_id      TEXT NOT NULL,
+    location_id  TEXT NOT NULL,
+    ingredient   TEXT NOT NULL,
+    quantity     REAL NOT NULL,
+    unit         TEXT NOT NULL,      -- "GRAMS", "KG", "UNITS", etc.
+    expiry_date  TEXT,               -- ISO-8601 nullable
+    updated_at   TEXT NOT NULL,      -- ISO-8601 datetime
+    synced       INTEGER NOT NULL DEFAULT 0,
+    FOREIGN KEY (location_id) REFERENCES PantryLocation(id)
+);
+
+CREATE INDEX idx_pantry_item_user_location ON PantryItem(user_id, location_id);
+CREATE INDEX idx_pantry_item_synced ON PantryItem(synced);
+
+-- Queries
+insertItem:
+INSERT INTO PantryItem(id, user_id, location_id, ingredient, quantity, unit, expiry_date, updated_at, synced)
+VALUES (:id, :userId, :locationId, :ingredient, :quantity, :unit, :expiryDate, :updatedAt, 0);
+
+getItemsByLocation:
+SELECT * FROM PantryItem WHERE user_id = :userId AND location_id = :locationId ORDER BY ingredient ASC;
+
+getAllItemsByUser:
+SELECT * FROM PantryItem WHERE user_id = :userId ORDER BY location_id, ingredient ASC;
+
+updateItem:
+UPDATE PantryItem
+SET quantity = :quantity, unit = :unit, expiry_date = :expiryDate, updated_at = :updatedAt, synced = 0
+WHERE id = :id;
+
+decrementQuantity:
+UPDATE PantryItem
+SET quantity = MAX(0, quantity - :amount), updated_at = :updatedAt, synced = 0
+WHERE id = :id;
+
+deleteItem:
+DELETE FROM PantryItem WHERE id = :id;
+
+getPendingSync:
+SELECT * FROM PantryItem WHERE synced = 0;
+
+markSynced:
+UPDATE PantryItem SET synced = 1 WHERE id = :id;

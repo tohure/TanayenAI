@@ -1,6 +1,7 @@
 package dev.tohure.tanayenai.domain.model
 
 data class HealthMetrics(
+    val id: String,
     val userId: String,
     val date: String,
     val weightKg: Float? = null,
