@@ -6,6 +6,6 @@ import kotlin.test.assertEquals
 class SharedCommonTest {
     @Test
     fun example() {
-        assertEquals(3, 1 + 2)
+        // TODO: Fase 1 tests
     }
 }
