@@ -5,7 +5,7 @@ android-minSdk = "24"
 android-targetSdk = "36"
 
 # Core
-agp = "9.0.1"
+agp = "9.1.0"
 composeMultiplatform = "1.10.1"
 junit = "4.13.2"
 kotlin = "2.3.10"
@@ -24,7 +24,7 @@ coroutines = "1.10.2"
 serialization = "1.10.0"
 
 # Networking
-ktor = "3.4.0"
+ktor = "3.4.1"
 
 # DB Local
 sqldelight = "2.2.1"
@@ -33,7 +33,7 @@ sqldelight = "2.2.1"
 koin = "4.1.1"
 
 # Logging / Utils
-kermit = "2.0.8"
+kermit = "2.1.0"
 kotlinx-datetime = "0.7.1"
 
 [libraries]
@@ -42,6 +42,7 @@ kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotl
 kotlin-testJunit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
 
@@ -58,6 +59,7 @@ sqldelight-android = { module = "app.cash.sqldelight:android-driver", version.re
 sqldelight-native = { module = "app.cash.sqldelight:native-driver", version.ref = "sqldelight" }
 sqldelight-coroutines = { module = "app.cash.sqldelight:coroutines-extensions", version.ref = "sqldelight" }
 sqldelight-dialect-sqlite = { module = "app.cash.sqldelight:sqlite-3-25-dialect", version.ref = "sqldelight" }
+sqldelight-sqlite-driver = { module = "app.cash.sqldelight:sqlite-driver", version.ref = "sqldelight" }
 
 # Koin
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }

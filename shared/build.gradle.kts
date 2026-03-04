@@ -8,7 +8,7 @@ plugins {
 }
 
 kotlin {
-    androidLibrary {
+    android {
         namespace = "dev.tohure.tanayenai.shared"
         compileSdk =
             libs.versions.android.compileSdk
@@ -22,12 +22,8 @@ kotlin {
         compilerOptions {
             jvmTarget = JvmTarget.JVM_21
         }
-        androidResources {
-            enable = true
-        }
-        withHostTest {
-            isIncludeAndroidResources = true
-        }
+
+        withHostTestBuilder {}.configure {}
     }
 
     listOf(
@@ -37,6 +33,7 @@ kotlin {
         iosTarget.binaries.framework {
             baseName = "Shared"
             isStatic = true
+            binaryOption("bundleId", "dev.tohure.tanayenai.shared")
         }
     }
 
@@ -76,6 +73,14 @@ kotlin {
 
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+        }
+
+        val androidHostTest by getting {
+            dependencies {
+                implementation(libs.kotlin.testJunit)
+                implementation(libs.sqldelight.sqlite.driver)
+                implementation(libs.kotlinx.coroutines.test)
+            }
         }
     }
 }
