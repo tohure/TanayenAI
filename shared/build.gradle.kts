@@ -34,6 +34,7 @@ kotlin {
             baseName = "Shared"
             isStatic = true
             binaryOption("bundleId", "dev.tohure.tanayenai.shared")
+            linkerOpts("-lsqlite3")
         }
     }
 

@@ -20,7 +20,7 @@ class BuildContextUseCaseTest {
     private val testUser =
         User(
             id = "user_1",
-            name = "Carlos",
+            name = "Carlo",
             birthDate = "1990-05-15",
             sex = Sex.MALE,
             heightCm = 175f,

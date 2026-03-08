@@ -35,6 +35,8 @@ koin = "4.1.1"
 # Logging / Utils
 kermit = "2.1.0"
 kotlinx-datetime = "0.7.1"
+uiTextGoogleFonts = "1.10.4"
+runtime = "1.10.4"
 
 [libraries]
 # Kotlin
