@@ -78,7 +78,7 @@ secrets.properties
 *.keystore
 google-services.json
 GoogleService-Info.plist
-iosApp/iosApp/Config.xcconfig
+iosApp/Configuration/Secrets.xcconfig
 *.env
 *.env.local
 

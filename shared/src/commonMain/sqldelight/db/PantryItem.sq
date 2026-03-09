@@ -16,7 +16,7 @@ CREATE INDEX idx_pantry_item_synced ON PantryItem(synced);
 
 -- Queries
 insertItem:
-INSERT INTO PantryItem(id, user_id, location_id, ingredient, quantity, unit, expiry_date, updated_at, synced)
+INSERT OR REPLACE INTO PantryItem(id, user_id, location_id, ingredient, quantity, unit, expiry_date, updated_at, synced)
 VALUES (:id, :userId, :locationId, :ingredient, :quantity, :unit, :expiryDate, :updatedAt, 0);
 
 getItemsByLocation:

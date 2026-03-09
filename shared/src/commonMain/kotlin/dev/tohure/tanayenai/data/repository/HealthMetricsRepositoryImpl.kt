@@ -1,10 +1,14 @@
 package dev.tohure.tanayenai.data.repository
 
+import app.cash.sqldelight.coroutines.asFlow
+import app.cash.sqldelight.coroutines.mapToOneOrNull
 import dev.tohure.tanayenai.db.TanayenDatabase
 import dev.tohure.tanayenai.domain.model.HealthMetrics
 import dev.tohure.tanayenai.domain.model.MetricsSource
 import dev.tohure.tanayenai.domain.repository.HealthMetricsRepository
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import db.HealthMetrics as DbHealthMetrics
 
@@ -29,6 +33,13 @@ class HealthMetricsRepositoryImpl(
         withContext(Dispatchers.Default) {
             queries.getLatestMetrics(userId).executeAsOneOrNull()?.toDomain()
         }
+
+    override fun getLatestMetricsFlow(userId: String): Flow<HealthMetrics?> =
+        queries
+            .getLatestMetrics(userId)
+            .asFlow()
+            .mapToOneOrNull(Dispatchers.Default)
+            .map { it?.toDomain() }
 
     suspend fun getContextWindowMetrics(userId: String): List<HealthMetrics> =
         withContext(Dispatchers.Default) {

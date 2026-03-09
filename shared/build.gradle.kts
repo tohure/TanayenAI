@@ -49,6 +49,12 @@ kotlin {
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.serialization.json)
+            implementation(libs.ktor.client.logging)
+
+            // Supabase
+            implementation(libs.supabase.postgrest)
+            implementation(libs.supabase.auth)
+            implementation(libs.supabase.realtime)
 
             // SQLDelight
             implementation(libs.sqldelight.runtime)
@@ -56,6 +62,10 @@ kotlin {
 
             // Koin
             implementation(libs.koin.core)
+            implementation(libs.koin.compose.viewmodel)
+
+            // Lifecycle ViewModel (KMP)
+            implementation(libs.androidx.lifecycle.viewmodel)
 
             // Logging
             implementation(libs.kermit)

@@ -1,14 +1,13 @@
 package dev.tohure.tanayenai.presentation.viewmodel
 
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import dev.tohure.tanayenai.domain.model.PantryItem
 import dev.tohure.tanayenai.domain.model.PantryLocation
 import dev.tohure.tanayenai.domain.model.PantryUnit
 import dev.tohure.tanayenai.domain.model.currentIsoDateTime
 import dev.tohure.tanayenai.domain.model.generateId
 import dev.tohure.tanayenai.domain.repository.PantryRepository
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,10 +27,7 @@ data class PantryUiState(
 class PantryViewModel(
     private val pantryRepository: PantryRepository,
     private val userId: String,
-) {
-    private val job = SupervisorJob()
-    private val scope = CoroutineScope(job + Dispatchers.Default)
-
+) : ViewModel() {
     private val _uiState = MutableStateFlow(PantryUiState())
     val uiState: StateFlow<PantryUiState> = _uiState.asStateFlow()
 
@@ -40,7 +36,7 @@ class PantryViewModel(
     }
 
     fun loadLocations() {
-        scope.launch {
+        viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
                 val locations = pantryRepository.getLocations(userId)
@@ -49,7 +45,6 @@ class PantryViewModel(
                         locations = locations,
                         isLoading = false,
                     )
-                // Usar ubicación por defecto
                 val defaultLocation = locations.firstOrNull { it.isDefault } ?: locations.firstOrNull()
                 defaultLocation?.let { selectLocation(it.id) }
             } catch (e: Exception) {
@@ -69,7 +64,7 @@ class PantryViewModel(
 
     private fun observeItemsForLocation(locationId: String) {
         pantryRepository
-            .observeItems(locationId)
+            .observeItems(userId, locationId)
             .onEach { items ->
                 _uiState.value = _uiState.value.copy(items = items)
             }.catch { e ->
@@ -77,7 +72,7 @@ class PantryViewModel(
                     _uiState.value.copy(
                         error = "Error observando items: ${e.message}",
                     )
-            }.launchIn(scope)
+            }.launchIn(viewModelScope)
     }
 
     fun addItem(
@@ -86,7 +81,7 @@ class PantryViewModel(
         unit: PantryUnit,
     ) {
         val locationId = _uiState.value.selectedLocationId ?: return
-        scope.launch {
+        viewModelScope.launch {
             val item =
                 PantryItem(
                     id = generateId(),
@@ -106,7 +101,7 @@ class PantryViewModel(
     }
 
     fun deleteItem(itemId: String) {
-        scope.launch {
+        viewModelScope.launch {
             try {
                 pantryRepository.deleteItem(itemId)
             } catch (e: Exception) {
@@ -117,9 +112,5 @@ class PantryViewModel(
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
-    }
-
-    fun onCleared() {
-        job.cancel()
     }
 }

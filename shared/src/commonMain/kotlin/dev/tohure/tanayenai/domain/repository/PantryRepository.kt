@@ -5,7 +5,10 @@ import dev.tohure.tanayenai.domain.model.PantryLocation
 import kotlinx.coroutines.flow.Flow
 
 interface PantryRepository {
-    fun observeItems(locationId: String): Flow<List<PantryItem>>
+    fun observeItems(
+        userId: String,
+        locationId: String,
+    ): Flow<List<PantryItem>>
 
     suspend fun getLocations(userId: String): List<PantryLocation>
 

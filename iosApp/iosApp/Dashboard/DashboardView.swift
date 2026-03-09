@@ -2,9 +2,11 @@
 // Created by Carlo Huaman Torres on 6/03/26.
 //
 import SwiftUI
+import Shared
 
 struct DashboardView: View {
-    // TODO: conectar con ViewModel del shared module
+    @StateObject private var viewmodel = DashboardViewModel()
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
@@ -17,42 +19,43 @@ struct DashboardView: View {
                     Text("Carlo")
                         .font(.system(size: 28, weight: .bold, design: .rounded))
                         .foregroundColor(TanayenTheme.textDark)
-                    Text("Tu VFC está baja hoy — tómatelo con calma 🌿")
+                    Text(viewmodel.alerts.first ?? "Todo bien por ahora 🌿")
                         .font(.system(.subheadline, design: .rounded))
                         .foregroundColor(TanayenTheme.textMuted)
                 }
                 .padding(.horizontal, 24)
                 .padding(.top, 16)
 
-                // Alerta
-                AlertBannerView(
-                    emoji: "😴",
-                    message: "Dormiste 5.1h. Evita cafeína después de las 14:00."
-                )
+                // Alertas dinámicas
+                if let firstAlert = viewmodel.alerts.first {
+                    AlertBannerView(
+                        emoji: "⚠️",
+                        message: firstAlert
+                    )
                     .padding(.horizontal, 24)
+                }
 
                 // Métricas — fila 1
                 HStack(spacing: 12) {
-                    MetricCardView(emoji: "🌙", value: "5.1", unit: "h",
+                    MetricCardView(emoji: "🌙", value: viewmodel.sleepHours, unit: "h",
                                    label: "Sueño", tint: TanayenTheme.accentTerra)
-                    MetricCardView(emoji: "💚", value: "42", unit: "ms",
+                    MetricCardView(emoji: "💚", value: viewmodel.hrv, unit: "ms",
                                    label: "VFC", tint: TanayenTheme.secondaryMint)
                 }
                 .padding(.horizontal, 24)
 
                 // Métricas — fila 2
                 HStack(spacing: 12) {
-                    MetricCardView(emoji: "⚖️", value: "78.2", unit: "kg",
+                    MetricCardView(emoji: "⚖️", value: viewmodel.weightKg, unit: "kg",
                                    label: "Peso", tint: TanayenTheme.secondaryMint)
-                    MetricCardView(emoji: "❤️", value: "68", unit: "bpm",
+                    MetricCardView(emoji: "❤️", value: viewmodel.restingHeartRate, unit: "bpm",
                                    label: "FC reposo", tint: Color(hex: "#E63946"))
                 }
                 .padding(.horizontal, 24)
 
                 // Lo que comiste hoy
                 TodayFoodCardView(
-                    foodLogs: [("Desayuno", "Avena con almendras"),
-                               ("Almuerzo", "Ensalada con atún")]
+                    foodLogs: viewmodel.foodLogs
                 )
                     .padding(.horizontal, 24)
 
@@ -76,6 +79,10 @@ struct DashboardView: View {
         }
         .background(TanayenTheme.background)
         .navigationBarHidden(true)
+        .onAppear {
+            KoinInitializerKt.triggerSyncFromIos()
+            viewmodel.load()
+        }
     }
 
     private func greetingByHour() -> String {

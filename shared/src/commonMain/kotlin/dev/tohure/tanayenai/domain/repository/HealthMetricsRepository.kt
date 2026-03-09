@@ -11,5 +11,7 @@ interface HealthMetricsRepository {
 
     suspend fun getLatestMetrics(userId: String): HealthMetrics?
 
+    fun getLatestMetricsFlow(userId: String): kotlinx.coroutines.flow.Flow<HealthMetrics?>
+
     suspend fun saveMetrics(metrics: HealthMetrics)
 }

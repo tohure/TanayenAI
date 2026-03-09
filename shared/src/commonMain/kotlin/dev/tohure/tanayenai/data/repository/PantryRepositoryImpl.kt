@@ -21,9 +21,12 @@ class PantryRepositoryImpl(
     private val itemQueries = database.pantryItemQueries
     private val locationQueries = database.pantryLocationQueries
 
-    override fun observeItems(locationId: String): Flow<List<PantryItem>> =
+    override fun observeItems(
+        userId: String,
+        locationId: String,
+    ): Flow<List<PantryItem>> =
         itemQueries
-            .getItemsByLocation(userId = currentUserId(), locationId = locationId)
+            .getItemsByLocation(userId = userId, locationId = locationId)
             .asFlow()
             .mapToList(Dispatchers.Default)
             .map { dbItems -> dbItems.map { it.toDomain() } }
@@ -95,7 +98,4 @@ class PantryRepositoryImpl(
             name = name,
             isDefault = is_default == 1L,
         )
-
-    // TODO: Reemplazar con auth real en Fase 3 (Supabase Auth)
-    private fun currentUserId(): String = "local_user"
 }

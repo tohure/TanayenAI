@@ -1,89 +1,116 @@
 package dev.tohure.tanayenai.ui.dashboard
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import dev.tohure.tanayenai.presentation.viewmodel.DashboardViewModel
 import dev.tohure.tanayenai.ui.theme.AccentTerra
 import dev.tohure.tanayenai.ui.theme.SecondaryMint
+import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.parameter.parametersOf
 import java.util.Calendar
 
 @Composable
 fun DashboardScreen(onNavigateToChat: () -> Unit = {}) {
-    // TODO Fase 3: conectar con ViewModel y datos reales de Supabase/SQLDelight
-
+    val viewModel: DashboardViewModel =
+        koinViewModel {
+            parametersOf("00000000-0000-0000-0000-000000000001")
+        }
+    val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
 
     Column(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .verticalScroll(scrollState),
+        modifier = Modifier.fillMaxSize().verticalScroll(scrollState),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Spacer(Modifier.height(8.dp))
 
-        // Saludo contextual
         GreetingHeader(
             userName = "Carlo",
             greeting = greetingByHour(),
-            subtitle = "Tu VFC está baja hoy — tómatelo con calma 🌿",
+            subtitle =
+                if (uiState.activeAlerts.isEmpty()) {
+                    "Todo bien por ahora 🌿"
+                } else {
+                    uiState.activeAlerts.first()
+                },
         )
 
-        // Alerta activa (solo visible si hay alertas)
-        AlertBanner(
-            message = "Dormiste 5.1h. Evita cafeína después de las 14:00.",
-            emoji = "😴",
-        )
+        // Mostrar alerta si existe
+        uiState.activeAlerts.firstOrNull()?.let { alert ->
+            AlertBanner(message = alert)
+        }
 
-        Spacer(Modifier.height(4.dp))
+        // Métricas reales o skeleton si está cargando
+        if (uiState.isLoading) {
+            // Skeleton simple mientras cargan los datos
+            repeat(2) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    repeat(2) {
+                        Box(
+                            modifier =
+                                Modifier
+                                    .weight(1f)
+                                    .height(100.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(Color(0xFFEEEEEE)),
+                        )
+                    }
+                }
+            }
+        } else {
+            val metrics = uiState.latestMetrics
+            MetricsRow(
+                metrics =
+                    listOf(
+                        Triple("Sueño", metrics?.sleepHours?.toString() ?: "--", "h"),
+                        Triple("VFC", metrics?.hrv?.toInt()?.toString() ?: "--", "ms"),
+                    ),
+                emojis = listOf("🌙", "💚"),
+                tints = listOf(AccentTerra, SecondaryMint),
+            )
+            MetricsRow(
+                metrics =
+                    listOf(
+                        Triple("Peso", metrics?.weightKg?.toString() ?: "--", "kg"),
+                        Triple("FC reposo", metrics?.restingHeartRate?.toString() ?: "--", "bpm"),
+                    ),
+                emojis = listOf("⚖️", "❤️"),
+                tints = listOf(SecondaryMint, Color(0xFFE63946)),
+            )
+        }
 
-        // Fila de métricas: sueño + VFC
-        MetricsRow(
-            metrics =
-                listOf(
-                    Triple("Sueño", "5.1", "h"),
-                    Triple("VFC", "42", "ms"),
-                ),
-            emojis = listOf("🌙", "💚"),
-            tints = listOf(AccentTerra, SecondaryMint),
-        )
-
-        // Fila de métricas: peso + FC reposo
-        MetricsRow(
-            metrics =
-                listOf(
-                    Triple("Peso", "78.2", "kg"),
-                    Triple("FC reposo", "68", "bpm"),
-                ),
-            emojis = listOf("⚖️", "❤️"),
-            tints = listOf(SecondaryMint, Color(0xFFE63946)),
-        )
-
-        Spacer(Modifier.height(4.dp))
-
-        // Lo que comiste hoy
         TodayFoodCard(
             foodLogs =
-                listOf(
-                    "Desayuno" to "Avena con almendras",
-                    "Almuerzo" to "Ensalada con atún",
-                ),
+                uiState.todayFoodLogs.map {
+                    it.mealType.name
+                        .lowercase()
+                        .replaceFirstChar { c -> c.uppercase() } to it.foodName
+                },
             onAddManuallyClick = { /* TODO: Fase futura */ },
         )
 
-        Spacer(Modifier.height(4.dp))
-
-        // CTA principal
         AskAssistantButton(onClick = onNavigateToChat)
-
         Spacer(Modifier.height(16.dp))
     }
 }
