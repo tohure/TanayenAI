@@ -3,8 +3,8 @@
 **Asistente nutricional inteligente impulsado por Gemini AI**
 _Tus datos de salud, tus metas, tus recomendaciones — todo en un solo lugar._
 
-[![Android Build](https://img.shields.io/github/actions/workflow/status/tohure/TanayenAI/android.yml?branch=develop&label=Android%20Build&logo=android&color=3DDC84)](https://github.com/tohure/TanayenAI/actions)
-[![iOS Build](https://img.shields.io/github/actions/workflow/status/tohure/TanayenAI/ios.yml?branch=develop&label=iOS%20Build&logo=apple&color=007AFF)](https://github.com/tohure/TanayenAI/actions)
+[![Android Build](https://img.shields.io/github/actions/workflow/status/tohure/TanayenAI/ci.yml?branch=develop&label=Android%20Build&logo=android&color=3DDC84)](https://github.com/tohure/TanayenAI/actions/workflows/ci.yml)
+[![iOS Build](https://img.shields.io/github/actions/workflow/status/tohure/TanayenAI/ci.yml?branch=develop&label=iOS%20Build&logo=apple&color=007AFF)](https://github.com/tohure/TanayenAI/actions/workflows/ci.yml)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.3.10-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/)
 [![KMP](https://img.shields.io/badge/Kotlin%20Multiplatform-iOS%20%7C%20Android-orange?logo=kotlin)](https://www.jetbrains.com/kotlin-multiplatform/)
 [![Gemini](https://img.shields.io/badge/Gemini%202.5%20Flash-AI%20Powered-blue?logo=google&logoColor=white)](https://ai.google.dev/)
