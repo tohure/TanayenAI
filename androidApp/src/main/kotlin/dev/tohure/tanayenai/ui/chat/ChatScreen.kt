@@ -15,41 +15,33 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import dev.tohure.tanayenai.presentation.viewmodel.ChatViewModel
 import dev.tohure.tanayenai.ui.theme.TextMutedColor
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import org.koin.androidx.compose.koinViewModel
+import org.koin.core.parameter.parametersOf
 
 @Composable
 fun ChatScreen() {
-    val messages =
-        remember {
-            mutableStateListOf(
-                ChatMessage(
-                    id = "welcome",
-                    content = "Hola 🌿 Soy tu asistente nutricional. Puedes contarme qué comiste, mandarme fotos de tu alacena, o preguntarme qué comer hoy.",
-                    isUser = false,
-                ),
-            )
+    val viewModel: ChatViewModel =
+        koinViewModel {
+            parametersOf("00000000-0000-0000-0000-000000000001")
         }
+    val uiState by viewModel.uiState.collectAsState()
     var inputText by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
-
     val listState = rememberLazyListState()
-    val scope = rememberCoroutineScope()
 
-    // Auto-scroll al último mensaje
-    LaunchedEffect(messages.size) {
-        if (messages.isNotEmpty()) {
-            listState.animateScrollToItem(messages.size - 1)
+    // Auto-scroll al último mensaje al cambiar el contenido textual (ideal para el stream)
+    LaunchedEffect(uiState.messages.lastOrNull()?.content) {
+        if (uiState.messages.isNotEmpty()) {
+            listState.animateScrollToItem(uiState.messages.size - 1)
         }
     }
 
@@ -59,7 +51,7 @@ fun ChatScreen() {
                 .fillMaxSize()
                 .statusBarsPadding(),
     ) {
-        // Header mínimo
+        // Header
         Row(
             modifier =
                 Modifier
@@ -70,92 +62,55 @@ fun ChatScreen() {
             Column {
                 Text("Asistente", style = MaterialTheme.typography.headlineMedium)
                 Text(
-                    text = "Contexto actualizado · hace 2 min",
+                    text = if (uiState.contextReady) "Contexto listo 🌿" else "Cargando contexto...",
                     style = MaterialTheme.typography.bodyMedium,
                     color = TextMutedColor,
                 )
             }
         }
 
-        // Lista de mensajes
+        // Mensajes
         LazyColumn(
             state = listState,
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(4.dp),
             contentPadding = PaddingValues(vertical = 8.dp),
         ) {
-            items(messages, key = { it.id }) { message ->
-                MessageBubble(message = message)
+            items(uiState.messages, key = { it.id }) { message ->
+                MessageBubble(
+                    message =
+                        ChatMessage(
+                            id = message.id,
+                            content = message.content,
+                            isUser = message.isUser,
+                            isLoading = message.isLoading,
+                        ),
+                )
             }
         }
 
-        // Input bar
+        // Error banner
+        uiState.error?.let { error ->
+            Text(
+                text = error,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
+            )
+        }
+
+        // Input
         ChatInputBar(
             value = inputText,
             onValueChange = { inputText = it },
-            isLoading = isLoading,
-            onCameraClick = {
-                // TODO: abrir cámara para escanear alacena
-            },
+            isLoading = uiState.isLoading,
+            onCameraClick = { /* TODO Fase 5B */ },
             onSend = {
-                if (inputText.isBlank() || isLoading) return@ChatInputBar
-
-                val userMessage =
-                    ChatMessage(
-                        id = System.currentTimeMillis().toString(),
-                        content = inputText.trim(),
-                        isUser = true,
-                    )
-                messages.add(userMessage)
-                val sentText = inputText
-                inputText = ""
-                isLoading = true
-
-                // Indicador "escribiendo"
-                val loadingId = "loading_${System.currentTimeMillis()}"
-                messages.add(
-                    ChatMessage(id = loadingId, content = "", isUser = false, isLoading = true),
-                )
-
-                scope.launch {
-                    // TODO Fase 4: reemplazar con llamada real a Gemini API + ContextBuilder
-                    delay(1500)
-                    messages.removeIf { it.id == loadingId }
-                    messages.add(
-                        ChatMessage(
-                            id = System.currentTimeMillis().toString(),
-                            content = mockGeminiResponse(sentText),
-                            isUser = false,
-                        ),
-                    )
-                    isLoading = false
+                if (inputText.isNotBlank()) {
+                    viewModel.sendMessage(inputText)
+                    inputText = ""
                 }
             },
         )
     }
 }
-
-// Respuestas mock hasta conectar Gemini
-private fun mockGeminiResponse(input: String): String =
-    when {
-        input.contains(
-            "comer",
-            ignoreCase = true,
-        ) -> "Basándome en tu alacena y métricas de hoy, te recomiendo una ensalada de atún con aguacate para el almuerzo. Tienes todos los ingredientes en casa 🥗"
-
-        input.contains("sueño", ignoreCase = true) ||
-            input.contains(
-                "dormí",
-                ignoreCase = true,
-            )
-        -> "Veo que dormiste poco. Hoy evita cafeína después de las 14:00 y prefiere una cena ligera. El magnesio de las almendras puede ayudarte esta noche 🌙"
-
-        input.contains("foto", ignoreCase = true) ||
-            input.contains(
-                "alacena",
-                ignoreCase = true,
-            )
-        -> "Recibido 📦 Estoy actualizando tu alacena con los nuevos ingredientes. Te aviso cuando termine."
-
-        else -> "Entendido. Tengo en cuenta eso para tus próximas recomendaciones. ¿Quieres saber qué puedes comer hoy con lo que tienes en casa? 🌿"
-    }

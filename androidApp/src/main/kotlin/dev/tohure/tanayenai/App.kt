@@ -19,6 +19,7 @@ class App : Application() {
                         single { DatabaseDriverFactory(androidContext()) }
                         single(named("SUPABASE_URL")) { BuildConfig.SUPABASE_URL }
                         single(named("SUPABASE_ANON_KEY")) { BuildConfig.SUPABASE_ANON_KEY }
+                        single(named("GEMINI_API_KEY")) { BuildConfig.GEMINI_API_KEY }
                     },
             )
         }

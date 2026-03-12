@@ -9,4 +9,5 @@ fun sharedModules(): List<Module> =
         useCaseModule,
         viewModelModule,
         networkModule,
+        geminiModule,
     )

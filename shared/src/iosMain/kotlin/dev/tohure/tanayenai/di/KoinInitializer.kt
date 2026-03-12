@@ -2,6 +2,7 @@ package dev.tohure.tanayenai.di
 
 import dev.tohure.tanayenai.data.local.DatabaseDriverFactory
 import dev.tohure.tanayenai.data.remote.SyncManager
+import dev.tohure.tanayenai.presentation.viewmodel.ChatViewModel
 import dev.tohure.tanayenai.presentation.viewmodel.DashboardViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -17,6 +18,7 @@ import kotlin.experimental.ExperimentalObjCName
 fun initKoin(
     supabaseUrl: String,
     supabaseAnonKey: String,
+    geminiApiKey: String,
 ) {
     startKoin {
         modules(
@@ -25,6 +27,7 @@ fun initKoin(
                     single { DatabaseDriverFactory() }
                     single(named("SUPABASE_URL")) { supabaseUrl }
                     single(named("SUPABASE_ANON_KEY")) { supabaseAnonKey }
+                    single(named("GEMINI_API_KEY")) { geminiApiKey }
                 },
         )
     }
@@ -53,3 +56,6 @@ fun triggerSyncFromIos() {
 @Suppress("unused") // Called from Swift
 fun getDashboardViewModel(userId: String): DashboardViewModel =
     KoinPlatform.getKoin().get<DashboardViewModel> { parametersOf(userId) }
+
+@Suppress("unused") // Called from Swift
+fun getChatViewModel(userId: String): ChatViewModel = KoinPlatform.getKoin().get<ChatViewModel> { parametersOf(userId) }

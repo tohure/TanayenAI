@@ -1,8 +1,6 @@
 package dev.tohure.tanayenai.data.remote
 
 import co.touchlab.kermit.Logger
-import dev.tohure.tanayenai.domain.model.PantryItem
-import dev.tohure.tanayenai.domain.model.PantryUnit
 import dev.tohure.tanayenai.domain.repository.HealthMetricsRepository
 import dev.tohure.tanayenai.domain.repository.PantryRepository
 import kotlinx.coroutines.Dispatchers

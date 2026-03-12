@@ -49,12 +49,14 @@ kotlin {
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.serialization.json)
-            implementation(libs.ktor.client.logging)
 
             // Supabase
             implementation(libs.supabase.postgrest)
             implementation(libs.supabase.auth)
             implementation(libs.supabase.realtime)
+
+            // AI (Gemini)
+            implementation(libs.generativeai.google)
 
             // SQLDelight
             implementation(libs.sqldelight.runtime)

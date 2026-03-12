@@ -22,4 +22,14 @@ val viewModelModule =
                 userId = params.get(),
             )
         }
+        viewModel { params ->
+            dev.tohure.tanayenai.presentation.viewmodel.ChatViewModel(
+                generativeModel = get(),
+                buildContextUseCase = get(),
+                healthMetricsRepository = get(),
+                pantryRepository = get(),
+                recommendationRepository = get(),
+                userId = params.get(),
+            )
+        }
     }

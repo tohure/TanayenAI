@@ -3,6 +3,7 @@
 //
 
 import SwiftUI
+import Shared
 
 struct ChatMessage: Identifiable {
     let id: String
@@ -12,15 +13,8 @@ struct ChatMessage: Identifiable {
 }
 
 struct ChatView: View {
-    @State private var messages: [ChatMessage] = [
-        ChatMessage(
-            id: "welcome",
-            content: "Hola 🌿 Soy tu asistente nutricional. Puedes contarme qué comiste, mandarme fotos de tu alacena, o preguntarme qué comer hoy.",
-            isUser: false
-        )
-    ]
+    @StateObject private var vm = ChatViewModelWrapper()
     @State private var inputText = ""
-    @State private var isLoading = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -29,7 +23,7 @@ struct ChatView: View {
                 Text("Asistente")
                     .font(.system(size: 22, weight: .semibold, design: .rounded))
                     .foregroundColor(TanayenTheme.textDark)
-                Text("Contexto actualizado · hace 2 min")
+                Text(vm.contextReady ? "Contexto listo 🌿" : "Cargando contexto...")
                     .font(.system(.caption, design: .rounded))
                     .foregroundColor(TanayenTheme.textMuted)
             }
@@ -43,65 +37,82 @@ struct ChatView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(spacing: 8) {
-                        ForEach(messages) { message in
+                        ForEach(vm.messages) { message in
                             ChatBubbleView(message: message)
                                 .id(message.id)
                         }
                     }
                     .padding(.vertical, 8)
                 }
-                .onChange(of: messages.count) { _, _ in
-                    if let last = messages.last {
+                .onChange(of: vm.messages.last?.content) { _, _ in
+                    if let last = vm.messages.last {
                         withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
                     }
                 }
             }
 
+            if let error = vm.error {
+                Text(error)
+                    .font(.caption)
+                    .foregroundColor(.red)
+                    .padding(.horizontal)
+            }
+
             // Input
             ChatInputBarView(
                 text: $inputText,
-                isLoading: isLoading,
+                isLoading: vm.isLoading,
                 onCameraClick: {
                     // TODO: cámara para alacena
                 },
-                onSend: sendMessage
+                onSend: {
+                    let text = inputText.trimmingCharacters(in: .whitespaces)
+                    guard !text.isEmpty, !vm.isLoading else { return }
+                    vm.sendMessage(text)
+                    inputText = ""
+                }
             )
         }
         .background(TanayenTheme.background)
         .navigationBarHidden(true)
     }
+}
 
-    private func sendMessage() {
-        guard !inputText.trimmingCharacters(in: .whitespaces).isEmpty, !isLoading else { return }
+@MainActor
+class ChatViewModelWrapper: ObservableObject {
+    @Published var messages: [ChatMessage] = []
+    @Published var isLoading = false
+    @Published var contextReady = false
+    @Published var error: String? = nil
 
-        let text = inputText.trimmingCharacters(in: .whitespaces)
-        messages.append(ChatMessage(id: UUID().uuidString, content: text, isUser: true))
-        inputText = ""
-        isLoading = true
+    private let viewModel: ChatViewModel
 
-        let loadingId = UUID().uuidString
-        messages.append(ChatMessage(id: loadingId, content: "", isUser: false, isLoading: true))
+    init() {
+        self.viewModel = KoinInitializerKt.getChatViewModel(userId: "00000000-0000-0000-0000-000000000001")
+        observeState()
+    }
 
-        // TODO: reemplazar con Gemini API + ContextBuilder
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            messages.removeAll { $0.id == loadingId }
-            messages.append(ChatMessage(
-                id: UUID().uuidString,
-                content: mockResponse(for: text),
-                isUser: false
-            ))
-            isLoading = false
+    private func observeState() {
+        viewModel.observeUiState { [weak self] state in
+            guard let self = self else { return }
+
+            DispatchQueue.main.async {
+                self.messages = state.messages.map { msg in
+                    ChatMessage(
+                        id: msg.id,
+                        content: msg.content,
+                        isUser: msg.isUser,
+                        isLoading: msg.isLoading
+                    )
+                }
+                self.isLoading = state.isLoading
+                self.contextReady = state.contextReady
+                self.error = state.error
+            }
         }
     }
 
-    private func mockResponse(for input: String) -> String {
-        let lower = input.lowercased()
-        if lower.contains("comer") {
-            return "Basándome en tu alacena y métricas de hoy, te recomiendo una ensalada de atún con aguacate 🥗"
-        } else if lower.contains("sueño") || lower.contains("dormí") {
-            return "Veo que dormiste poco. Hoy evita cafeína después de las 14:00 🌙"
-        } else {
-            return "Entendido. ¿Quieres saber qué puedes comer hoy con lo que tienes en casa? 🌿"
-        }
+    func sendMessage(_ text: String) {
+        viewModel.sendMessage(userText: text)
     }
 }
