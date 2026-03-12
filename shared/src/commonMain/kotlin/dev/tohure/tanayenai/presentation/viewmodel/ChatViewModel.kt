@@ -20,6 +20,7 @@ import dev.tohure.tanayenai.domain.repository.PantryRepository
 import dev.tohure.tanayenai.domain.repository.RecommendationRepository
 import dev.tohure.tanayenai.domain.usecase.BuildContextUseCase
 import dev.tohure.tanayenai.domain.usecase.ContextParams
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -148,15 +149,8 @@ class ChatViewModel(
 
         viewModelScope.launch {
             var fullResponse = ""
+            var firstChunk = true
             val assistantMessageId = generateId()
-
-            _uiState.value =
-                _uiState.value.copy(
-                    messages =
-                        _uiState.value.messages
-                            .filter { it.id != loadingId } +
-                            UiChatMessage(id = assistantMessageId, content = "", isUser = false),
-                )
 
             try {
                 // Preparamos los mensajes de la historia usando la DSL content {} del SDK oficial
@@ -193,39 +187,51 @@ class ChatViewModel(
                                 error = e.message,
                             )
                     }.collect { chunk ->
-                        fullResponse += chunk.text ?: ""
+                        val text = chunk.text ?: return@collect
 
-                        // Filtramos el bloque JSON de la respuesta visual
-                        val visibleContent = fullResponse.replace(Regex("```json[\\s\\S]*?```"), "").trim()
+                        if (firstChunk) {
+                            firstChunk = false
+                            _uiState.value =
+                                _uiState.value.copy(
+                                    messages =
+                                        _uiState.value.messages
+                                            .filter { it.id != loadingId } +
+                                            UiChatMessage(id = assistantMessageId, content = "", isUser = false),
+                                )
+                        }
 
-                        _uiState.value =
-                            _uiState.value.copy(
-                                messages =
-                                    _uiState.value.messages.map { msg ->
-                                        if (msg.id == assistantMessageId) {
-                                            msg.copy(content = visibleContent)
-                                        } else {
-                                            msg
-                                        }
-                                    },
-                            )
+                        for (char in text) {
+                            fullResponse += char
+                            val visibleContent =
+                                fullResponse
+                                    .replace(Regex("```json[\\s\\S]*?```"), "")
+                                    .trim()
+                            _uiState.value =
+                                _uiState.value.copy(
+                                    messages =
+                                        _uiState.value.messages.map { msg ->
+                                            if (msg.id == assistantMessageId) {
+                                                msg.copy(content = visibleContent)
+                                            } else {
+                                                msg
+                                            }
+                                        },
+                                )
+                            delay(12)
+                        }
                     }
 
-                // Finalizado el stream
                 if (fullResponse.isNotEmpty()) {
                     conversationHistory.add("user" to userText.trim())
-
-                    // Almacenamos la respuesta sin el contexto inyectado para las siguientes iteraciones
                     conversationHistory.add("model" to fullResponse)
 
-                    // Solo mantenemos los últimos 10 pares (20 mensajes)
                     if (conversationHistory.size > 20) {
                         conversationHistory.removeAt(0)
                         conversationHistory.removeAt(0)
                     }
 
                     extractAndSaveRecommendation(fullResponse)
-                    buildContext() // Actualizamos contexto por si recomendó algo y debemos evitar repetir
+                    buildContext() // Actualizamos contexto por si ya recomendó algo y se debe evitar repetir
                 }
             } catch (e: Exception) {
                 log.e(e) { "Unhandled Gemini Exception" }
@@ -300,7 +306,7 @@ class ChatViewModel(
             diastolicPressure = 82,
         )
 
-    private fun daysAgo(days: Int): String = currentIsoDate() // simplificado
+    private fun daysAgo(days: Int): String = currentIsoDate()
 
     // ── iOS Helpers  ────────────────────────────────────────────────
     fun observeUiState(onChange: (ChatUiState) -> Unit) {

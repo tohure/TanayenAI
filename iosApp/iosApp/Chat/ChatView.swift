@@ -13,7 +13,7 @@ struct ChatMessage: Identifiable {
 }
 
 struct ChatView: View {
-    @StateObject private var vm = ChatViewModelWrapper()
+    @StateObject private var chatVM = ChatViewModelWrapper()
     @State private var inputText = ""
 
     var body: some View {
@@ -23,7 +23,7 @@ struct ChatView: View {
                 Text("Asistente")
                     .font(.system(size: 22, weight: .semibold, design: .rounded))
                     .foregroundColor(TanayenTheme.textDark)
-                Text(vm.contextReady ? "Contexto listo 🌿" : "Cargando contexto...")
+                Text(chatVM.contextReady ? "Contexto listo 🌿" : "Cargando contexto...")
                     .font(.system(.caption, design: .rounded))
                     .foregroundColor(TanayenTheme.textMuted)
             }
@@ -37,21 +37,21 @@ struct ChatView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(spacing: 8) {
-                        ForEach(vm.messages) { message in
+                        ForEach(chatVM.messages) { message in
                             ChatBubbleView(message: message)
                                 .id(message.id)
                         }
                     }
                     .padding(.vertical, 8)
                 }
-                .onChange(of: vm.messages.last?.content) { _, _ in
-                    if let last = vm.messages.last {
+                .onChange(of: chatVM.messages.last?.content) { _, _ in
+                    if let last = chatVM.messages.last {
                         withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
                     }
                 }
             }
 
-            if let error = vm.error {
+            if let error = chatVM.error {
                 Text(error)
                     .font(.caption)
                     .foregroundColor(.red)
@@ -61,14 +61,14 @@ struct ChatView: View {
             // Input
             ChatInputBarView(
                 text: $inputText,
-                isLoading: vm.isLoading,
+                isLoading: chatVM.isLoading,
                 onCameraClick: {
                     // TODO: cámara para alacena
                 },
                 onSend: {
                     let text = inputText.trimmingCharacters(in: .whitespaces)
-                    guard !text.isEmpty, !vm.isLoading else { return }
-                    vm.sendMessage(text)
+                    guard !text.isEmpty, !chatVM.isLoading else { return }
+                    chatVM.sendMessage(text)
                     inputText = ""
                 }
             )

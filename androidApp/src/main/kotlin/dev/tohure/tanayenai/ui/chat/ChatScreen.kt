@@ -39,9 +39,10 @@ fun ChatScreen() {
     val listState = rememberLazyListState()
 
     // Auto-scroll al último mensaje al cambiar el contenido textual (ideal para el stream)
-    LaunchedEffect(uiState.messages.lastOrNull()?.content) {
+    val lastMessageContent = uiState.messages.lastOrNull()?.content
+    LaunchedEffect(lastMessageContent) {
         if (uiState.messages.isNotEmpty()) {
-            listState.animateScrollToItem(uiState.messages.size - 1)
+            listState.scrollToItem(uiState.messages.size - 1)
         }
     }
 

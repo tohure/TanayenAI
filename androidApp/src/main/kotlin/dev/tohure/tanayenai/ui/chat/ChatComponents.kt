@@ -1,5 +1,11 @@
 package dev.tohure.tanayenai.ui.chat
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.StartOffset
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.keyframes
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -7,6 +13,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -22,6 +29,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -104,17 +112,37 @@ fun MessageBubble(
 /** Indicador "escribiendo..." */
 @Composable
 fun TypingIndicator() {
-    // 3 puntos animados — simple y efectivo
+    val infiniteTransition = rememberInfiniteTransition(label = "typing")
+
     Row(
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.padding(vertical = 4.dp),
+        modifier = Modifier.padding(vertical = 6.dp),
     ) {
-        repeat(3) {
+        listOf(0, 150, 300).forEach { delayMs ->
+            val offsetY by infiniteTransition.animateFloat(
+                initialValue = 0f,
+                targetValue = 6f, // ← positivo, sin warning
+                animationSpec =
+                    infiniteRepeatable(
+                        animation =
+                            keyframes {
+                                durationMillis = 900
+                                0f at 0
+                                6f at 200 // ← mismo rango que targetValue
+                                0f at 400
+                                0f at 900
+                            },
+                        repeatMode = RepeatMode.Restart,
+                        initialStartOffset = StartOffset(delayMs),
+                    ),
+                label = "dot_$delayMs",
+            )
             Box(
                 modifier =
                     Modifier
                         .size(7.dp)
+                        .offset(y = (-offsetY).dp) // ← negado aquí para subir
                         .clip(CircleShape)
                         .background(TextMutedColor),
             )

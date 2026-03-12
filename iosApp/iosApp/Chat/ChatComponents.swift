@@ -49,15 +49,27 @@ struct ChatBubbleView: View {
 }
 
 struct TypingIndicatorView: View {
+    @State private var animating = false
+
     var body: some View {
-        HStack(spacing: 4) {
-            ForEach(0..<3) { _ in
+        HStack(spacing: 5) {
+            ForEach(0..<3) { interval in
                 Circle()
                     .fill(TanayenTheme.textMuted)
                     .frame(width: 7, height: 7)
+                    .offset(y: animating ? -6 : 0)
+                    .animation(
+                        Animation
+                            .easeInOut(duration: 0.4)
+                            .repeatForever(autoreverses: true)
+                            .delay(Double(interval) * 0.15),
+                        value: animating
+                    )
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 6)
+        .onAppear { animating = true }
+        .onDisappear { animating = false }
     }
 }
 
