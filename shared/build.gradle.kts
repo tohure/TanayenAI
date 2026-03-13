@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.androidMultiplatformLibrary)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.sqldelight)
+    alias(libs.plugins.kmp.nativecoroutines)
 }
 
 kotlin {
@@ -34,11 +35,14 @@ kotlin {
             baseName = "Shared"
             isStatic = true
             binaryOption("bundleId", "dev.tohure.tanayenai.shared")
-            linkerOpts("-lsqlite3")
         }
     }
 
     sourceSets {
+        all {
+            languageSettings.optIn("kotlin.experimental.ExperimentalObjCName")
+        }
+
         commonMain.dependencies {
             // Coroutines
             implementation(libs.kotlinx.coroutines.core)
@@ -51,6 +55,7 @@ kotlin {
             implementation(libs.ktor.serialization.json)
 
             // Supabase
+            implementation(project.dependencies.platform(libs.supabase.bom))
             implementation(libs.supabase.postgrest)
             implementation(libs.supabase.auth)
             implementation(libs.supabase.realtime)

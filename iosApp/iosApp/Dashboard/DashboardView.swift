@@ -5,7 +5,7 @@ import SwiftUI
 import Shared
 
 struct DashboardView: View {
-    @StateObject private var viewmodel = DashboardViewModel()
+    @StateObject private var viewmodel = DashboardViewModelWrapper()
 
     var body: some View {
         ScrollView {

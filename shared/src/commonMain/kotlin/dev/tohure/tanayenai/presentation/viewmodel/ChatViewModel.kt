@@ -3,6 +3,7 @@ package dev.tohure.tanayenai.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
+import com.rickclephas.kmp.nativecoroutines.NativeCoroutinesState
 import dev.shreyaspatil.ai.client.generativeai.GenerativeModel
 import dev.shreyaspatil.ai.client.generativeai.type.content
 import dev.tohure.tanayenai.domain.model.ActivityLevel
@@ -71,6 +72,8 @@ class ChatViewModel(
     private val userId: String,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ChatUiState())
+
+    @NativeCoroutinesState
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
 
     // Historial de conversación para Gemini (máximo últimos 10 turnos)
@@ -307,11 +310,4 @@ class ChatViewModel(
         )
 
     private fun daysAgo(days: Int): String = currentIsoDate()
-
-    // ── iOS Helpers  ────────────────────────────────────────────────
-    fun observeUiState(onChange: (ChatUiState) -> Unit) {
-        viewModelScope.launch {
-            uiState.collect { onChange(it) }
-        }
-    }
 }

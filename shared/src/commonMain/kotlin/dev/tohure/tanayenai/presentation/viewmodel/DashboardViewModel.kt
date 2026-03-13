@@ -2,6 +2,7 @@ package dev.tohure.tanayenai.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.rickclephas.kmp.nativecoroutines.NativeCoroutinesState
 import dev.tohure.tanayenai.domain.model.FoodLog
 import dev.tohure.tanayenai.domain.model.HealthMetrics
 import dev.tohure.tanayenai.domain.model.currentIsoDate
@@ -32,6 +33,8 @@ class DashboardViewModel(
     private val userId: String,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(DashboardUiState())
+
+    @NativeCoroutinesState
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
 
     init {
@@ -100,15 +103,5 @@ class DashboardViewModel(
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
-    }
-
-    // iOS helper for collecting StateFlow without SKIE/KMP-NativeCoroutines
-    @Suppress("unused")
-    fun observeUiStateIos(onChange: (DashboardUiState) -> Unit) {
-        viewModelScope.launch {
-            uiState.collect { state ->
-                onChange(state)
-            }
-        }
     }
 }

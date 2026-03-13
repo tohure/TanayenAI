@@ -1,8 +1,12 @@
-import Foundation
+//
+// Created by Carlo Huaman Torres on 12/03/26.
+//
+
 import Shared
+import KMPNativeCoroutinesAsync
 
 @MainActor
-class DashboardViewModel: ObservableObject {
+class DashboardViewModelWrapper: ObservableObject {
     @Published var sleepHours: String = "--"
     @Published var hrv: String = "--"
     @Published var weightKg: String = "--"
@@ -11,22 +15,30 @@ class DashboardViewModel: ObservableObject {
     @Published var foodLogs: [(String, String)] = []
 
     // ViewModel compartido de KMP
-    private let kmpViewModel: Shared.DashboardViewModel
+    private let dashboardVM: DashboardViewModel
+    private var observeTask: Task<Void, Never>?
 
     init() {
         let userId = "00000000-0000-0000-0000-000000000001" // Dummy
-        self.kmpViewModel = KoinInitializerKt.getDashboardViewModel(userId: userId)
+        self.dashboardVM = KoinInitializerKt.getDashboardViewModel(userId: userId)
 
-        // Escuchando cambios en el estado
-        kmpViewModel.observeUiStateIos { [weak self] state in
-            Task { @MainActor in
-                self?.updateFromState(state)
+        observeTask = Task {
+            do {
+                for try await state in asyncSequence(for: dashboardVM.uiStateFlow) {
+                    updateFromState(state)
+                }
+            } catch {
+                print("Error observing state: \(error)")
             }
         }
     }
 
+    deinit {
+        observeTask?.cancel()
+    }
+
     func load() {
-        kmpViewModel.loadDashboard()
+        dashboardVM.loadDashboard()
     }
 
     private func updateFromState(_ state: DashboardUiState) {
@@ -44,6 +56,7 @@ class DashboardViewModel: ObservableObject {
                 self.restingHeartRate = "\(bpm.int32Value)"
             }
         }
+
         self.alerts = state.activeAlerts
 
         self.foodLogs = state.todayFoodLogs.compactMap { log in
