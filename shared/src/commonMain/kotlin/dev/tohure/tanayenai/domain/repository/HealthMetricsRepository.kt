@@ -1,6 +1,7 @@
 package dev.tohure.tanayenai.domain.repository
 
 import dev.tohure.tanayenai.domain.model.HealthMetrics
+import kotlinx.coroutines.flow.Flow
 
 interface HealthMetricsRepository {
     suspend fun getMetricsForDateRange(
@@ -11,7 +12,7 @@ interface HealthMetricsRepository {
 
     suspend fun getLatestMetrics(userId: String): HealthMetrics?
 
-    fun getLatestMetricsFlow(userId: String): kotlinx.coroutines.flow.Flow<HealthMetrics?>
+    fun getLatestMetricsFlow(userId: String): Flow<HealthMetrics?>
 
     suspend fun saveMetrics(metrics: HealthMetrics)
 }

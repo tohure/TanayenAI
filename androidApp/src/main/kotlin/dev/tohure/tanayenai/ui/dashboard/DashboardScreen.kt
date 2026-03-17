@@ -80,22 +80,31 @@ fun DashboardScreen(onNavigateToChat: () -> Unit = {}) {
             }
         } else {
             val metrics = uiState.latestMetrics
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                MetricCard(
+                    label = "Sueño",
+                    value = metrics?.sleepHours?.let { "%.1f".format(it) } ?: "--",
+                    unit = "h",
+                    emoji = "🌙",
+                    tint = AccentTerra,
+                    modifier = Modifier.weight(1f),
+                )
+
+                StressLevelCard(
+                    hrvValue = metrics?.hrv?.toInt()?.toString() ?: "--",
+                    modifier = Modifier.weight(1f),
+                )
+            }
             MetricsRow(
                 metrics =
                     listOf(
-                        Triple("Sueño", metrics?.sleepHours?.toString() ?: "--", "h"),
-                        Triple("VFC", metrics?.hrv?.toInt()?.toString() ?: "--", "ms"),
+                        Triple("Peso", metrics?.weightKg?.let { "%.1f".format(it) } ?: "--", "kg"),
+                        Triple("Calorías activas", metrics?.caloriesBurned?.toString() ?: "--", "kcal"),
                     ),
-                emojis = listOf("🌙", "💚"),
-                tints = listOf(AccentTerra, SecondaryMint),
-            )
-            MetricsRow(
-                metrics =
-                    listOf(
-                        Triple("Peso", metrics?.weightKg?.toString() ?: "--", "kg"),
-                        Triple("FC reposo", metrics?.restingHeartRate?.toString() ?: "--", "bpm"),
-                    ),
-                emojis = listOf("⚖️", "❤️"),
+                emojis = listOf("⚖️", "🔥"),
                 tints = listOf(SecondaryMint, Color(0xFFE63946)),
             )
         }

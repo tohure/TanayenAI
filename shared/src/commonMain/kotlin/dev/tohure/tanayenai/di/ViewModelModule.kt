@@ -1,8 +1,10 @@
 package dev.tohure.tanayenai.di
 
+import dev.tohure.tanayenai.presentation.viewmodel.ChatViewModel
 import dev.tohure.tanayenai.presentation.viewmodel.DashboardViewModel
 import dev.tohure.tanayenai.presentation.viewmodel.PantryViewModel
 import org.koin.core.module.dsl.viewModel
+import org.koin.core.parameter.parametersOf
 import org.koin.dsl.module
 
 val viewModelModule =
@@ -13,6 +15,7 @@ val viewModelModule =
                 pantryRepository = get(),
                 recommendationRepository = get(),
                 buildContextUseCase = get(),
+                syncHealthMetricsUseCase = get { parametersOf(params.get()) },
                 userId = params.get(),
             )
         }
@@ -23,7 +26,7 @@ val viewModelModule =
             )
         }
         viewModel { params ->
-            dev.tohure.tanayenai.presentation.viewmodel.ChatViewModel(
+            ChatViewModel(
                 generativeModel = get(),
                 buildContextUseCase = get(),
                 healthMetricsRepository = get(),

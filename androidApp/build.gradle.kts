@@ -35,7 +35,7 @@ kotlin {
         implementation(libs.androidx.activity.compose)
         implementation(libs.androidx.lifecycle.viewmodelCompose)
         implementation(libs.androidx.lifecycle.runtimeCompose)
-        implementation(libs.kermit)
+        implementation(libs.health.connect)
     }
 }
 

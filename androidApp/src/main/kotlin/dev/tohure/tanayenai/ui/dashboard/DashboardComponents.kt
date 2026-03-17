@@ -21,7 +21,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -99,6 +103,95 @@ fun MetricCard(
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
+            )
+        }
+    }
+}
+
+/** Tarjeta exclusiva para el Estrés (VFC) con un Gauge de semáforo */
+@Composable
+fun StressLevelCard(
+    modifier: Modifier = Modifier,
+    hrvValue: String, // "40" o "--"
+) {
+    val hrv = hrvValue.toFloatOrNull() ?: 0f
+
+    // Si la VFC es baja (<40), el estrés es Alto (Rojo).
+    // Si la VFC está entre 40 y 60, estrés es Medio (Amarillo).
+    // Si la VFC es alta (>60), el estrés es Bajo (Verde).
+    val (stressText, stressColor) =
+        when {
+            hrvValue == "--" -> "--" to TextMutedColor
+            hrv < 40f -> "Alto" to Color(0xFFE63946)
+            hrv < 60f -> "Medio" to Color(0xFFFFB703)
+            else -> "Bajo" to SecondaryMint
+        }
+
+    // Normalizamos la VFC en un rango de 0 a 100 para pintar el indicador en la barra
+    // Limitado a 100 para que el punto no se salga de la tarjeta si la VFC > 100.
+    val fraction = (hrv / 100f).coerceIn(0f, 1f)
+
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = SurfaceColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.Start,
+        ) {
+            Text(
+                text = "Nivel de estrés",
+                style = MaterialTheme.typography.labelSmall,
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = stressText,
+                style = MaterialTheme.typography.headlineMedium.copy(color = stressColor),
+                fontWeight = FontWeight.Bold,
+            )
+            Spacer(Modifier.height(12.dp))
+
+            // Barra de Semáforo (Gauge horizontal)
+            androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxWidth().height(12.dp)) {
+                val cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
+                // Fondo gradiente rojo -> amarillo -> verde (Rojo = bajo VFC = Alto estrés)
+                drawRoundRect(
+                    brush =
+                        Brush.horizontalGradient(
+                            colors = listOf(Color(0xFFE63946), Color(0xFFFFB703), SecondaryMint),
+                        ),
+                    size = size,
+                    cornerRadius = cornerRadius,
+                )
+
+                // Si hay datos, dibujar el marcador circular
+                if (hrvValue != "--") {
+                    val markerX = size.width * fraction
+                    val safeX = markerX.coerceIn(6.dp.toPx(), size.width - 6.dp.toPx())
+
+                    // Círculo blanco interno
+                    drawCircle(
+                        color = Color.White,
+                        radius = 6.dp.toPx(),
+                        center = Offset(safeX, size.height / 2),
+                    )
+                    // Borde oscuro del círculo para que resalte
+                    drawCircle(
+                        color = Color.DarkGray,
+                        radius = 6.dp.toPx(),
+                        center = Offset(safeX, size.height / 2),
+                        style = Stroke(width = 1.dp.toPx()),
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+            Text(
+                text = "VFC: $hrvValue ms",
+                style = MaterialTheme.typography.bodySmall,
+                color = TextMutedColor,
             )
         }
     }

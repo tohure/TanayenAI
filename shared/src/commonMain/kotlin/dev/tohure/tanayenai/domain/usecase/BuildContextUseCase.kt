@@ -53,7 +53,7 @@ class BuildContextUseCase {
                         val alert = if (hrv < 50) " ⚠ VFC BAJA" else ""
                         append("| VFC ${hrv}ms$alert ")
                     }
-                    metrics.restingHeartRate?.let { append("| FCR ${it}bpm ") }
+                    metrics.caloriesBurned?.let { append("| Calorías ${it}kcal ") }
                     appendLine()
                 }
                 appendLine()

@@ -34,6 +34,88 @@ struct MetricCardView: View {
     }
 }
 
+struct StressLevelCardView: View {
+    let hrvValue: String
+
+    private var hrv: Float {
+        Float(hrvValue) ?? 0
+    }
+
+    private var stressText: String {
+        if hrvValue == "--" { return "--" }
+        if hrv < 40 { return "Alto" }
+        if hrv < 60 { return "Medio" }
+        return "Bajo"
+    }
+
+    private var stressColor: Color {
+        if hrvValue == "--" { return TanayenTheme.textMuted }
+        if hrv < 40 { return Color(hex: "#E63946") }
+        if hrv < 60 { return Color(hex: "#FFB703") }
+        return TanayenTheme.secondaryMint
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Nivel de estrés")
+                .font(.system(.caption, design: .rounded))
+                .foregroundColor(TanayenTheme.textMuted)
+
+            Text(stressText)
+                .font(.system(size: 22, weight: .bold, design: .rounded))
+                .foregroundColor(stressColor)
+
+            Spacer().frame(height: 4)
+
+            // Barra Semaforizada
+            GeometryReader { geometry in
+                let width = geometry.size.width
+                let height: CGFloat = 12
+                let fraction = CGFloat(min(max(hrv / 100.0, 0), 1))
+
+                ZStack(alignment: .leading) {
+                    // Fondo gradiente
+                    RoundedRectangle(cornerRadius: height / 2)
+                        .fill(
+                            LinearGradient(
+                                gradient: Gradient(colors: [Color(hex: "#E63946"), Color(hex: "#FFB703"), TanayenTheme.secondaryMint]),
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(height: height)
+
+                    // Marcador Circular
+                    if hrvValue != "--" {
+                        let rawX = width * fraction
+                        let safeX = min(max(rawX, height / 2), width - height / 2)
+
+                        Circle()
+                            .fill(Color.white)
+                            .frame(width: height, height: height)
+                            .overlay(
+                                Circle().stroke(Color.gray, lineWidth: 1)
+                            )
+                            .position(x: safeX, y: height / 2)
+                    }
+                }
+            }
+            .frame(height: 12)
+
+            Spacer().frame(height: 4)
+
+            Text("VFC: \(hrvValue) ms")
+                .font(.system(size: 11, design: .rounded))
+                .foregroundColor(TanayenTheme.textMuted)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(TanayenTheme.surface)
+        .cornerRadius(16)
+        .shadow(color: .black.opacity(0.06), radius: 4, x: 0, y: 2)
+    }
+}
+
 struct AlertBannerView: View {
     let emoji: String
     let message: String

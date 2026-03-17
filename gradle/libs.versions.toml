@@ -1,7 +1,7 @@
 [versions]
 #Version App
 android-compileSdk = "36"
-android-minSdk = "24"
+android-minSdk = "28"
 android-targetSdk = "36"
 
 # Core
@@ -29,6 +29,9 @@ ktor = "3.4.1"
 
 # AI
 generativeai-kmp = "0.9.0-1.1.0"
+
+#Health
+health-connect = "1.1.0"
 
 # DB Local
 sqldelight = "2.2.1"
@@ -103,6 +106,9 @@ supabase-postgrest = { module = "io.github.jan-tennert.supabase:postgrest-kt" }
 
 # AI
 generativeai-google = { module = "dev.shreyaspatil.generativeai:generativeai-google", version.ref = "generativeai-kmp" }
+
+#Health
+health-connect = { module = "androidx.health.connect:connect-client", version.ref = "health-connect" }
 
 [plugins]
 androidMultiplatformLibrary = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }

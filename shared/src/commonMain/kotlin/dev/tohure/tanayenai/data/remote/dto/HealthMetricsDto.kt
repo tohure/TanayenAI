@@ -12,7 +12,7 @@ data class HealthMetricsDto(
     val imc: Double? = null,
     @SerialName("sleep_hours") val sleepHours: Double? = null,
     val hrv: Double? = null,
-    @SerialName("resting_heart_rate") val restingHeartRate: Int? = null,
+    @SerialName("calories_burned") val caloriesBurned: Int? = null,
     val steps: Int? = null,
     val source: String,
 )

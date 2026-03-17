@@ -10,7 +10,7 @@ class DashboardViewModelWrapper: ObservableObject {
     @Published var sleepHours: String = "--"
     @Published var hrv: String = "--"
     @Published var weightKg: String = "--"
-    @Published var restingHeartRate: String = "--"
+    @Published var caloriesBurned: String = "--"
     @Published var alerts: [String] = []
     @Published var foodLogs: [(String, String)] = []
 
@@ -52,8 +52,8 @@ class DashboardViewModelWrapper: ObservableObject {
             if let weightKg = metrics.weightKg {
                 self.weightKg = String(format: "%.1f", weightKg.floatValue)
             }
-            if let bpm = metrics.restingHeartRate {
-                self.restingHeartRate = "\(bpm.int32Value)"
+            if let kcal = metrics.caloriesBurned {
+                self.caloriesBurned = "\(kcal.int32Value)"
             }
         }
 

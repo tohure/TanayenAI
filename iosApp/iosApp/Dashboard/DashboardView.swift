@@ -39,8 +39,7 @@ struct DashboardView: View {
                 HStack(spacing: 12) {
                     MetricCardView(emoji: "🌙", value: viewmodel.sleepHours, unit: "h",
                                    label: "Sueño", tint: TanayenTheme.accentTerra)
-                    MetricCardView(emoji: "💚", value: viewmodel.hrv, unit: "ms",
-                                   label: "VFC", tint: TanayenTheme.secondaryMint)
+                    StressLevelCardView(hrvValue: viewmodel.hrv)
                 }
                 .padding(.horizontal, 24)
 
@@ -48,8 +47,8 @@ struct DashboardView: View {
                 HStack(spacing: 12) {
                     MetricCardView(emoji: "⚖️", value: viewmodel.weightKg, unit: "kg",
                                    label: "Peso", tint: TanayenTheme.secondaryMint)
-                    MetricCardView(emoji: "❤️", value: viewmodel.restingHeartRate, unit: "bpm",
-                                   label: "FC reposo", tint: Color(hex: "#E63946"))
+                    MetricCardView(emoji: "🔥", value: viewmodel.caloriesBurned, unit: "kcal",
+                                   label: "Calorías activas", tint: Color(hex: "#E63946"))
                 }
                 .padding(.horizontal, 24)
 

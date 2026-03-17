@@ -1,5 +1,6 @@
 package dev.tohure.tanayenai.di
 
+import dev.tohure.tanayenai.data.health.HealthDataReader
 import dev.tohure.tanayenai.data.local.DatabaseDriverFactory
 import dev.tohure.tanayenai.data.remote.SyncManager
 import dev.tohure.tanayenai.presentation.viewmodel.ChatViewModel
@@ -28,6 +29,7 @@ fun initKoin(
                     single(named("SUPABASE_URL")) { supabaseUrl }
                     single(named("SUPABASE_ANON_KEY")) { supabaseAnonKey }
                     single(named("GEMINI_API_KEY")) { geminiApiKey }
+                    single { HealthDataReader() }
                 },
         )
     }

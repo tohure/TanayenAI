@@ -56,7 +56,7 @@ class HealthMetricsRepositoryImpl(
                 imc = metrics.imc?.toDouble(),
                 sleepHours = metrics.sleepHours?.toDouble(),
                 hrv = metrics.hrv?.toDouble(),
-                restingHeartRate = metrics.restingHeartRate?.toLong(),
+                caloriesBurned = metrics.caloriesBurned?.toLong(),
                 steps = metrics.steps?.toLong(),
                 source = metrics.source.name,
             )
@@ -72,7 +72,7 @@ class HealthMetricsRepositoryImpl(
             imc = imc?.toFloat(),
             sleepHours = sleep_hours?.toFloat(),
             hrv = hrv?.toFloat(),
-            restingHeartRate = resting_heart_rate?.toInt(),
+            caloriesBurned = calories_burned?.toInt(),
             steps = steps?.toInt(),
             source = MetricsSource.valueOf(source),
         )

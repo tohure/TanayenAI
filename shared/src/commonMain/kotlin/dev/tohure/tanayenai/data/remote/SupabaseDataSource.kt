@@ -55,7 +55,7 @@ class SupabaseDataSource(
                     imc = metrics.imc?.toDouble(),
                     sleepHours = metrics.sleepHours?.toDouble(),
                     hrv = metrics.hrv?.toDouble(),
-                    restingHeartRate = metrics.restingHeartRate,
+                    caloriesBurned = metrics.caloriesBurned,
                     steps = metrics.steps,
                     source = metrics.source.name,
                 ),
@@ -87,7 +87,7 @@ class SupabaseDataSource(
             imc = imc?.toFloat(),
             sleepHours = sleepHours?.toFloat(),
             hrv = hrv?.toFloat(),
-            restingHeartRate = restingHeartRate,
+            caloriesBurned = caloriesBurned,
             steps = steps,
             source = MetricsSource.valueOf(source),
         )

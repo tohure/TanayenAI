@@ -8,7 +8,7 @@ data class HealthMetrics(
     val imc: Float? = null,
     val sleepHours: Float? = null,
     val hrv: Float? = null, // VFC en ms
-    val restingHeartRate: Int? = null,
+    val caloriesBurned: Int? = null,
     val steps: Int? = null,
     val source: MetricsSource,
 )

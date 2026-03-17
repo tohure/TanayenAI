@@ -38,9 +38,6 @@ class SyncManager(
         // TODO: Next phase
     }
 
-    // ── Nota: syncPendingPantryItems() y syncPendingHealthMetrics()
-    // se refactorizarán en la siguiente fase cuando haya soporte de Sync Queue en Repos.
-
     private suspend fun pullPantryItems(userId: String) {
         val items = dataSource.fetchPantryItems(userId)
         log.d { "=== SYNCMANAGER: fetched ${items.size} pantry items from Supabase" }

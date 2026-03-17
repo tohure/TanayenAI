@@ -11,7 +11,6 @@ val geminiModule =
         single {
             GenerativeModel(
                 modelName = "gemini-2.5-flash",
-                // Recibimos la API key proveída desde la App nativa al arrancar Koin
                 apiKey = get(named("GEMINI_API_KEY")),
                 systemInstruction = content { text(NUTRITION_SYSTEM_PROMPT) },
             )

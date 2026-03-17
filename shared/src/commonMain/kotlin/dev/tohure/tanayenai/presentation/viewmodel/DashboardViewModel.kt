@@ -10,6 +10,7 @@ import dev.tohure.tanayenai.domain.repository.HealthMetricsRepository
 import dev.tohure.tanayenai.domain.repository.PantryRepository
 import dev.tohure.tanayenai.domain.repository.RecommendationRepository
 import dev.tohure.tanayenai.domain.usecase.BuildContextUseCase
+import dev.tohure.tanayenai.domain.usecase.SyncHealthMetricsUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -30,6 +31,7 @@ class DashboardViewModel(
     private val pantryRepository: PantryRepository,
     private val recommendationRepository: RecommendationRepository,
     private val buildContextUseCase: BuildContextUseCase,
+    private val syncHealthMetricsUseCase: SyncHealthMetricsUseCase,
     private val userId: String,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(DashboardUiState())
@@ -41,28 +43,26 @@ class DashboardViewModel(
         loadDashboard()
     }
 
+    // En DashboardViewModel.kt, dentro de loadDashboard()
     fun loadDashboard() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             try {
-                healthMetricsRepository.getLatestMetricsFlow(userId).collect { latestMetrics ->
-                    val alerts = buildAlerts(latestMetrics)
+                // Sincronizar datos de salud de hoy antes de mostrar
+                syncHealthMetricsUseCase.syncToday()
 
-                    _uiState.value =
-                        _uiState.value.copy(
-                            latestMetrics = latestMetrics,
-                            activeAlerts = alerts,
-                            isLoading = false,
-                        )
+                val latestMetrics = healthMetricsRepository.getLatestMetrics(userId)
+                val alerts = buildAlerts(latestMetrics)
 
-                    buildGeminiContext()
-                }
-            } catch (e: Exception) {
                 _uiState.value =
                     _uiState.value.copy(
+                        latestMetrics = latestMetrics,
+                        activeAlerts = alerts,
                         isLoading = false,
-                        error = e.message,
                     )
+                buildGeminiContext()
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
             }
         }
     }
