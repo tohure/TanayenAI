@@ -2,7 +2,6 @@ package dev.tohure.tanayenai.data.health
 
 import dev.tohure.tanayenai.domain.model.DailyHealthData
 import dev.tohure.tanayenai.domain.model.HealthPermission
-import dev.tohure.tanayenai.domain.model.HealthPermissionResult
 import kotlinx.datetime.LocalDate
 
 // El shared define el contrato — cada plataforma lo implementa

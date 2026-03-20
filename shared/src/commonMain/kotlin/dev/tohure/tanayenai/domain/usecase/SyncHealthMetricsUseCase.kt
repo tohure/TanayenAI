@@ -5,9 +5,9 @@ import dev.tohure.tanayenai.data.health.HealthDataReader
 import dev.tohure.tanayenai.domain.model.DailyHealthData
 import dev.tohure.tanayenai.domain.model.HealthMetrics
 import dev.tohure.tanayenai.domain.model.HealthPermission
-import dev.tohure.tanayenai.domain.model.HealthPermissionResult
 import dev.tohure.tanayenai.domain.model.generateId
 import dev.tohure.tanayenai.domain.repository.HealthMetricsRepository
+import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
 
@@ -53,7 +53,7 @@ class SyncHealthMetricsUseCase(
             val today =
                 Clock.System
                     .now()
-                    .toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault())
+                    .toLocalDateTime(TimeZone.currentSystemDefault())
                     .date
             val data = healthDataReader.readDailyData(today)
             log.d { "readDailyData returned: $data" }

@@ -12,13 +12,14 @@ import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import co.touchlab.kermit.Logger
 import dev.tohure.tanayenai.domain.model.DailyHealthData
-import dev.tohure.tanayenai.domain.model.HealthPermissionResult
 import dev.tohure.tanayenai.domain.model.MetricsSource
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
+import java.time.temporal.ChronoUnit
 import kotlin.time.Instant
 import dev.tohure.tanayenai.domain.model.HealthPermission as TanayenPermission
 import java.time.Instant as JavaInstant
@@ -58,7 +59,7 @@ actual class HealthDataReader(
         val hcClient = client ?: return null
         val tz = TimeZone.currentSystemDefault()
         val start = date.atStartOfDayIn(tz)
-        val end = date.plus(1, kotlinx.datetime.DateTimeUnit.DAY).atStartOfDayIn(tz)
+        val end = date.plus(1, DateTimeUnit.DAY).atStartOfDayIn(tz)
 
         val timeRange =
             TimeRangeFilter.between(
@@ -70,7 +71,7 @@ actual class HealthDataReader(
         // We look back 12 hours (midday yesterday) to catch the entire session
         val sleepTimeRange =
             TimeRangeFilter.between(
-                start.toJavaInstant().minus(12, java.time.temporal.ChronoUnit.HOURS),
+                start.toJavaInstant().minus(12, ChronoUnit.HOURS),
                 end.toJavaInstant(),
             )
 
@@ -140,7 +141,7 @@ actual class HealthDataReader(
         val javaToday = java.time.LocalDate.now()
         val today = LocalDate(javaToday.year, javaToday.monthValue, javaToday.dayOfMonth)
         return (0 until days).mapNotNull { offset ->
-            readDailyData(today.minus(offset, kotlinx.datetime.DateTimeUnit.DAY))
+            readDailyData(today.minus(offset, DateTimeUnit.DAY))
         }
     }
 

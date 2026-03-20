@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.rickclephas.kmp.nativecoroutines.NativeCoroutinesState
 import dev.tohure.tanayenai.domain.model.FoodLog
 import dev.tohure.tanayenai.domain.model.HealthMetrics
-import dev.tohure.tanayenai.domain.model.HealthPermissionResult
 import dev.tohure.tanayenai.domain.model.currentIsoDate
 import dev.tohure.tanayenai.domain.repository.HealthMetricsRepository
 import dev.tohure.tanayenai.domain.repository.PantryRepository

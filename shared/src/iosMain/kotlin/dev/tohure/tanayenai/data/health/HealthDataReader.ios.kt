@@ -2,7 +2,6 @@ package dev.tohure.tanayenai.data.health
 
 import co.touchlab.kermit.Logger
 import dev.tohure.tanayenai.domain.model.DailyHealthData
-import dev.tohure.tanayenai.domain.model.HealthPermissionResult
 import dev.tohure.tanayenai.domain.model.MetricsSource
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -58,9 +57,9 @@ actual class HealthDataReader {
 
         val readTypes = permissions.mapNotNull { it.toHKType() }.toSet()
 
-        return kotlinx.coroutines.suspendCancellableCoroutine { cont ->
+        return suspendCancellableCoroutine { cont ->
             store.requestAuthorizationToShareTypes(
-                typesToShare = emptySet<platform.HealthKit.HKObjectType>(),
+                typesToShare = emptySet<HKObjectType>(),
                 readTypes = readTypes,
             ) { success, error ->
                 if (error != null) {
