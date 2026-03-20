@@ -61,10 +61,13 @@ class HealthViewModel(
 
     fun checkPermissionsAndSync() {
         viewModelScope.launch {
-            val permissionResult = syncHealthMetricsUseCase.checkAndRequestPermissions()
-            _uiState.value = _uiState.value.copy(permissionStatus = permissionResult)
+            val isGranted = syncHealthMetricsUseCase.hasPermissions()
+            _uiState.value =
+                _uiState.value.copy(
+                    permissionStatus = if (isGranted) HealthPermissionResult.Granted else HealthPermissionResult.Denied,
+                )
 
-            if (permissionResult == HealthPermissionResult.Granted) {
+            if (isGranted) {
                 sync()
             }
         }

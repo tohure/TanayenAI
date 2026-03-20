@@ -41,21 +41,16 @@ actual class HealthDataReader(
         }
     }
 
-    actual suspend fun requestPermissions(permissions: Set<TanayenPermission>): HealthPermissionResult {
-        val hcClient = client ?: return HealthPermissionResult.NotAvailable
-
+    actual suspend fun hasPermissions(permissions: Set<TanayenPermission>): Boolean {
+        val hcClient = client ?: return false
         val hcPermissions = permissions.mapNotNull { it.toHealthConnectPermission() }.toSet()
 
         return try {
             val granted = hcClient.permissionController.getGrantedPermissions()
-            if (granted.containsAll(hcPermissions)) {
-                HealthPermissionResult.Granted
-            } else {
-                HealthPermissionResult.Denied
-            }
+            granted.containsAll(hcPermissions)
         } catch (e: Exception) {
             log.e(e) { "Failed to check permissions" }
-            HealthPermissionResult.Denied
+            false
         }
     }
 

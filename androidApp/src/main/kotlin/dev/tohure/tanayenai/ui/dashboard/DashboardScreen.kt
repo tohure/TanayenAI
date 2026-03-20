@@ -1,5 +1,6 @@
 package dev.tohure.tanayenai.ui.dashboard
 
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,12 +15,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.health.connect.client.PermissionController
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import dev.tohure.tanayenai.presentation.viewmodel.DashboardViewModel
 import dev.tohure.tanayenai.ui.theme.AccentTerra
 import dev.tohure.tanayenai.ui.theme.SecondaryMint
@@ -35,6 +39,19 @@ fun DashboardScreen(onNavigateToChat: () -> Unit = {}) {
         }
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
+
+    val permissionLauncher =
+        rememberLauncherForActivityResult(
+            contract = PermissionController.createRequestPermissionResultContract(),
+        ) {
+            // Ya sea que aceptó algo o nada, recargamos para reevaluar e intentar sincronizar
+            viewModel.loadDashboard()
+        }
+
+    LifecycleResumeEffect(Unit) {
+        viewModel.loadDashboard()
+        onPauseOrDispose { }
+    }
 
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(scrollState),
@@ -56,6 +73,30 @@ fun DashboardScreen(onNavigateToChat: () -> Unit = {}) {
         // Mostrar alerta si existe
         uiState.activeAlerts.firstOrNull()?.let { alert ->
             AlertBanner(message = alert)
+        }
+
+        if (uiState.showPermissionAlert) {
+            HealthPermissionBanner(onGrantClick = {
+                permissionLauncher.launch(
+                    setOf(
+                        androidx.health.connect.client.permission.HealthPermission.getReadPermission(
+                            androidx.health.connect.client.records.SleepSessionRecord::class,
+                        ),
+                        androidx.health.connect.client.permission.HealthPermission.getReadPermission(
+                            androidx.health.connect.client.records.HeartRateVariabilityRmssdRecord::class,
+                        ),
+                        androidx.health.connect.client.permission.HealthPermission.getReadPermission(
+                            androidx.health.connect.client.records.TotalCaloriesBurnedRecord::class,
+                        ),
+                        androidx.health.connect.client.permission.HealthPermission.getReadPermission(
+                            androidx.health.connect.client.records.WeightRecord::class,
+                        ),
+                        androidx.health.connect.client.permission.HealthPermission.getReadPermission(
+                            androidx.health.connect.client.records.StepsRecord::class,
+                        ),
+                    ),
+                )
+            })
         }
 
         // Métricas reales o skeleton si está cargando

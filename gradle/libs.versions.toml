@@ -34,11 +34,11 @@ generativeai-kmp = "0.9.0-1.1.0"
 health-connect = "1.1.0"
 
 # DB Local
-sqldelight = "2.2.1"
+sqldelight = "2.3.2"
 supabase = "3.4.1"
 
 # DI
-koin = "4.1.1"
+koin = "4.2.0"
 
 # Logging / Utils
 kermit = "2.1.0"

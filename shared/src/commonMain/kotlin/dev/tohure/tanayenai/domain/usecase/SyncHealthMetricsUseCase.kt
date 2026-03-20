@@ -18,8 +18,8 @@ class SyncHealthMetricsUseCase(
     private val repository: HealthMetricsRepository,
     private val userId: String,
 ) {
-    // Permisos que necesita la app
-    private val requiredPermissions =
+    // Permisos que necesita la app (Público para que Android UI los lea)
+    val requiredPermissions =
         setOf(
             HealthPermission.SLEEP,
             HealthPermission.HEART_RATE_VARIABILITY,
@@ -28,8 +28,7 @@ class SyncHealthMetricsUseCase(
             HealthPermission.STEPS,
         )
 
-    suspend fun checkAndRequestPermissions(): HealthPermissionResult =
-        healthDataReader.requestPermissions(requiredPermissions)
+    suspend fun hasPermissions(): Boolean = healthDataReader.hasPermissions(requiredPermissions)
 
     suspend fun syncLastNDays(days: Int = 7): SyncResult {
         return try {

@@ -7,8 +7,8 @@ import kotlinx.datetime.LocalDate
 
 // El shared define el contrato — cada plataforma lo implementa
 expect class HealthDataReader {
-    // Verificar y solicitar permisos
-    suspend fun requestPermissions(permissions: Set<HealthPermission>): HealthPermissionResult
+    // Verificar permisos
+    suspend fun hasPermissions(permissions: Set<HealthPermission>): Boolean
 
     // Leer métricas del día especificado
     suspend fun readDailyData(date: LocalDate): DailyHealthData?

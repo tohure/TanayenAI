@@ -79,8 +79,12 @@ struct DashboardView: View {
         .background(TanayenTheme.background)
         .navigationBarHidden(true)
         .onAppear {
-            KoinInitializerKt.triggerSyncFromIos()
-            viewmodel.load()
+            KoinInitializerKt.requestHealthPermissionsFromIos { _ in
+                DispatchQueue.main.async {
+                    KoinInitializerKt.triggerSyncFromIos()
+                    viewmodel.load()
+                }
+            }
         }
     }
 

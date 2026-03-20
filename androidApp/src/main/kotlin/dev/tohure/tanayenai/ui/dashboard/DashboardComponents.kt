@@ -154,7 +154,12 @@ fun StressLevelCard(
             Spacer(Modifier.height(12.dp))
 
             // Barra de Semáforo (Gauge horizontal)
-            androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxWidth().height(12.dp)) {
+            androidx.compose.foundation.Canvas(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .height(12.dp),
+            ) {
                 val cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
                 // Fondo gradiente rojo -> amarillo -> verde (Rojo = bajo VFC = Alto estrés)
                 drawRoundRect(
@@ -334,5 +339,50 @@ fun AskAssistantButton(
             text = "¿Qué como hoy? 🌿",
             style = MaterialTheme.typography.titleMedium.copy(color = SurfaceColor),
         )
+    }
+}
+
+/** Banner específico para solicitar permisos de Health Connect */
+@Composable
+fun HealthPermissionBanner(
+    modifier: Modifier = Modifier,
+    onGrantClick: () -> Unit,
+) {
+    Card(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFFDE8E8)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                text = "Faltan permisos de salud 🛡️",
+                style = MaterialTheme.typography.titleSmall.copy(color = Color(0xFF9B1C1C)),
+                fontWeight = FontWeight.Bold,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text =
+                    "No podemos calcular tus métricas de hoy ni darte recomendaciones precisas" +
+                        " sin acceso a Health Connect.",
+                style = MaterialTheme.typography.bodySmall.copy(color = Color(0xFF9B1C1C)),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(12.dp))
+            Button(
+                onClick = onGrantClick,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE02424)),
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Conceder permisos", color = Color.White)
+            }
+        }
     }
 }

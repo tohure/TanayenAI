@@ -3,6 +3,7 @@ package dev.tohure.tanayenai.di
 import dev.tohure.tanayenai.data.health.HealthDataReader
 import dev.tohure.tanayenai.data.local.DatabaseDriverFactory
 import dev.tohure.tanayenai.data.remote.SyncManager
+import dev.tohure.tanayenai.domain.usecase.SyncHealthMetricsUseCase
 import dev.tohure.tanayenai.presentation.viewmodel.ChatViewModel
 import dev.tohure.tanayenai.presentation.viewmodel.DashboardViewModel
 import kotlinx.coroutines.CoroutineScope
@@ -61,3 +62,23 @@ fun getDashboardViewModel(userId: String): DashboardViewModel =
 
 @Suppress("unused") // Called from Swift
 fun getChatViewModel(userId: String): ChatViewModel = KoinPlatform.getKoin().get<ChatViewModel> { parametersOf(userId) }
+
+@OptIn(ExperimentalObjCName::class)
+@ObjCName(name = "requestHealthPermissionsFromIos")
+@Suppress("unused") // Called from Swift
+fun requestHealthPermissionsFromIos(onResult: (Boolean) -> Unit) {
+    val scope =
+        CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    scope.launch {
+        try {
+            val useCase = KoinPlatform.getKoin().get<SyncHealthMetricsUseCase>()
+            val dataReader = KoinPlatform.getKoin().get<HealthDataReader>()
+            // Llama a la funcion especifica de iOS
+            val result = dataReader.requestPermissionsIos(useCase.requiredPermissions)
+            onResult(result)
+        } catch (e: Exception) {
+            println("=== IOS PERMISSIONS ERROR: ${e.message}")
+            onResult(false)
+        }
+    }
+}

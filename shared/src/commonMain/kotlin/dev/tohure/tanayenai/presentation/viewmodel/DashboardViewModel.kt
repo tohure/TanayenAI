@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.rickclephas.kmp.nativecoroutines.NativeCoroutinesState
 import dev.tohure.tanayenai.domain.model.FoodLog
 import dev.tohure.tanayenai.domain.model.HealthMetrics
+import dev.tohure.tanayenai.domain.model.HealthPermissionResult
 import dev.tohure.tanayenai.domain.model.currentIsoDate
 import dev.tohure.tanayenai.domain.repository.HealthMetricsRepository
 import dev.tohure.tanayenai.domain.repository.PantryRepository
@@ -24,6 +25,7 @@ data class DashboardUiState(
     val isLoading: Boolean = true,
     val error: String? = null,
     val geminiContext: String = "",
+    val showPermissionAlert: Boolean = false,
 )
 
 class DashboardViewModel(
@@ -43,13 +45,18 @@ class DashboardViewModel(
         loadDashboard()
     }
 
-    // En DashboardViewModel.kt, dentro de loadDashboard()
     fun loadDashboard() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
+            if (_uiState.value.latestMetrics == null) {
+                _uiState.value = _uiState.value.copy(isLoading = true)
+            }
             try {
-                // Sincronizar datos de salud de hoy antes de mostrar
-                syncHealthMetricsUseCase.syncToday()
+                // Verificar si tenemos permisos antes de intentar sincronizar
+                val isGranted = syncHealthMetricsUseCase.hasPermissions()
+
+                if (isGranted) {
+                    syncHealthMetricsUseCase.syncToday()
+                }
 
                 val latestMetrics = healthMetricsRepository.getLatestMetrics(userId)
                 val alerts = buildAlerts(latestMetrics)
@@ -59,6 +66,7 @@ class DashboardViewModel(
                         latestMetrics = latestMetrics,
                         activeAlerts = alerts,
                         isLoading = false,
+                        showPermissionAlert = !isGranted,
                     )
                 buildGeminiContext()
             } catch (e: Exception) {

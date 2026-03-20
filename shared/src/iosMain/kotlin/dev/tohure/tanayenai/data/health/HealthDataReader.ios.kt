@@ -45,29 +45,29 @@ private val log = Logger.withTag("HealthDataReader.iOS")
 actual class HealthDataReader {
     private val store = HKHealthStore()
 
-    actual suspend fun requestPermissions(permissions: Set<TanayenPermission>): HealthPermissionResult {
-        if (!HKHealthStore.isHealthDataAvailable()) {
-            return HealthPermissionResult.NotAvailable
-        }
+    actual suspend fun hasPermissions(permissions: Set<TanayenPermission>): Boolean {
+        // En iOS por restricciones de privacidad de Apple, no podemos consultar el estado
+        // de autorización para LEER datos, solo para escribir.
+        // Asumimos true por defecto en la capa Data para intentar leer.
+        // La solicitud real de UI se hace vía Swift directamente.
+        return HKHealthStore.isHealthDataAvailable()
+    }
+
+    suspend fun requestPermissionsIos(permissions: Set<TanayenPermission>): Boolean {
+        if (!HKHealthStore.isHealthDataAvailable()) return false
 
         val readTypes = permissions.mapNotNull { it.toHKType() }.toSet()
 
-        return suspendCancellableCoroutine { cont ->
+        return kotlinx.coroutines.suspendCancellableCoroutine { cont ->
             store.requestAuthorizationToShareTypes(
-                typesToShare = emptySet<HKObjectType>(),
+                typesToShare = emptySet<platform.HealthKit.HKObjectType>(),
                 readTypes = readTypes,
             ) { success, error ->
                 if (error != null) {
                     log.e { "HealthKit permission error: ${error.localizedDescription}" }
-                    cont.resume(HealthPermissionResult.Denied)
+                    cont.resume(false)
                 } else {
-                    cont.resume(
-                        if (success) {
-                            HealthPermissionResult.Granted
-                        } else {
-                            HealthPermissionResult.Denied
-                        },
-                    )
+                    cont.resume(success)
                 }
             }
         }
