@@ -1,17 +1,24 @@
 package dev.tohure.tanayenai.ui.chat
 
+import android.graphics.BitmapFactory
+import android.util.Base64
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.StartOffset
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -22,21 +29,33 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.LineHeightStyle
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.tohure.tanayenai.presentation.viewmodel.PantrySuggestion
+import dev.tohure.tanayenai.presentation.viewmodel.PendingImage
+import dev.tohure.tanayenai.presentation.viewmodel.UiChatMessage
 import dev.tohure.tanayenai.ui.theme.BackgroundColor
 import dev.tohure.tanayenai.ui.theme.PrimaryGreen
 import dev.tohure.tanayenai.ui.theme.SecondaryMint
@@ -44,17 +63,10 @@ import dev.tohure.tanayenai.ui.theme.SurfaceColor
 import dev.tohure.tanayenai.ui.theme.TextDark
 import dev.tohure.tanayenai.ui.theme.TextMutedColor
 
-data class ChatMessage(
-    val id: String,
-    val content: String,
-    val isUser: Boolean,
-    val isLoading: Boolean = false, // Indicador de "Gemini está escribiendo"
-)
-
 @Composable
 fun MessageBubble(
     modifier: Modifier = Modifier,
-    message: ChatMessage,
+    message: UiChatMessage,
 ) {
     val isUser = message.isUser
     Row(
@@ -97,19 +109,33 @@ fun MessageBubble(
             if (message.isLoading) {
                 TypingIndicator()
             } else {
-                Text(
-                    text = message.content,
-                    style =
-                        MaterialTheme.typography.bodyLarge.copy(
-                            color = if (isUser) SurfaceColor else TextDark,
-                        ),
-                )
+                Column {
+                    // Indicador de foto procesada en lugar de mostrar la imagen enorme
+                    if (message.hasAttachedImage) {
+                        Text(
+                            text = "📷 Imagen adjunta",
+                            style =
+                                MaterialTheme.typography.labelSmall.copy(
+                                    color = if (isUser) Color.White.copy(alpha = 0.8f) else TextMutedColor,
+                                ),
+                            modifier = Modifier.padding(bottom = 6.dp),
+                        )
+                    }
+                    if (message.content.isNotBlank()) {
+                        Text(
+                            text = message.content,
+                            style =
+                                MaterialTheme.typography.bodyLarge.copy(
+                                    color = if (isUser) SurfaceColor else TextDark,
+                                ),
+                        )
+                    }
+                }
             }
         }
     }
 }
 
-/** Indicador "escribiendo..." */
 @Composable
 fun TypingIndicator() {
     val infiniteTransition = rememberInfiniteTransition(label = "typing")
@@ -122,27 +148,27 @@ fun TypingIndicator() {
         listOf(0, 150, 300).forEach { delayMs ->
             val offsetY by infiniteTransition.animateFloat(
                 initialValue = 0f,
-                targetValue = 6f, // ← positivo, sin warning
+                targetValue = 6f,
                 animationSpec =
                     infiniteRepeatable(
                         animation =
                             keyframes {
                                 durationMillis = 900
                                 0f at 0
-                                6f at 200 // ← mismo rango que targetValue
+                                6f at 200
                                 0f at 400
                                 0f at 900
                             },
                         repeatMode = RepeatMode.Restart,
                         initialStartOffset = StartOffset(delayMs),
                     ),
-                label = "dot_$delayMs",
+                label = "dot",
             )
             Box(
                 modifier =
                     Modifier
                         .size(7.dp)
-                        .offset(y = (-offsetY).dp) // ← negado aquí para subir
+                        .offset(y = (-offsetY).dp)
                         .clip(CircleShape)
                         .background(TextMutedColor),
             )
@@ -150,14 +176,123 @@ fun TypingIndicator() {
     }
 }
 
-/** Input field */
+@Composable
+fun PendingImagePreview(
+    pendingImage: PendingImage,
+    onRemove: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val bitmap =
+        remember(pendingImage.base64Data) {
+            val bytes = Base64.decode(pendingImage.base64Data, Base64.DEFAULT)
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
+        }
+
+    Box(
+        modifier =
+            modifier
+                .padding(horizontal = 16.dp, vertical = 4.dp)
+                .height(72.dp),
+    ) {
+        bitmap?.let {
+            Image(
+                bitmap = it,
+                contentDescription = "Imagen adjunta",
+                contentScale = ContentScale.Crop,
+                modifier =
+                    Modifier
+                        .width(72.dp)
+                        .height(72.dp)
+                        .clip(RoundedCornerShape(12.dp)),
+            )
+        }
+
+        Box(
+            modifier =
+                Modifier
+                    .size(20.dp)
+                    .align(Alignment.TopEnd)
+                    .offset(x = 4.dp, y = (-4).dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFE63946))
+                    .clickable(onClick = onRemove),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = "✕",
+                color = Color.White,
+                style =
+                    MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 7.sp,
+                        lineHeight = 7.sp,
+                        platformStyle = PlatformTextStyle(includeFontPadding = false),
+                        lineHeightStyle =
+                            LineHeightStyle(
+                                alignment = LineHeightStyle.Alignment.Center,
+                                trim = LineHeightStyle.Trim.Both,
+                            ),
+                    ),
+            )
+        }
+    }
+}
+
+@Composable
+fun PantrySuggestionChip(
+    suggestion: PantrySuggestion,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (suggestion.confirmed) {
+        Text(
+            text = "✓ Guardado en tu alacena",
+            style = MaterialTheme.typography.labelSmall.copy(color = SecondaryMint),
+            modifier = modifier.padding(start = 48.dp, top = 4.dp, bottom = 8.dp),
+        )
+        return
+    }
+
+    Row(
+        modifier =
+            modifier
+                .padding(start = 48.dp, top = 4.dp, end = 16.dp, bottom = 8.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color(0xFFE8F5EE))
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = "¿Agrego ${suggestion.ingredients.size} ingrediente(s) a tu alacena?",
+            style = MaterialTheme.typography.labelSmall.copy(color = PrimaryGreen),
+            modifier = Modifier.weight(1f),
+        )
+        TextButton(
+            onClick = onDismiss,
+            contentPadding = PaddingValues(horizontal = 8.dp),
+        ) {
+            Text("No", style = MaterialTheme.typography.labelSmall.copy(color = TextMutedColor))
+        }
+        Button(
+            onClick = onConfirm,
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen),
+        ) {
+            Text("Sí", style = MaterialTheme.typography.labelSmall)
+        }
+    }
+}
+
 @Composable
 fun ChatInputBar(
     value: String,
     onValueChange: (String) -> Unit,
     onSend: () -> Unit,
     isLoading: Boolean,
+    hasPendingImage: Boolean,
     onCameraClick: () -> Unit,
+    onGalleryClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -173,7 +308,6 @@ fun ChatInputBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            // Botón de cámara (foto alacena)
             IconButton(
                 onClick = onCameraClick,
                 modifier =
@@ -185,14 +319,24 @@ fun ChatInputBar(
                 Text("📷", fontSize = 18.sp)
             }
 
-            // Campo de texto
+            IconButton(
+                onClick = onGalleryClick,
+                modifier =
+                    Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFE8F5EE)),
+            ) {
+                Text("🖼️", fontSize = 18.sp)
+            }
+
             OutlinedTextField(
                 value = value,
                 onValueChange = onValueChange,
                 modifier = Modifier.weight(1f),
                 placeholder = {
                     Text(
-                        "Escribe o pregunta algo...",
+                        "Escribe aquí...",
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 },
@@ -213,13 +357,13 @@ fun ChatInputBar(
             // Botón enviar
             IconButton(
                 onClick = onSend,
-                enabled = value.isNotBlank() && !isLoading,
+                enabled = (value.isNotBlank() || hasPendingImage) && !isLoading,
                 modifier =
                     Modifier
                         .size(40.dp)
                         .clip(CircleShape)
                         .background(
-                            if (value.isNotBlank() && !isLoading) {
+                            if ((value.isNotBlank() || hasPendingImage) && !isLoading) {
                                 PrimaryGreen
                             } else {
                                 Color(0xFFE0E0E0)
@@ -230,4 +374,108 @@ fun ChatInputBar(
             }
         }
     }
+}
+
+// ── Previews ──────────────────────────────────────────────────────────────────
+
+@Preview(showBackground = true, backgroundColor = 0xFFF5F5F5)
+@Composable
+private fun PendingImagePreviewPreview() {
+    // El bitmap será null con base64 vacío — muestra el botón sin imagen, suficiente para validar
+    PendingImagePreview(
+        pendingImage = PendingImage(base64Data = ""),
+        onRemove = {},
+    )
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFFF5F5F5)
+@Composable
+private fun PantrySuggestionChipPreview() {
+    PantrySuggestionChip(
+        suggestion = PantrySuggestion(ingredients = listOf("avena", "almendras", "yogur griego")),
+        onConfirm = {},
+        onDismiss = {},
+    )
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFFF5F5F5)
+@Composable
+private fun PantrySuggestionChipConfirmedPreview() {
+    PantrySuggestionChip(
+        suggestion =
+            PantrySuggestion(
+                ingredients = listOf("avena", "almendras"),
+                confirmed = true,
+            ),
+        onConfirm = {},
+        onDismiss = {},
+    )
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun MessageBubbleUserPreview() {
+    MessageBubble(
+        message =
+            UiChatMessage(
+                id = "1",
+                content = "¿Cuál cereal es mejor para mi colesterol?",
+                isUser = true,
+            ),
+    )
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun MessageBubbleAssistantPreview() {
+    MessageBubble(
+        message =
+            UiChatMessage(
+                id = "2",
+                content = "El cereal A tiene menos azúcar y más fibra, ideal para tu perfil. 🌿",
+                isUser = false,
+            ),
+    )
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun MessageBubbleWithImagePreview() {
+    MessageBubble(
+        message =
+            UiChatMessage(
+                id = "3",
+                content = "Veo que compraste avena, almendras y yogur griego.",
+                isUser = false,
+                hasAttachedImage = true,
+            ),
+    )
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun ChatInputBarPreview() {
+    ChatInputBar(
+        value = "",
+        onValueChange = {},
+        onSend = {},
+        isLoading = false,
+        hasPendingImage = false,
+        onCameraClick = {},
+        onGalleryClick = {},
+    )
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun ChatInputBarWithImagePreview() {
+    ChatInputBar(
+        value = "¿Es bueno para mi salud?",
+        onValueChange = {},
+        onSend = {},
+        isLoading = false,
+        hasPendingImage = true,
+        onCameraClick = {},
+        onGalleryClick = {},
+    )
 }

@@ -17,5 +17,9 @@
 	<string>$(SUPABASE_URL)</string>
     <key>NSHealthShareUsageDescription</key>
     <string>TanayenAI lee tus métricas de salud para personalizar tus recomendaciones nutricionales.</string>
+    <key>NSCameraUsageDescription</key>
+    <string>Necesitamos acceso a tu cámara para que puedas tomar fotos de tus alimentos, menús o alacena y evaluarlos con AI.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>Necesitamos acceso a tu galería para poder enviarle a Tanayen fotos de tus alimentos o alacena.</string>
 </dict>
 </plist>

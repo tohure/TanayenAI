@@ -7,6 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.lifecycleScope
 import dev.tohure.tanayenai.data.remote.SyncManager
+import dev.tohure.tanayenai.domain.model.PROTOTYPE_USER_ID
 import dev.tohure.tanayenai.ui.navigation.TanayenNavigation
 import dev.tohure.tanayenai.ui.theme.TanayenTheme
 import kotlinx.coroutines.launch
@@ -21,7 +22,7 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             Log.d("TANAYEN_DEBUG", "=== MAIN ACTIVITY: Starting pullRemoteData ===")
             try {
-                get<SyncManager>().pullRemoteData("00000000-0000-0000-0000-000000000001")
+                get<SyncManager>().pullRemoteData(PROTOTYPE_USER_ID)
             } catch (e: Exception) {
                 Log.e("TANAYEN_DEBUG", "pullRemoteData ERROR: ${e.message}", e)
             }

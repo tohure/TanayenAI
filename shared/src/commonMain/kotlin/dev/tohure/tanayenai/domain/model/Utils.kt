@@ -1,5 +1,9 @@
 package dev.tohure.tanayenai.domain.model
 
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.minus
+import kotlinx.datetime.toLocalDateTime
 import kotlin.random.Random
 import kotlin.time.Clock
 
@@ -16,3 +20,13 @@ fun currentIsoDate() =
         .now()
         .toString()
         .take(10)
+
+fun daysAgo(n: Int): String {
+    val tz = TimeZone.currentSystemDefault()
+    val today =
+        Clock.System
+            .now()
+            .toLocalDateTime(tz)
+            .date
+    return today.minus(n, DateTimeUnit.DAY).toString()
+}

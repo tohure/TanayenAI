@@ -16,28 +16,39 @@ import dev.tohure.tanayenai.domain.model.User
 import dev.tohure.tanayenai.domain.model.currentIsoDate
 import dev.tohure.tanayenai.domain.model.currentIsoDateTime
 import dev.tohure.tanayenai.domain.model.generateId
-import dev.tohure.tanayenai.domain.repository.HealthMetricsRepository
-import dev.tohure.tanayenai.domain.repository.PantryRepository
 import dev.tohure.tanayenai.domain.repository.RecommendationRepository
 import dev.tohure.tanayenai.domain.usecase.BuildContextUseCase
-import dev.tohure.tanayenai.domain.usecase.ContextParams
+import dev.tohure.tanayenai.domain.usecase.ChatTagParser
+import dev.tohure.tanayenai.domain.usecase.FetchContextParamsUseCase
+import dev.tohure.tanayenai.domain.usecase.SavePantryIngredientsUseCase
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
 
 private val log = Logger.withTag("ChatViewModel")
+
+data class PantrySuggestion(
+    val ingredients: List<String>,
+    val confirmed: Boolean = false,
+)
 
 data class UiChatMessage(
     val id: String,
     val content: String,
     val isUser: Boolean,
     val isLoading: Boolean = false,
+    val hasAttachedImage: Boolean = false,
+    val pantrySuggestion: PantrySuggestion? = null,
+)
+
+data class PendingImage(
+    val base64Data: String,
+    val mimeType: String = "image/jpeg",
 )
 
 data class ChatUiState(
@@ -46,28 +57,22 @@ data class ChatUiState(
             UiChatMessage(
                 id = "welcome",
                 content =
-                    "Hola 🌿 Soy Tanayen AI. Puedes contarme qué comiste, " +
-                        "mandarme fotos de tu alacena, o preguntarme qué comer hoy.",
+                    "Hola 🌿 Soy Tanayen. Puedes escribirme sobre nutrición, enviarme " +
+                        "fotos del super, de algún menú o de tu alacena, y yo te ayudaré.",
                 isUser = false,
             ),
         ),
     val isLoading: Boolean = false,
     val error: String? = null,
     val contextReady: Boolean = false,
-)
-
-@Serializable
-data class RecommendationExtraction(
-    @SerialName("type") val type: String,
-    @SerialName("title") val title: String,
-    @SerialName("ingredients") val ingredients: List<String> = emptyList(),
+    val pendingImage: PendingImage? = null,
 )
 
 class ChatViewModel(
     private val generativeModel: GenerativeModel,
     private val buildContextUseCase: BuildContextUseCase,
-    private val healthMetricsRepository: HealthMetricsRepository,
-    private val pantryRepository: PantryRepository,
+    private val fetchContextParamsUseCase: FetchContextParamsUseCase,
+    private val savePantryIngredientsUseCase: SavePantryIngredientsUseCase,
     private val recommendationRepository: RecommendationRepository,
     private val userId: String,
 ) : ViewModel() {
@@ -76,77 +81,68 @@ class ChatViewModel(
     @NativeCoroutinesState
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
 
-    // Historial de conversación para Gemini (máximo últimos 10 turnos)
-    // Cada par es (role, content): role = "user" | "model"
     private val conversationHistory = mutableListOf<Pair<String, String>>()
-
-    // Contexto pre-armado — se reconstruye si los datos cambian
     private var cachedContext: String = ""
 
     init {
         buildContext()
     }
 
-    // ── Construir contexto ────────────────────────────────────────────────────
     private fun buildContext() {
         viewModelScope.launch {
             try {
-                val recentMetrics =
-                    healthMetricsRepository
-                        .getMetricsForDateRange(userId, daysAgo(7), currentIsoDate())
-                val recentRecommendations =
-                    recommendationRepository
-                        .getRecentRecommendations(userId, days = 7)
-
-                // TODO: cargar user y clinicalProfile reales desde repositorios
-                // Por ahora usamos placeholders
                 val contextParams =
-                    ContextParams(
+                    fetchContextParamsUseCase.fetch(
+                        userId = userId,
                         user = placeholderUser(),
                         clinicalProfile = placeholderClinicalProfile(),
-                        recentMetrics = recentMetrics,
-                        pantryItems = emptyList(), // TODO: alacena real
-                        locationNames = emptyMap(),
-                        recentRecommendations = recentRecommendations,
-                        todayFoodLogs = emptyList(),
                         today = currentIsoDate(),
-                        workContext = "Sin especificar",
                     )
-
                 cachedContext = buildContextUseCase.build(contextParams)
                 _uiState.value = _uiState.value.copy(contextReady = true)
-                log.d { "Context built successfully (${cachedContext.length} chars)" }
             } catch (e: Exception) {
                 log.e(e) { "Failed to build context" }
-                cachedContext = "Sin datos de contexto disponibles en este momento."
                 _uiState.value = _uiState.value.copy(contextReady = true)
             }
         }
     }
 
-    // ── Enviar mensaje ────────────────────────────────────────────────────────
+    // ── Preselección de Imagen ────────────────────────────────────────────────
+    fun attachImage(
+        base64: String,
+        mimeType: String = "image/jpeg",
+    ) {
+        _uiState.value = _uiState.value.copy(pendingImage = PendingImage(base64, mimeType))
+    }
+
+    fun clearPendingImage() {
+        _uiState.value = _uiState.value.copy(pendingImage = null)
+    }
+
+    // ── Envío Inteligente ─────────────────────────────────────────────────────
+    @OptIn(ExperimentalEncodingApi::class)
     fun sendMessage(userText: String) {
-        if (userText.isBlank() || _uiState.value.isLoading) return
+        val pendingImage = _uiState.value.pendingImage
+        if (userText.isBlank() && pendingImage == null) return
+        if (_uiState.value.isLoading) return
+
+        val safeText = userText.trim()
 
         val userMessage =
             UiChatMessage(
                 id = generateId(),
-                content = userText.trim(),
+                content = safeText,
                 isUser = true,
+                hasAttachedImage = pendingImage != null,
             )
         val loadingId = generateId()
-        val loadingMessage =
-            UiChatMessage(
-                id = loadingId,
-                content = "",
-                isUser = false,
-                isLoading = true,
-            )
+        val loadingMessage = UiChatMessage(id = loadingId, content = "", isUser = false, isLoading = true)
 
         _uiState.value =
             _uiState.value.copy(
                 messages = _uiState.value.messages + userMessage + loadingMessage,
                 isLoading = true,
+                pendingImage = null,
                 error = null,
             )
 
@@ -156,18 +152,26 @@ class ChatViewModel(
             val assistantMessageId = generateId()
 
             try {
-                // Preparamos los mensajes de la historia usando la DSL content {} del SDK oficial
                 val contents =
                     buildList {
-                        // Historial previo
                         conversationHistory.forEach { (role, msg) ->
                             add(content(role) { text(msg) })
                         }
-                        // Nuevo mensaje inyectando el contexto dinámicamente de forma invisible
                         add(
                             content("user") {
+                                if (pendingImage != null) {
+                                    val decoded = Base64.decode(pendingImage.base64Data.replace("\\s".toRegex(), ""))
+                                    image(decoded)
+                                }
+                                val finalPrompt =
+                                    if (safeText.isBlank() && pendingImage != null) {
+                                        "El usuario te acaba de enviar solo esta imagen, sin texto."
+                                    } else {
+                                        safeText
+                                    }
                                 text(
-                                    "Contexto actualizado de salud y alacena:\n$cachedContext\n\nResponde al siguiente mensaje del usuario:\n${userText.trim()}",
+                                    "Contexto actualizado de salud y alacena:\n$cachedContext\n\n" +
+                                        "Mensaje del usuario:\n$finalPrompt",
                                 )
                             },
                         )
@@ -183,7 +187,9 @@ class ChatViewModel(
                                     _uiState.value.messages.filter { it.id != assistantMessageId } +
                                         UiChatMessage(
                                             id = assistantMessageId,
-                                            content = "Hubo un error al conectar con el asistente. Intenta de nuevo.",
+                                            content =
+                                                "Hubo un error al conectar con el asistente. " +
+                                                    "Intenta de nuevo. (${e.message})",
                                             isUser = false,
                                         ),
                                 isLoading = false,
@@ -197,18 +203,14 @@ class ChatViewModel(
                             _uiState.value =
                                 _uiState.value.copy(
                                     messages =
-                                        _uiState.value.messages
-                                            .filter { it.id != loadingId } +
+                                        _uiState.value.messages.filter { it.id != loadingId } +
                                             UiChatMessage(id = assistantMessageId, content = "", isUser = false),
                                 )
                         }
 
                         for (char in text) {
                             fullResponse += char
-                            val visibleContent =
-                                fullResponse
-                                    .replace(Regex("```json[\\s\\S]*?```"), "")
-                                    .trim()
+                            val visibleContent = ChatTagParser.stripForStreaming(fullResponse)
                             _uiState.value =
                                 _uiState.value.copy(
                                     messages =
@@ -220,21 +222,20 @@ class ChatViewModel(
                                             }
                                         },
                                 )
-                            delay(12)
+                            delay(8)
                         }
                     }
 
                 if (fullResponse.isNotEmpty()) {
-                    conversationHistory.add("user" to userText.trim())
+                    conversationHistory.add("user" to safeText)
                     conversationHistory.add("model" to fullResponse)
-
                     if (conversationHistory.size > 20) {
                         conversationHistory.removeAt(0)
                         conversationHistory.removeAt(0)
                     }
-
                     extractAndSaveRecommendation(fullResponse)
-                    buildContext() // Actualizamos contexto por si ya recomendó algo y se debe evitar repetir
+                    extractPantrySuggestion(fullResponse, assistantMessageId)
+                    buildContext()
                 }
             } catch (e: Exception) {
                 log.e(e) { "Unhandled Gemini Exception" }
@@ -244,39 +245,84 @@ class ChatViewModel(
         }
     }
 
-    // ── Extraer y guardar recomendaciones via JSON ───────────────────────────
+    // ── Alacena Sugerencias ───────────────────────────────────────────────────
+    private fun extractPantrySuggestion(
+        response: String,
+        messageId: String,
+    ) {
+        val ingredients = ChatTagParser.extractPantryIngredients(response) ?: return
+        _uiState.value =
+            _uiState.value.copy(
+                messages =
+                    _uiState.value.messages.map { msg ->
+                        if (msg.id == messageId) {
+                            msg.copy(pantrySuggestion = PantrySuggestion(ingredients = ingredients))
+                        } else {
+                            msg
+                        }
+                    },
+            )
+    }
+
+    fun confirmPantrySuggestion(messageId: String) {
+        viewModelScope.launch {
+            val message = _uiState.value.messages.find { it.id == messageId } ?: return@launch
+            val suggestion = message.pantrySuggestion ?: return@launch
+            try {
+                val defaultLocationId = "10000000-0000-0000-0000-000000000001"
+                savePantryIngredientsUseCase.saveIngredientsByName(
+                    names = suggestion.ingredients,
+                    locationId = defaultLocationId,
+                    userId = userId,
+                )
+                _uiState.value =
+                    _uiState.value.copy(
+                        messages =
+                            _uiState.value.messages.map { msg ->
+                                if (msg.id == messageId) {
+                                    msg.copy(pantrySuggestion = suggestion.copy(confirmed = true))
+                                } else {
+                                    msg
+                                }
+                            },
+                    )
+            } catch (e: Exception) {
+                log.e(e) { "Failed to save pantry suggestion" }
+            }
+        }
+    }
+
+    fun dismissPantrySuggestion(messageId: String) {
+        _uiState.value =
+            _uiState.value.copy(
+                messages =
+                    _uiState.value.messages.map { msg ->
+                        if (msg.id == messageId) {
+                            msg.copy(pantrySuggestion = null)
+                        } else {
+                            msg
+                        }
+                    },
+            )
+    }
+
+    // ── REC Tag → Recomendaciones ─────────────────────────────────────────────
     private suspend fun extractAndSaveRecommendation(response: String) {
-        val jsonRegex = Regex("```json([\\s\\S]*?)```")
-        val match = jsonRegex.find(response) ?: return // No dictó receta
-
+        val rec = ChatTagParser.extractRecAction(response) ?: return
         try {
-            val jsonStr: String = match.groupValues[1].trim()
-            val format =
-                Json {
-                    ignoreUnknownKeys = true
-                    isLenient = true
-                }
-            val dto = format.decodeFromString<RecommendationExtraction>(jsonStr)
-
             val recommendation =
                 Recommendation(
                     id = generateId(),
                     userId = userId,
-                    type =
-                        runCatching {
-                            RecommendationType.valueOf(
-                                dto.type.uppercase(),
-                            )
-                        }.getOrDefault(RecommendationType.MEAL),
-                    title = dto.title.trim(),
-                    content = Json.encodeToString(mapOf("raw_response" to response)),
-                    ingredientsUsed = dto.ingredients,
+                    type = runCatching { RecommendationType.valueOf(rec.type) }.getOrDefault(RecommendationType.MEAL),
+                    title = rec.title,
+                    content = response,
+                    ingredientsUsed = rec.ingredients,
                     recommendedAt = currentIsoDateTime(),
                 )
             recommendationRepository.saveRecommendation(recommendation)
-            log.d { "Saved recommendation from JSON: ${recommendation.title}" }
         } catch (e: Exception) {
-            log.e(e) { "Failed to parse recommendation JSON structure: ${match.groupValues[1]}" }
+            log.e(e) { "Failed to save recommendation: ${rec.title}" }
         }
     }
 
@@ -284,7 +330,7 @@ class ChatViewModel(
         _uiState.value = _uiState.value.copy(error = null)
     }
 
-    // ── Placeholders ────────────────────────────────────────────
+    // ── Dummies (reemplazar en fase futura con UserRepository / ClinicalProfileRepository) ──
     private fun placeholderUser() =
         User(
             id = userId,
@@ -308,6 +354,4 @@ class ChatViewModel(
             systolicPressure = 125,
             diastolicPressure = 82,
         )
-
-    private fun daysAgo(days: Int): String = currentIsoDate()
 }

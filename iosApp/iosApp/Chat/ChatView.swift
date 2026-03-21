@@ -10,11 +10,25 @@ struct ChatMessage: Identifiable {
     let content: String
     let isUser: Bool
     var isLoading: Bool = false
+    var hasAttachedImage: Bool = false
+    var pantrySuggestion: PantrySuggestionWrapper? = nil
+}
+
+struct PantrySuggestionWrapper: Equatable {
+    let ingredients: [String]
+    let confirmed: Bool
+
+    init(from shared: Shared.PantrySuggestion) {
+        self.ingredients = shared.ingredients
+        self.confirmed = shared.confirmed
+    }
 }
 
 struct ChatView: View {
     @StateObject private var chatVM = ChatViewModelWrapper()
     @State private var inputText = ""
+    @State private var showImagePicker = false
+    @State private var sourceType: UIImagePickerController.SourceType = .photoLibrary
 
     var body: some View {
         VStack(spacing: 0) {
@@ -38,8 +52,18 @@ struct ChatView: View {
                 ScrollView {
                     LazyVStack(spacing: 8) {
                         ForEach(chatVM.messages) { message in
-                            ChatBubbleView(message: message)
-                                .id(message.id)
+                            VStack(spacing: 4) {
+                                ChatBubbleView(message: message)
+                                    .id(message.id)
+
+                                if let suggestion = message.pantrySuggestion {
+                                    PantrySuggestionChipView(
+                                        suggestion: suggestion,
+                                        onConfirm: { chatVM.confirmPantrySuggestion(messageId: message.id) },
+                                        onDismiss: { chatVM.dismissPantrySuggestion(messageId: message.id) }
+                                    )
+                                }
+                            }
                         }
                     }
                     .padding(.vertical, 8)
@@ -58,16 +82,30 @@ struct ChatView: View {
                     .padding(.horizontal)
             }
 
+            // Preview de Imagen antes de enviar
+            if let pendingBase64 = chatVM.pendingImageBase64 {
+                PendingImagePreviewView(base64: pendingBase64) {
+                    chatVM.clearPendingImage()
+                }
+            }
+
             // Input
             ChatInputBarView(
                 text: $inputText,
                 isLoading: chatVM.isLoading,
+                hasPendingImage: chatVM.pendingImageBase64 != nil,
                 onCameraClick: {
-                    // TODO: cámara para alacena
+                    sourceType = .camera
+                    showImagePicker = true
+                },
+                onGalleryClick: {
+                    sourceType = .photoLibrary
+                    showImagePicker = true
                 },
                 onSend: {
                     let text = inputText.trimmingCharacters(in: .whitespaces)
-                    guard !text.isEmpty, !chatVM.isLoading else { return }
+                    guard !text.isEmpty || chatVM.pendingImageBase64 != nil else { return }
+                    guard !chatVM.isLoading else { return }
                     chatVM.sendMessage(text)
                     inputText = ""
                 }
@@ -75,5 +113,12 @@ struct ChatView: View {
         }
         .background(TanayenTheme.background)
         .navigationBarHidden(true)
+        .sheet(isPresented: $showImagePicker) {
+            ImagePicker(sourceType: sourceType) { image in
+                if let image = image, let base64 = image.resizeAndEncode(maxSize: 800) {
+                    chatVM.attachImage(base64: base64)
+                }
+            }
+        }
     }
 }

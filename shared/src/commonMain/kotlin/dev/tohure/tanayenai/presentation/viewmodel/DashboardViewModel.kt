@@ -3,13 +3,17 @@ package dev.tohure.tanayenai.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rickclephas.kmp.nativecoroutines.NativeCoroutinesState
+import dev.tohure.tanayenai.domain.model.ActivityLevel
+import dev.tohure.tanayenai.domain.model.ClinicalProfile
 import dev.tohure.tanayenai.domain.model.FoodLog
 import dev.tohure.tanayenai.domain.model.HealthMetrics
+import dev.tohure.tanayenai.domain.model.NutritionGoal
+import dev.tohure.tanayenai.domain.model.Sex
+import dev.tohure.tanayenai.domain.model.User
 import dev.tohure.tanayenai.domain.model.currentIsoDate
-import dev.tohure.tanayenai.domain.repository.HealthMetricsRepository
-import dev.tohure.tanayenai.domain.repository.PantryRepository
-import dev.tohure.tanayenai.domain.repository.RecommendationRepository
 import dev.tohure.tanayenai.domain.usecase.BuildContextUseCase
+import dev.tohure.tanayenai.domain.usecase.FetchContextParamsUseCase
+import dev.tohure.tanayenai.domain.usecase.GetLatestMetricsUseCase
 import dev.tohure.tanayenai.domain.usecase.SyncHealthMetricsUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,9 +32,8 @@ data class DashboardUiState(
 )
 
 class DashboardViewModel(
-    private val healthMetricsRepository: HealthMetricsRepository,
-    private val pantryRepository: PantryRepository,
-    private val recommendationRepository: RecommendationRepository,
+    private val getLatestMetricsUseCase: GetLatestMetricsUseCase,
+    private val fetchContextParamsUseCase: FetchContextParamsUseCase,
     private val buildContextUseCase: BuildContextUseCase,
     private val syncHealthMetricsUseCase: SyncHealthMetricsUseCase,
     private val userId: String,
@@ -50,14 +53,10 @@ class DashboardViewModel(
                 _uiState.value = _uiState.value.copy(isLoading = true)
             }
             try {
-                // Verificar si tenemos permisos antes de intentar sincronizar
                 val isGranted = syncHealthMetricsUseCase.hasPermissions()
+                if (isGranted) syncHealthMetricsUseCase.syncToday()
 
-                if (isGranted) {
-                    syncHealthMetricsUseCase.syncToday()
-                }
-
-                val latestMetrics = healthMetricsRepository.getLatestMetrics(userId)
+                val latestMetrics = getLatestMetricsUseCase.execute(userId)
                 val alerts = buildAlerts(latestMetrics)
 
                 _uiState.value =
@@ -76,20 +75,14 @@ class DashboardViewModel(
 
     private suspend fun buildGeminiContext() {
         try {
-            val recentMetrics =
-                healthMetricsRepository.getMetricsForDateRange(
-                    userId,
-                    currentIsoDate(),
-                    currentIsoDate(),
+            val params =
+                fetchContextParamsUseCase.fetch(
+                    userId = userId,
+                    user = placeholderUser(),
+                    clinicalProfile = placeholderClinicalProfile(),
+                    today = currentIsoDate(),
                 )
-            val recentRecommendations =
-                recommendationRepository
-                    .getRecentRecommendations(userId, days = 7)
-
-            val context =
-                "MÉTRICAS: ${recentMetrics.size} registros recientes. " +
-                    "RECOMENDACIONES: ${recentRecommendations.size} en los últimos 7 días."
-
+            val context = buildContextUseCase.build(params)
             _uiState.value = _uiState.value.copy(geminiContext = context)
         } catch (e: Exception) {
             // Fallo silencioso — el contexto se construirá cuando el usuario abra el chat
@@ -111,4 +104,29 @@ class DashboardViewModel(
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
     }
+
+    // ── Dummies (reemplazar en fase futura con UserRepository / ClinicalProfileRepository) ──
+    private fun placeholderUser() =
+        User(
+            id = userId,
+            name = "Carlo",
+            birthDate = "1990-05-15",
+            sex = Sex.MALE,
+            heightCm = 175f,
+            goal = NutritionGoal.EAT_HEALTHY,
+            activityLevel = ActivityLevel.MODERATE,
+        )
+
+    private fun placeholderClinicalProfile() =
+        ClinicalProfile(
+            userId = userId,
+            cholesterolTotal = 215f,
+            hdl = 42f,
+            ldl = 148f,
+            triglycerides = 180f,
+            fastingGlucose = 102f,
+            hba1c = 5.8f,
+            systolicPressure = 125,
+            diastolicPressure = 82,
+        )
 }

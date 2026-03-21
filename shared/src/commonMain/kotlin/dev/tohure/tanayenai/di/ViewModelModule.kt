@@ -2,6 +2,7 @@ package dev.tohure.tanayenai.di
 
 import dev.tohure.tanayenai.presentation.viewmodel.ChatViewModel
 import dev.tohure.tanayenai.presentation.viewmodel.DashboardViewModel
+import dev.tohure.tanayenai.presentation.viewmodel.HealthViewModel
 import dev.tohure.tanayenai.presentation.viewmodel.PantryViewModel
 import org.koin.core.module.dsl.viewModel
 import org.koin.core.parameter.parametersOf
@@ -11,11 +12,10 @@ val viewModelModule =
     module {
         viewModel { params ->
             DashboardViewModel(
-                healthMetricsRepository = get(),
-                pantryRepository = get(),
-                recommendationRepository = get(),
+                getLatestMetricsUseCase = get(),
+                fetchContextParamsUseCase = get(),
                 buildContextUseCase = get(),
-                syncHealthMetricsUseCase = get { parametersOf(params.get()) },
+                syncHealthMetricsUseCase = get { parametersOf(params.get<String>()) },
                 userId = params.get(),
             )
         }
@@ -29,10 +29,18 @@ val viewModelModule =
             ChatViewModel(
                 generativeModel = get(),
                 buildContextUseCase = get(),
-                healthMetricsRepository = get(),
-                pantryRepository = get(),
+                fetchContextParamsUseCase = get(),
+                savePantryIngredientsUseCase = get(),
                 recommendationRepository = get(),
                 userId = params.get(),
+            )
+        }
+        // factory en lugar de viewModel para compatibilidad con iOS (KoinPlatform.getKoin().get())
+        factory { (userId: String) ->
+            HealthViewModel(
+                syncHealthMetricsUseCase = get { parametersOf(userId) },
+                healthMetricsRepository = get(),
+                userId = userId,
             )
         }
     }

@@ -11,13 +11,14 @@ class ChatViewModelWrapper: ObservableObject {
     @Published var isLoading = false
     @Published var contextReady = false
     @Published var error: String? = nil
+    @Published var pendingImageBase64: String? = nil
 
     // ViewModel compartido de KMP
     private let chatVM: ChatViewModel
     private var observeTask: Task<Void, Never>?
 
     init() {
-        let userId = "00000000-0000-0000-0000-000000000001" // Dummy
+        let userId = ConstantsKt.PROTOTYPE_USER_ID // Dummy
         self.chatVM = KoinInitializerKt.getChatViewModel(userId: userId)
 
         observeTask = Task {
@@ -37,12 +38,31 @@ class ChatViewModelWrapper: ObservableObject {
                 id: msg.id,
                 content: msg.content,
                 isUser: msg.isUser,
-                isLoading: msg.isLoading
+                isLoading: msg.isLoading,
+                hasAttachedImage: msg.hasAttachedImage,
+                pantrySuggestion: msg.pantrySuggestion.map { PantrySuggestionWrapper(from: $0) }
             )
         }
         self.isLoading = state.isLoading
         self.contextReady = state.contextReady
         self.error = state.error
+        self.pendingImageBase64 = state.pendingImage?.base64Data
+    }
+
+    func attachImage(base64: String, mimeType: String = "image/jpeg") {
+        chatVM.attachImage(base64: base64, mimeType: mimeType)
+    }
+
+    func clearPendingImage() {
+        chatVM.clearPendingImage()
+    }
+
+    func confirmPantrySuggestion(messageId: String) {
+        chatVM.confirmPantrySuggestion(messageId: messageId)
+    }
+
+    func dismissPantrySuggestion(messageId: String) {
+        chatVM.dismissPantrySuggestion(messageId: messageId)
     }
 
     func sendMessage(_ text: String) {

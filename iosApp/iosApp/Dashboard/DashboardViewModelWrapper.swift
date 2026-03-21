@@ -19,7 +19,7 @@ class DashboardViewModelWrapper: ObservableObject {
     private var observeTask: Task<Void, Never>?
 
     init() {
-        let userId = "00000000-0000-0000-0000-000000000001" // Dummy
+        let userId = ConstantsKt.PROTOTYPE_USER_ID // Dummy
         self.dashboardVM = KoinInitializerKt.getDashboardViewModel(userId: userId)
 
         observeTask = Task {

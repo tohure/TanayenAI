@@ -10,5 +10,4 @@ fun sharedModules(): List<Module> =
         viewModelModule,
         networkModule,
         geminiModule,
-        healthModule,
     )

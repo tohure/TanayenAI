@@ -6,6 +6,8 @@ import co.touchlab.kermit.Logger
 import com.rickclephas.kmp.nativecoroutines.NativeCoroutinesState
 import dev.tohure.tanayenai.domain.model.HealthMetrics
 import dev.tohure.tanayenai.domain.model.HealthPermissionResult
+import dev.tohure.tanayenai.domain.model.currentIsoDate
+import dev.tohure.tanayenai.domain.model.daysAgo
 import dev.tohure.tanayenai.domain.repository.HealthMetricsRepository
 import dev.tohure.tanayenai.domain.usecase.SyncHealthMetricsUseCase
 import dev.tohure.tanayenai.domain.usecase.SyncResult
@@ -13,9 +15,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
-import kotlin.time.Clock
 
 private val log = Logger.withTag("HealthViewModel")
 
@@ -47,7 +46,7 @@ class HealthViewModel(
         viewModelScope.launch {
             try {
                 val latest = healthMetricsRepository.getLatestMetrics(userId)
-                val recent = healthMetricsRepository.getMetricsForDateRange(userId, daysAgo(7), today())
+                val recent = healthMetricsRepository.getMetricsForDateRange(userId, daysAgo(7), currentIsoDate())
                 _uiState.value =
                     _uiState.value.copy(
                         latestMetrics = latest,
@@ -94,13 +93,4 @@ class HealthViewModel(
             if (result is SyncResult.Success) loadCachedMetrics()
         }
     }
-
-    private fun today(): String =
-        Clock.System
-            .now()
-            .toLocalDateTime(TimeZone.currentSystemDefault())
-            .date
-            .toString()
-
-    private fun daysAgo(days: Int): String = today()
 }

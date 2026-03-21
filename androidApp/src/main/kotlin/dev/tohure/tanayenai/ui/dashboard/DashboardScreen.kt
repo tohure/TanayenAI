@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.health.connect.client.PermissionController
 import androidx.lifecycle.compose.LifecycleResumeEffect
+import dev.tohure.tanayenai.domain.model.PROTOTYPE_USER_ID
 import dev.tohure.tanayenai.presentation.viewmodel.DashboardViewModel
 import dev.tohure.tanayenai.ui.theme.AccentTerra
 import dev.tohure.tanayenai.ui.theme.SecondaryMint
@@ -35,7 +36,7 @@ import java.util.Calendar
 fun DashboardScreen(onNavigateToChat: () -> Unit = {}) {
     val viewModel: DashboardViewModel =
         koinViewModel {
-            parametersOf("00000000-0000-0000-0000-000000000001")
+            parametersOf(PROTOTYPE_USER_ID)
         }
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()

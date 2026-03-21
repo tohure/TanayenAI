@@ -3,6 +3,7 @@ package dev.tohure.tanayenai.di
 import dev.tohure.tanayenai.data.health.HealthDataReader
 import dev.tohure.tanayenai.data.local.DatabaseDriverFactory
 import dev.tohure.tanayenai.data.remote.SyncManager
+import dev.tohure.tanayenai.domain.model.PROTOTYPE_USER_ID
 import dev.tohure.tanayenai.domain.usecase.SyncHealthMetricsUseCase
 import dev.tohure.tanayenai.presentation.viewmodel.ChatViewModel
 import dev.tohure.tanayenai.presentation.viewmodel.DashboardViewModel
@@ -17,6 +18,10 @@ import org.koin.dsl.module
 import org.koin.mp.KoinPlatform
 import kotlin.experimental.ExperimentalObjCName
 
+// Scope compartido para operaciones fire-and-forget en iOS.
+// SupervisorJob garantiza que un fallo en una coroutine no cancela las demás.
+private val iosSupportScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
 fun initKoin(
     supabaseUrl: String,
     supabaseAnonKey: String,
@@ -29,26 +34,23 @@ fun initKoin(
                     single { DatabaseDriverFactory() }
                     single(named("SUPABASE_URL")) { supabaseUrl }
                     single(named("SUPABASE_ANON_KEY")) { supabaseAnonKey }
-                    single(named("GEMINI_API_KEY")) { geminiApiKey }
+                    single { GeminiConfig(geminiApiKey) }
                     single { HealthDataReader() }
                 },
         )
     }
-
-    // Removed GlobalScope block because iOS kills it
 }
 
 @OptIn(ExperimentalObjCName::class)
 @ObjCName(name = "triggerSyncFromIos")
 @Suppress("unused") // Called from Swift
 fun triggerSyncFromIos() {
-    val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-    scope.launch {
+    iosSupportScope.launch {
         try {
             KoinPlatform
                 .getKoin()
                 .get<SyncManager>()
-                .pullRemoteData("00000000-0000-0000-0000-000000000001")
+                .pullRemoteData(PROTOTYPE_USER_ID)
         } catch (e: Exception) {
             println("=== IOS SYNC ERROR: ${e.message}")
             e.printStackTrace()
@@ -67,14 +69,10 @@ fun getChatViewModel(userId: String): ChatViewModel = KoinPlatform.getKoin().get
 @ObjCName(name = "requestHealthPermissionsFromIos")
 @Suppress("unused") // Called from Swift
 fun requestHealthPermissionsFromIos(onResult: (Boolean) -> Unit) {
-    val scope =
-        CoroutineScope(SupervisorJob() + Dispatchers.Main)
-    scope.launch {
+    iosSupportScope.launch(Dispatchers.Main) {
         try {
-            val useCase = KoinPlatform.getKoin().get<SyncHealthMetricsUseCase>()
             val dataReader = KoinPlatform.getKoin().get<HealthDataReader>()
-            // Llama a la funcion especifica de iOS
-            val result = dataReader.requestPermissionsIos(useCase.requiredPermissions)
+            val result = dataReader.requestPermissionsIos(SyncHealthMetricsUseCase.requiredPermissions)
             onResult(result)
         } catch (e: Exception) {
             println("=== IOS PERMISSIONS ERROR: ${e.message}")

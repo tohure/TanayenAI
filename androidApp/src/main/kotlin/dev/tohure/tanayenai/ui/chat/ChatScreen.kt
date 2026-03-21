@@ -1,5 +1,9 @@
 package dev.tohure.tanayenai.ui.chat
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -22,7 +26,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import dev.tohure.tanayenai.domain.model.PROTOTYPE_USER_ID
 import dev.tohure.tanayenai.presentation.viewmodel.ChatViewModel
 import dev.tohure.tanayenai.ui.theme.TextMutedColor
 import org.koin.androidx.compose.koinViewModel
@@ -30,13 +36,42 @@ import org.koin.core.parameter.parametersOf
 
 @Composable
 fun ChatScreen() {
-    val viewModel: ChatViewModel =
-        koinViewModel {
-            parametersOf("00000000-0000-0000-0000-000000000001")
-        }
+    val viewModel: ChatViewModel = koinViewModel { parametersOf(PROTOTYPE_USER_ID) }
     val uiState by viewModel.uiState.collectAsState()
     var inputText by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
+    val context = LocalContext.current
+
+    // Estado del uri temporal cuando se abre la camara
+    var currentCameraUri by remember { mutableStateOf<Uri?>(null) }
+
+    val galleryLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.PickVisualMedia(),
+            onResult = { uri ->
+                uri?.let {
+                    val base64 = ImageUtils.resizeAndEncodeImage(context, it)
+                    if (base64 != null) {
+                        viewModel.attachImage(base64)
+                    }
+                }
+            },
+        )
+
+    val cameraLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.TakePicture(),
+            onResult = { success ->
+                if (success) {
+                    currentCameraUri?.let { uri ->
+                        val base64 = ImageUtils.resizeAndEncodeImage(context, uri)
+                        if (base64 != null) {
+                            viewModel.attachImage(base64)
+                        }
+                    }
+                }
+            },
+        )
 
     // Auto-scroll al último mensaje al cambiar el contenido textual (ideal para el stream)
     val lastMessageContent = uiState.messages.lastOrNull()?.content
@@ -78,15 +113,16 @@ fun ChatScreen() {
             contentPadding = PaddingValues(vertical = 8.dp),
         ) {
             items(uiState.messages, key = { it.id }) { message ->
-                MessageBubble(
-                    message =
-                        ChatMessage(
-                            id = message.id,
-                            content = message.content,
-                            isUser = message.isUser,
-                            isLoading = message.isLoading,
-                        ),
-                )
+                MessageBubble(message = message)
+
+                // Si este mensaje trajo una sugerencia de alacena, mostramos el chip
+                message.pantrySuggestion?.let { suggestion ->
+                    PantrySuggestionChip(
+                        suggestion = suggestion,
+                        onConfirm = { viewModel.confirmPantrySuggestion(message.id) },
+                        onDismiss = { viewModel.dismissPantrySuggestion(message.id) },
+                    )
+                }
             }
         }
 
@@ -100,17 +136,31 @@ fun ChatScreen() {
             )
         }
 
+        // Vista previa de la imagen a enviar
+        uiState.pendingImage?.let { pending ->
+            PendingImagePreview(
+                pendingImage = pending,
+                onRemove = { viewModel.clearPendingImage() },
+            )
+        }
+
         // Input
         ChatInputBar(
             value = inputText,
             onValueChange = { inputText = it },
             isLoading = uiState.isLoading,
-            onCameraClick = { /* TODO Fase 5B */ },
+            hasPendingImage = uiState.pendingImage != null,
+            onCameraClick = {
+                val uri = ImageUtils.createImageUri(context)
+                currentCameraUri = uri
+                uri?.let { cameraLauncher.launch(it) }
+            },
+            onGalleryClick = {
+                galleryLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+            },
             onSend = {
-                if (inputText.isNotBlank()) {
-                    viewModel.sendMessage(inputText)
-                    inputText = ""
-                }
+                viewModel.sendMessage(inputText)
+                inputText = ""
             },
         )
     }

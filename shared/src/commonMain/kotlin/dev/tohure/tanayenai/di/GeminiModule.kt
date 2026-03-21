@@ -6,12 +6,17 @@ import dev.tohure.tanayenai.domain.usecase.NUTRITION_SYSTEM_PROMPT
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
+data class GeminiConfig(
+    val apiKey: String,
+)
+
 val geminiModule =
     module {
         single {
+            val config = get<GeminiConfig>()
             GenerativeModel(
                 modelName = "gemini-2.5-flash",
-                apiKey = get(named("GEMINI_API_KEY")),
+                apiKey = config.apiKey.trim(),
                 systemInstruction = content { text(NUTRITION_SYSTEM_PROMPT) },
             )
         }
