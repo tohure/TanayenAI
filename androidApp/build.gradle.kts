@@ -36,6 +36,7 @@ kotlin {
         implementation(libs.androidx.lifecycle.viewmodelCompose)
         implementation(libs.androidx.lifecycle.runtimeCompose)
         implementation(libs.health.connect)
+        implementation(libs.kotlinx.collections.immutable)
 
         debugImplementation(libs.compose.uiTooling)
     }

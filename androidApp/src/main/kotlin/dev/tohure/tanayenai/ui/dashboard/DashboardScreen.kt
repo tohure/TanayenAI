@@ -15,7 +15,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -28,6 +27,8 @@ import dev.tohure.tanayenai.domain.model.PROTOTYPE_USER_ID
 import dev.tohure.tanayenai.presentation.viewmodel.DashboardViewModel
 import dev.tohure.tanayenai.ui.theme.AccentTerra
 import dev.tohure.tanayenai.ui.theme.SecondaryMint
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import java.util.Calendar
@@ -142,22 +143,37 @@ fun DashboardScreen(onNavigateToChat: () -> Unit = {}) {
             }
             MetricsRow(
                 metrics =
-                    listOf(
-                        Triple("Peso", metrics?.weightKg?.let { "%.1f".format(it) } ?: "--", "kg"),
-                        Triple("Calorías activas", metrics?.caloriesBurned?.toString() ?: "--", "kcal"),
+                    persistentListOf(
+                        MetricItem(
+                            "Peso",
+                            metrics?.weightKg?.let { "%.1f".format(it) } ?: "--",
+                            "kg",
+                            "⚖️",
+                            SecondaryMint,
+                        ),
+                        MetricItem(
+                            "Calorías activas",
+                            metrics?.caloriesBurned?.toString() ?: "--",
+                            "kcal",
+                            "🔥",
+                            Color(0xFFE63946),
+                        ),
                     ),
-                emojis = listOf("⚖️", "🔥"),
-                tints = listOf(SecondaryMint, Color(0xFFE63946)),
             )
         }
 
         TodayFoodCard(
             foodLogs =
-                uiState.todayFoodLogs.map {
-                    it.mealType.name
-                        .lowercase()
-                        .replaceFirstChar { c -> c.uppercase() } to it.foodName
-                },
+                uiState.todayFoodLogs
+                    .map {
+                        FoodLogItem(
+                            mealType =
+                                it.mealType.name
+                                    .lowercase()
+                                    .replaceFirstChar { c -> c.uppercase() },
+                            foodName = it.foodName,
+                        )
+                    }.toImmutableList(),
             onAddManuallyClick = { /* TODO: Fase futura */ },
         )
 

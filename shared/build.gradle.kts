@@ -75,6 +75,9 @@ kotlin {
             // Lifecycle ViewModel (KMP)
             implementation(libs.androidx.lifecycle.viewmodel)
 
+            // Collections
+            implementation(libs.kotlinx.collections.immutable)
+
             // Logging
             implementation(libs.kermit)
         }

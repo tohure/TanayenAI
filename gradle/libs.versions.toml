@@ -43,6 +43,7 @@ koin = "4.2.0"
 # Logging / Utils
 kermit = "2.1.0"
 kotlinx-datetime = "0.7.1"
+kotlinx-collections-immutable = "0.3.8"
 
 [libraries]
 # Kotlin
@@ -53,6 +54,7 @@ kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutine
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
+kotlinx-collections-immutable = { module = "org.jetbrains.kotlinx:kotlinx-collections-immutable", version.ref = "kotlinx-collections-immutable" }
 
 # Ktor (networking)
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }

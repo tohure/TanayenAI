@@ -1,5 +1,6 @@
 package dev.tohure.tanayenai.presentation.viewmodel
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
@@ -21,6 +22,8 @@ import dev.tohure.tanayenai.domain.usecase.BuildContextUseCase
 import dev.tohure.tanayenai.domain.usecase.ChatTagParser
 import dev.tohure.tanayenai.domain.usecase.FetchContextParamsUseCase
 import dev.tohure.tanayenai.domain.usecase.SavePantryIngredientsUseCase
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -32,11 +35,13 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 
 private val log = Logger.withTag("ChatViewModel")
 
+@Immutable
 data class PantrySuggestion(
-    val ingredients: List<String>,
+    val ingredients: ImmutableList<String>,
     val confirmed: Boolean = false,
 )
 
+@Immutable
 data class UiChatMessage(
     val id: String,
     val content: String,
@@ -46,6 +51,7 @@ data class UiChatMessage(
     val pantrySuggestion: PantrySuggestion? = null,
 )
 
+@Immutable
 data class PendingImage(
     val base64Data: String,
     val mimeType: String = "image/jpeg",
@@ -256,7 +262,7 @@ class ChatViewModel(
                 messages =
                     _uiState.value.messages.map { msg ->
                         if (msg.id == messageId) {
-                            msg.copy(pantrySuggestion = PantrySuggestion(ingredients = ingredients))
+                            msg.copy(pantrySuggestion = PantrySuggestion(ingredients = ingredients.toImmutableList()))
                         } else {
                             msg
                         }

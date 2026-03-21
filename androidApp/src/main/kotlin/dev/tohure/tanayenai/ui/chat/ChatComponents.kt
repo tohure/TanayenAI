@@ -65,6 +65,7 @@ import dev.tohure.tanayenai.ui.theme.SurfaceColor
 import dev.tohure.tanayenai.ui.theme.TanayenTheme
 import dev.tohure.tanayenai.ui.theme.TextDark
 import dev.tohure.tanayenai.ui.theme.TextMutedColor
+import kotlinx.collections.immutable.persistentListOf
 import java.io.ByteArrayOutputStream
 
 @Composable
@@ -408,7 +409,7 @@ private fun PendingImagePreviewPreview() {
 private fun PantrySuggestionChipPreview() {
     TanayenTheme {
         PantrySuggestionChip(
-            suggestion = PantrySuggestion(ingredients = listOf("avena", "almendras", "yogur griego")),
+            suggestion = PantrySuggestion(ingredients = persistentListOf("avena", "almendras", "yogur griego")),
             onConfirm = {},
             onDismiss = {},
         )
@@ -422,7 +423,7 @@ private fun PantrySuggestionChipConfirmedPreview() {
         PantrySuggestionChip(
             suggestion =
                 PantrySuggestion(
-                    ingredients = listOf("avena", "almendras"),
+                    ingredients = persistentListOf("avena", "almendras"),
                     confirmed = true,
                 ),
             onConfirm = {},

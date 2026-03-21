@@ -1,5 +1,6 @@
 package dev.tohure.tanayenai.ui.dashboard
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -18,12 +19,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Brush.Companion.horizontalGradient
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
@@ -37,6 +39,23 @@ import dev.tohure.tanayenai.ui.theme.SurfaceColor
 import dev.tohure.tanayenai.ui.theme.TanayenTheme
 import dev.tohure.tanayenai.ui.theme.TextDark
 import dev.tohure.tanayenai.ui.theme.TextMutedColor
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
+
+@Immutable
+data class MetricItem(
+    val label: String,
+    val value: String,
+    val unit: String,
+    val emoji: String,
+    val tint: Color = SecondaryMint,
+)
+
+@Immutable
+data class FoodLogItem(
+    val mealType: String,
+    val foodName: String,
+)
 
 @Composable
 fun GreetingHeader(
@@ -156,7 +175,7 @@ fun StressLevelCard(
             Spacer(Modifier.height(12.dp))
 
             // Barra de Semáforo (Gauge horizontal)
-            androidx.compose.foundation.Canvas(
+            Canvas(
                 modifier =
                     Modifier
                         .fillMaxWidth()
@@ -166,7 +185,7 @@ fun StressLevelCard(
                 // Fondo gradiente rojo -> amarillo -> verde (Rojo = bajo VFC = Alto estrés)
                 drawRoundRect(
                     brush =
-                        Brush.horizontalGradient(
+                        horizontalGradient(
                             colors = listOf(Color(0xFFE63946), Color(0xFFFFB703), SecondaryMint),
                         ),
                     size = size,
@@ -208,9 +227,7 @@ fun StressLevelCard(
 @Composable
 fun MetricsRow(
     modifier: Modifier = Modifier,
-    metrics: List<Triple<String, String, String>>, // (label, value, unit)
-    emojis: List<String>,
-    tints: List<Color>,
+    metrics: ImmutableList<MetricItem>,
 ) {
     Row(
         modifier =
@@ -219,13 +236,13 @@ fun MetricsRow(
                 .padding(horizontal = 24.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        metrics.forEachIndexed { index, (label, value, unit) ->
+        metrics.forEach { item ->
             MetricCard(
-                label = label,
-                value = value,
-                unit = unit,
-                emoji = emojis.getOrElse(index) { "📊" },
-                tint = tints.getOrElse(index) { SecondaryMint },
+                label = item.label,
+                value = item.value,
+                unit = item.unit,
+                emoji = item.emoji,
+                tint = item.tint,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -261,7 +278,7 @@ fun AlertBanner(
 /**Lo que comiste hoy*/
 @Composable
 fun TodayFoodCard(
-    foodLogs: List<Pair<String, String>>, // (mealType label, foodName)
+    foodLogs: ImmutableList<FoodLogItem>,
     onAddManuallyClick: () -> Unit, // Botón dummy por ahora
     modifier: Modifier = Modifier,
 ) {
@@ -299,7 +316,7 @@ fun TodayFoodCard(
                     style = MaterialTheme.typography.bodyMedium,
                 )
             } else {
-                foodLogs.forEach { (mealType, foodName) ->
+                foodLogs.forEach { item ->
                     Row(
                         modifier =
                             Modifier
@@ -308,11 +325,11 @@ fun TodayFoodCard(
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
                         Text(
-                            text = mealType,
+                            text = item.mealType,
                             style = MaterialTheme.typography.labelSmall,
                         )
                         Text(
-                            text = foodName,
+                            text = item.foodName,
                             style = MaterialTheme.typography.bodyMedium.copy(color = TextDark),
                         )
                     }
@@ -480,12 +497,10 @@ private fun MetricsRowPreview() {
     TanayenTheme {
         MetricsRow(
             metrics =
-                listOf(
-                    Triple("Peso", "74.2", "kg"),
-                    Triple("Calorías activas", "320", "kcal"),
+                persistentListOf(
+                    MetricItem("Peso", "74.2", "kg", "⚖️", SecondaryMint),
+                    MetricItem("Calorías activas", "320", "kcal", "🔥", Color(0xFFE63946)),
                 ),
-            emojis = listOf("⚖️", "🔥"),
-            tints = listOf(SecondaryMint, Color(0xFFE63946)),
         )
     }
 }
@@ -503,7 +518,7 @@ private fun AlertBannerPreview() {
 private fun TodayFoodCardEmptyPreview() {
     TanayenTheme {
         TodayFoodCard(
-            foodLogs = emptyList(),
+            foodLogs = persistentListOf(),
             onAddManuallyClick = {},
         )
     }
@@ -515,10 +530,10 @@ private fun TodayFoodCardWithDataPreview() {
     TanayenTheme {
         TodayFoodCard(
             foodLogs =
-                listOf(
-                    "Desayuno" to "Avena con frutas",
-                    "Almuerzo" to "Ensalada de pollo",
-                    "Cena" to "Salmón con verduras",
+                persistentListOf(
+                    FoodLogItem("Desayuno", "Avena con frutas"),
+                    FoodLogItem("Almuerzo", "Ensalada de pollo"),
+                    FoodLogItem("Cena", "Salmón con verduras"),
                 ),
             onAddManuallyClick = {},
         )
