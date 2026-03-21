@@ -1,5 +1,7 @@
 package dev.tohure.tanayenai.ui.chat
 
+import android.graphics.Bitmap
+import android.graphics.Bitmap.createBitmap
 import android.graphics.BitmapFactory
 import android.util.Base64
 import androidx.compose.animation.core.RepeatMode
@@ -60,8 +62,10 @@ import dev.tohure.tanayenai.ui.theme.BackgroundColor
 import dev.tohure.tanayenai.ui.theme.PrimaryGreen
 import dev.tohure.tanayenai.ui.theme.SecondaryMint
 import dev.tohure.tanayenai.ui.theme.SurfaceColor
+import dev.tohure.tanayenai.ui.theme.TanayenTheme
 import dev.tohure.tanayenai.ui.theme.TextDark
 import dev.tohure.tanayenai.ui.theme.TextMutedColor
+import java.io.ByteArrayOutputStream
 
 @Composable
 fun MessageBubble(
@@ -381,101 +385,126 @@ fun ChatInputBar(
 @Preview(showBackground = true, backgroundColor = 0xFFF5F5F5)
 @Composable
 private fun PendingImagePreviewPreview() {
-    // El bitmap será null con base64 vacío — muestra el botón sin imagen, suficiente para validar
-    PendingImagePreview(
-        pendingImage = PendingImage(base64Data = ""),
-        onRemove = {},
-    )
+    TanayenTheme {
+        // Genera un bitmap celeste de 72×72 para visualizar el tamaño real del thumbnail
+        val base64 =
+            remember {
+                val bmp =
+                    createBitmap(72, 72, android.graphics.Bitmap.Config.ARGB_8888)
+                bmp.eraseColor(0xFF4FC3F7.toInt())
+                val out = ByteArrayOutputStream()
+                bmp.compress(Bitmap.CompressFormat.JPEG, 90, out)
+                Base64.encodeToString(out.toByteArray(), android.util.Base64.DEFAULT)
+            }
+        PendingImagePreview(
+            pendingImage = PendingImage(base64Data = base64),
+            onRemove = {},
+        )
+    }
 }
 
 @Preview(showBackground = true, backgroundColor = 0xFFF5F5F5)
 @Composable
 private fun PantrySuggestionChipPreview() {
-    PantrySuggestionChip(
-        suggestion = PantrySuggestion(ingredients = listOf("avena", "almendras", "yogur griego")),
-        onConfirm = {},
-        onDismiss = {},
-    )
+    TanayenTheme {
+        PantrySuggestionChip(
+            suggestion = PantrySuggestion(ingredients = listOf("avena", "almendras", "yogur griego")),
+            onConfirm = {},
+            onDismiss = {},
+        )
+    }
 }
 
 @Preview(showBackground = true, backgroundColor = 0xFFF5F5F5)
 @Composable
 private fun PantrySuggestionChipConfirmedPreview() {
-    PantrySuggestionChip(
-        suggestion =
-            PantrySuggestion(
-                ingredients = listOf("avena", "almendras"),
-                confirmed = true,
-            ),
-        onConfirm = {},
-        onDismiss = {},
-    )
+    TanayenTheme {
+        PantrySuggestionChip(
+            suggestion =
+                PantrySuggestion(
+                    ingredients = listOf("avena", "almendras"),
+                    confirmed = true,
+                ),
+            onConfirm = {},
+            onDismiss = {},
+        )
+    }
 }
 
 @Preview(showBackground = true)
 @Composable
 private fun MessageBubbleUserPreview() {
-    MessageBubble(
-        message =
-            UiChatMessage(
-                id = "1",
-                content = "¿Cuál cereal es mejor para mi colesterol?",
-                isUser = true,
-            ),
-    )
+    TanayenTheme {
+        MessageBubble(
+            message =
+                UiChatMessage(
+                    id = "1",
+                    content = "¿Cuál cereal es mejor para mi colesterol?",
+                    isUser = true,
+                ),
+        )
+    }
 }
 
 @Preview(showBackground = true)
 @Composable
 private fun MessageBubbleAssistantPreview() {
-    MessageBubble(
-        message =
-            UiChatMessage(
-                id = "2",
-                content = "El cereal A tiene menos azúcar y más fibra, ideal para tu perfil. 🌿",
-                isUser = false,
-            ),
-    )
+    TanayenTheme {
+        MessageBubble(
+            message =
+                UiChatMessage(
+                    id = "2",
+                    content = "El cereal A tiene menos azúcar y más fibra, ideal para tu perfil. 🌿",
+                    isUser = false,
+                ),
+        )
+    }
 }
 
 @Preview(showBackground = true)
 @Composable
 private fun MessageBubbleWithImagePreview() {
-    MessageBubble(
-        message =
-            UiChatMessage(
-                id = "3",
-                content = "Veo que compraste avena, almendras y yogur griego.",
-                isUser = false,
-                hasAttachedImage = true,
-            ),
-    )
+    TanayenTheme {
+        MessageBubble(
+            message =
+                UiChatMessage(
+                    id = "3",
+                    content = "Veo que compraste avena, almendras y yogur griego.",
+                    isUser = false,
+                    hasAttachedImage = true,
+                ),
+        )
+    }
 }
 
 @Preview(showBackground = true)
 @Composable
 private fun ChatInputBarPreview() {
-    ChatInputBar(
-        value = "",
-        onValueChange = {},
-        onSend = {},
-        isLoading = false,
-        hasPendingImage = false,
-        onCameraClick = {},
-        onGalleryClick = {},
-    )
+    TanayenTheme {
+        ChatInputBar(
+            value = "",
+            onValueChange = {},
+            onSend = {},
+            isLoading = false,
+            hasPendingImage = false,
+            onCameraClick = {},
+            onGalleryClick = {},
+        )
+    }
 }
 
 @Preview(showBackground = true)
 @Composable
 private fun ChatInputBarWithImagePreview() {
-    ChatInputBar(
-        value = "¿Es bueno para mi salud?",
-        onValueChange = {},
-        onSend = {},
-        isLoading = false,
-        hasPendingImage = true,
-        onCameraClick = {},
-        onGalleryClick = {},
-    )
+    TanayenTheme {
+        ChatInputBar(
+            value = "¿Es bueno para mi salud?",
+            onValueChange = {},
+            onSend = {},
+            isLoading = false,
+            hasPendingImage = true,
+            onCameraClick = {},
+            onGalleryClick = {},
+        )
+    }
 }

@@ -27,12 +27,14 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.tohure.tanayenai.ui.theme.AccentTerra
 import dev.tohure.tanayenai.ui.theme.PrimaryGreen
 import dev.tohure.tanayenai.ui.theme.SecondaryMint
 import dev.tohure.tanayenai.ui.theme.SurfaceColor
+import dev.tohure.tanayenai.ui.theme.TanayenTheme
 import dev.tohure.tanayenai.ui.theme.TextDark
 import dev.tohure.tanayenai.ui.theme.TextMutedColor
 
@@ -384,5 +386,157 @@ fun HealthPermissionBanner(
                 Text("Conceder permisos", color = Color.White)
             }
         }
+    }
+}
+
+// ── Previews ──────────────────────────────────────────────────────────────────
+
+@Preview(showBackground = true, backgroundColor = 0xFFF5F5F5)
+@Composable
+private fun GreetingHeaderPreview() {
+    TanayenTheme {
+        GreetingHeader(
+            userName = "Carlo",
+            greeting = "Buenos días ☀️",
+            subtitle = "Todo bien por ahora 🌿",
+        )
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFFF5F5F5)
+@Composable
+private fun GreetingHeaderWithAlertPreview() {
+    TanayenTheme {
+        GreetingHeader(
+            userName = "Carlo",
+            greeting = "Buenas noches 🌙",
+            subtitle = "Dormiste 5.0h — evita cafeína después de las 14:00",
+        )
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFFF5F5F5)
+@Composable
+private fun MetricCardSleepPreview() {
+    TanayenTheme {
+        MetricCard(
+            label = "Sueño",
+            value = "7.5",
+            unit = "h",
+            emoji = "🌙",
+            tint = AccentTerra,
+        )
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFFF5F5F5)
+@Composable
+private fun MetricCardEmptyPreview() {
+    TanayenTheme {
+        MetricCard(
+            label = "Peso",
+            value = "--",
+            unit = "kg",
+            emoji = "⚖️",
+        )
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFFF5F5F5)
+@Composable
+private fun StressLevelCardLowPreview() {
+    TanayenTheme {
+        StressLevelCard(hrvValue = "72")
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFFF5F5F5)
+@Composable
+private fun StressLevelCardMediumPreview() {
+    TanayenTheme {
+        StressLevelCard(hrvValue = "48")
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFFF5F5F5)
+@Composable
+private fun StressLevelCardHighPreview() {
+    TanayenTheme {
+        StressLevelCard(hrvValue = "32")
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFFF5F5F5)
+@Composable
+private fun StressLevelCardNoDataPreview() {
+    TanayenTheme {
+        StressLevelCard(hrvValue = "--")
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFFF5F5F5)
+@Composable
+private fun MetricsRowPreview() {
+    TanayenTheme {
+        MetricsRow(
+            metrics =
+                listOf(
+                    Triple("Peso", "74.2", "kg"),
+                    Triple("Calorías activas", "320", "kcal"),
+                ),
+            emojis = listOf("⚖️", "🔥"),
+            tints = listOf(SecondaryMint, Color(0xFFE63946)),
+        )
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFFF5F5F5)
+@Composable
+private fun AlertBannerPreview() {
+    TanayenTheme {
+        AlertBanner(message = "Dormiste 5.0h — evita cafeína después de las 14:00")
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFFF5F5F5)
+@Composable
+private fun TodayFoodCardEmptyPreview() {
+    TanayenTheme {
+        TodayFoodCard(
+            foodLogs = emptyList(),
+            onAddManuallyClick = {},
+        )
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFFF5F5F5)
+@Composable
+private fun TodayFoodCardWithDataPreview() {
+    TanayenTheme {
+        TodayFoodCard(
+            foodLogs =
+                listOf(
+                    "Desayuno" to "Avena con frutas",
+                    "Almuerzo" to "Ensalada de pollo",
+                    "Cena" to "Salmón con verduras",
+                ),
+            onAddManuallyClick = {},
+        )
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFFF5F5F5)
+@Composable
+private fun AskAssistantButtonPreview() {
+    TanayenTheme {
+        AskAssistantButton(onClick = {})
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFFF5F5F5)
+@Composable
+private fun HealthPermissionBannerPreview() {
+    TanayenTheme {
+        HealthPermissionBanner(onGrantClick = {})
     }
 }
