@@ -12,6 +12,7 @@ CREATE TABLE FoodLog (
 );
 
 CREATE INDEX idx_food_log_user_date ON FoodLog(user_id, logged_at DESC);
+CREATE INDEX idx_food_log_synced ON FoodLog(synced);
 
 -- Queries
 insertFoodLog:

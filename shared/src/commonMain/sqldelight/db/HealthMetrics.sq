@@ -13,6 +13,7 @@ CREATE TABLE HealthMetrics (
 );
 
 CREATE INDEX idx_health_metrics_user_date ON HealthMetrics(user_id, date DESC);
+CREATE INDEX idx_health_metrics_synced ON HealthMetrics(synced);
 
 -- Queries
 insertMetrics:

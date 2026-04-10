@@ -12,6 +12,7 @@ import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,23 +29,24 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
@@ -357,71 +359,92 @@ fun ChatInputBar(
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            IconButton(
-                onClick = onCameraClick,
+            Box(
                 modifier =
                     Modifier
                         .size(40.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFFE8F5EE)),
+                        .background(Color(0xFFE8F5EE))
+                        .clickable(onClick = onCameraClick),
+                contentAlignment = Alignment.Center,
             ) {
-                Text("📷", fontSize = 18.sp)
+                Text("📷", fontSize = 20.sp)
             }
 
-            IconButton(
-                onClick = onGalleryClick,
+            Box(
                 modifier =
                     Modifier
                         .size(40.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFFE8F5EE)),
+                        .background(Color(0xFFE8F5EE))
+                        .clickable(onClick = onGalleryClick),
+                contentAlignment = Alignment.Center,
             ) {
-                Text("🖼️", fontSize = 18.sp)
+                Text("🖼️", fontSize = 20.sp)
             }
 
-            OutlinedTextField(
+            var isFocused by remember { mutableStateOf(false) }
+            BasicTextField(
                 value = value,
                 onValueChange = onValueChange,
-                modifier = Modifier.weight(1f),
-                placeholder = {
-                    Text(
-                        "Escribe aquí...",
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                },
-                shape = RoundedCornerShape(24.dp),
-                colors =
-                    OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = SecondaryMint,
-                        unfocusedBorderColor = Color(0xFFE0E0E0),
-                        focusedContainerColor = BackgroundColor,
-                        unfocusedContainerColor = BackgroundColor,
-                    ),
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .onFocusChanged { isFocused = it.isFocused }
+                        .border(
+                            width = 1.dp,
+                            color = if (isFocused) SecondaryMint else Color(0xFFE0E0E0),
+                            shape = RoundedCornerShape(24.dp),
+                        ).clip(RoundedCornerShape(24.dp))
+                        .background(BackgroundColor)
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                textStyle = MaterialTheme.typography.bodyMedium.copy(color = TextDark),
+                maxLines = 4,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                 keyboardActions = KeyboardActions(onSend = { if (!isLoading) onSend() }),
-                maxLines = 4,
-                textStyle = MaterialTheme.typography.bodyLarge,
+                decorationBox = { innerTextField ->
+                    Box(contentAlignment = Alignment.CenterStart) {
+                        if (value.isEmpty()) {
+                            Text(
+                                "Escribe aquí...",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = TextMutedColor,
+                            )
+                        }
+                        innerTextField()
+                    }
+                },
             )
 
             // Botón enviar
-            IconButton(
-                onClick = onSend,
-                enabled = (value.isNotBlank() || hasPendingImage) && !isLoading,
+            val sendEnabled = (value.isNotBlank() || hasPendingImage) && !isLoading
+            Box(
                 modifier =
                     Modifier
                         .size(40.dp)
                         .clip(CircleShape)
-                        .background(
-                            if ((value.isNotBlank() || hasPendingImage) && !isLoading) {
-                                PrimaryGreen
-                            } else {
-                                Color(0xFFE0E0E0)
-                            },
-                        ),
+                        .background(if (sendEnabled) PrimaryGreen else Color(0xFFE0E0E0))
+                        .clickable(enabled = sendEnabled, onClick = onSend),
+                contentAlignment = Alignment.Center,
             ) {
-                Text("↑", fontSize = 20.sp, color = SurfaceColor)
+                Text(
+                    "↑",
+                    color = SurfaceColor,
+                    modifier = Modifier.offset(y = (-2).dp),
+                    style =
+                        MaterialTheme.typography.bodyLarge.copy(
+                            fontSize = 26.sp,
+                            lineHeight = 26.sp,
+                            platformStyle = PlatformTextStyle(includeFontPadding = false),
+                            lineHeightStyle =
+                                LineHeightStyle(
+                                    alignment = LineHeightStyle.Alignment.Center,
+                                    trim = LineHeightStyle.Trim.Both,
+                                ),
+                        ),
+                )
             }
         }
     }

@@ -80,7 +80,7 @@ data class ClinicalProfile(
     val hasElevatedInflammation: Boolean get() =
         (crpUltraSensitive ?: 0f) > 3f || (homocysteine ?: 0f) > 15f
 
-    val activeRestrictions: List<String> get() =
+    val activeRestrictions: List<String> =
         buildList {
             if (hasDyslipidemia) add("Dislipidemia: limitar grasas saturadas y trans, colesterol dietético")
             if (hasHyperglycemia) {

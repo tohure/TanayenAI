@@ -10,6 +10,7 @@ CREATE TABLE Recommendation (
 );
 
 CREATE INDEX idx_recommendation_user_date ON Recommendation(user_id, recommended_at DESC);
+CREATE INDEX idx_recommendation_synced ON Recommendation(synced);
 
 -- Queries
 insertRecommendation:

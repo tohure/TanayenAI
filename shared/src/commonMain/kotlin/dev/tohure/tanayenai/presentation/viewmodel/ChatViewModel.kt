@@ -22,6 +22,7 @@ import dev.tohure.tanayenai.domain.usecase.FetchContextParamsUseCase
 import dev.tohure.tanayenai.domain.usecase.SavePantryIngredientsUseCase
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -96,23 +97,25 @@ class ChatViewModel(
 
     private val conversationHistory = mutableListOf<Pair<String, String>>()
     private var cachedContext: String = ""
+    private var contextJob: Job? = null
 
     init {
         buildContext()
     }
 
     private fun buildContext() {
-        viewModelScope.launch {
-            try {
-                val contextParams =
-                    fetchContextParamsUseCase.fetch(userId = userId, today = currentIsoDate())
-                cachedContext = buildContextUseCase.build(contextParams)
-                _uiState.value = _uiState.value.copy(contextReady = true)
-            } catch (e: Exception) {
-                log.e(e) { "Failed to build context" }
-                _uiState.value = _uiState.value.copy(contextReady = true)
+        contextJob?.cancel()
+        contextJob =
+            viewModelScope.launch {
+                try {
+                    val contextParams =
+                        fetchContextParamsUseCase.fetch(userId = userId, today = currentIsoDate())
+                    cachedContext = buildContextUseCase.build(contextParams)
+                    _uiState.value = _uiState.value.copy(contextReady = true)
+                } catch (e: Exception) {
+                    log.e(e) { "Failed to build context" }
+                }
             }
-        }
     }
 
     // ── Preselección de Imagen ────────────────────────────────────────────────

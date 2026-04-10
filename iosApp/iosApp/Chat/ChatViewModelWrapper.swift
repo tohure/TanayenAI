@@ -32,6 +32,10 @@ class ChatViewModelWrapper: ObservableObject {
         }
     }
 
+    deinit {
+        observeTask?.cancel()
+    }
+
     private func observeState(_ state: ChatUiState) {
         self.messages = state.messages.map { msg in
             ChatMessage(
