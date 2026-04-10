@@ -9,8 +9,10 @@ import dev.tohure.tanayenai.domain.model.Recommendation
 import dev.tohure.tanayenai.domain.model.RecommendationType
 import dev.tohure.tanayenai.domain.model.Sex
 import dev.tohure.tanayenai.domain.model.User
+import dev.tohure.tanayenai.domain.repository.ClinicalProfileRepository
 import dev.tohure.tanayenai.domain.repository.HealthMetricsRepository
 import dev.tohure.tanayenai.domain.repository.RecommendationRepository
+import dev.tohure.tanayenai.domain.repository.UserRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
@@ -75,18 +77,79 @@ class FetchContextParamsUseCaseTest {
         ) = emptyList<Recommendation>()
     }
 
+    private class FakeClinicalProfileRepository(
+        private val profile: ClinicalProfile? = null,
+    ) : ClinicalProfileRepository {
+        override suspend fun getClinicalProfile(userId: String) = profile
+
+        override suspend fun saveClinicalProfile(profile: ClinicalProfile) {}
+    }
+
+    private class FakeUserRepository(
+        private val user: User? = null,
+    ) : UserRepository {
+        override suspend fun getUser(id: String) = user
+
+        override suspend fun saveUser(user: User) {}
+
+        override suspend fun updateUser(user: User) {}
+    }
+
+    private fun makeUseCase(
+        metrics: List<HealthMetrics> = emptyList(),
+        recommendations: List<Recommendation> = emptyList(),
+        clinicalProfile: ClinicalProfile? = null,
+        user: User? = null,
+    ) = FetchContextParamsUseCase(
+        healthMetricsRepository = FakeHealthMetricsRepository(metrics),
+        recommendationRepository = FakeRecommendationRepository(recommendations),
+        clinicalProfileRepository = FakeClinicalProfileRepository(clinicalProfile),
+        userRepository = FakeUserRepository(user),
+    )
+
     // ── Tests ─────────────────────────────────────────────────────────────────
 
     @Test
-    fun fetchReturnsParamsWithUserAndClinicalProfile() =
+    fun fetchReturnsParamsWithUserFromRepository() =
         runTest {
-            val useCase = FetchContextParamsUseCase(FakeHealthMetricsRepository(), FakeRecommendationRepository())
+            val useCase = makeUseCase(user = testUser)
 
-            val params = useCase.fetch(userId, testUser, testClinicalProfile, today = "2026-03-21")
+            val params = useCase.fetch(userId, today = "2026-03-21")
 
             assertEquals(testUser, params.user)
-            assertEquals(testClinicalProfile, params.clinicalProfile)
             assertEquals("2026-03-21", params.today)
+        }
+
+    @Test
+    fun fetchUsesPlaceholderUserWhenNoneInRepository() =
+        runTest {
+            // user = null → UseCase creates placeholder
+            val useCase = makeUseCase(user = null)
+
+            val params = useCase.fetch(userId, today = "2026-03-21")
+
+            assertNotNull(params.user)
+            assertEquals(userId, params.user.id)
+        }
+
+    @Test
+    fun fetchReturnsClinicalProfileFromRepository() =
+        runTest {
+            val useCase = makeUseCase(user = testUser, clinicalProfile = testClinicalProfile)
+
+            val params = useCase.fetch(userId, today = "2026-03-21")
+
+            assertEquals(testClinicalProfile, params.clinicalProfile)
+        }
+
+    @Test
+    fun fetchReturnsNullClinicalProfileWhenNotFound() =
+        runTest {
+            val useCase = makeUseCase(user = testUser, clinicalProfile = null)
+
+            val params = useCase.fetch(userId, today = "2026-03-21")
+
+            assertNull(params.clinicalProfile)
         }
 
     @Test
@@ -107,10 +170,9 @@ class FetchContextParamsUseCaseTest {
                         source = MetricsSource.HEALTH_CONNECT,
                     ),
                 )
-            val useCase =
-                FetchContextParamsUseCase(FakeHealthMetricsRepository(metrics), FakeRecommendationRepository())
+            val useCase = makeUseCase(metrics = metrics, user = testUser)
 
-            val params = useCase.fetch(userId, testUser, null, today = "2026-03-21")
+            val params = useCase.fetch(userId, today = "2026-03-21")
 
             assertEquals(2, params.recentMetrics.size)
         }
@@ -130,32 +192,20 @@ class FetchContextParamsUseCaseTest {
                         recommendedAt = "2026-03-20T10:00:00Z",
                     ),
                 )
-            val useCase =
-                FetchContextParamsUseCase(FakeHealthMetricsRepository(), FakeRecommendationRepository(recommendations))
+            val useCase = makeUseCase(recommendations = recommendations, user = testUser)
 
-            val params = useCase.fetch(userId, testUser, null, today = "2026-03-21")
+            val params = useCase.fetch(userId, today = "2026-03-21")
 
             assertEquals(1, params.recentRecommendations.size)
             assertEquals("Avena con frutas", params.recentRecommendations.first().title)
         }
 
     @Test
-    fun fetchWorksWithNullClinicalProfile() =
-        runTest {
-            val useCase = FetchContextParamsUseCase(FakeHealthMetricsRepository(), FakeRecommendationRepository())
-
-            val params = useCase.fetch(userId, testUser, clinicalProfile = null, today = "2026-03-21")
-
-            assertNotNull(params)
-            assertNull(params.clinicalProfile)
-        }
-
-    @Test
     fun fetchUsesDefaultWorkContextWhenNotProvided() =
         runTest {
-            val useCase = FetchContextParamsUseCase(FakeHealthMetricsRepository(), FakeRecommendationRepository())
+            val useCase = makeUseCase(user = testUser)
 
-            val params = useCase.fetch(userId, testUser, null, today = "2026-03-21")
+            val params = useCase.fetch(userId, today = "2026-03-21")
 
             assertEquals("Sin especificar", params.workContext)
         }

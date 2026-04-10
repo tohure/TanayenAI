@@ -113,7 +113,7 @@ struct PendingImagePreviewView: View {
     let onRemove: () -> Void
 
     var decodedImage: UIImage? {
-        guard let data = Data(base64Encoded: base64) else { return nil }
+        guard let data = Data(base64Encoded: base64, options: .ignoreUnknownCharacters) else { return nil }
         return UIImage(data: data)
     }
 
@@ -198,6 +198,7 @@ struct ChatInputBarView: View {
 
             TextField("Escribe o pregunta algo...", text: $text, axis: .vertical)
                 .font(.system(.body, design: .rounded))
+                .foregroundColor(TanayenTheme.textDark)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
                 .background(TanayenTheme.background)

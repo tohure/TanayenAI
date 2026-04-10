@@ -11,7 +11,7 @@ struct ChatMessage: Identifiable {
     let isUser: Bool
     var isLoading: Bool = false
     var hasAttachedImage: Bool = false
-    var pantrySuggestion: PantrySuggestionWrapper? = nil
+    var pantrySuggestion: PantrySuggestionWrapper?
 }
 
 struct PantrySuggestionWrapper: Equatable {
@@ -24,11 +24,15 @@ struct PantrySuggestionWrapper: Equatable {
     }
 }
 
+private enum ImageSource: Identifiable {
+    case camera, gallery
+    var id: Self { self }
+}
+
 struct ChatView: View {
     @StateObject private var chatVM = ChatViewModelWrapper()
     @State private var inputText = ""
-    @State private var showImagePicker = false
-    @State private var sourceType: UIImagePickerController.SourceType = .photoLibrary
+    @State private var imageSource: ImageSource?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -68,6 +72,7 @@ struct ChatView: View {
                     }
                     .padding(.vertical, 8)
                 }
+                .scrollDismissesKeyboard(.interactively)
                 .onChange(of: chatVM.messages.last?.content) { _, _ in
                     if let last = chatVM.messages.last {
                         withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
@@ -94,14 +99,8 @@ struct ChatView: View {
                 text: $inputText,
                 isLoading: chatVM.isLoading,
                 hasPendingImage: chatVM.pendingImageBase64 != nil,
-                onCameraClick: {
-                    sourceType = .camera
-                    showImagePicker = true
-                },
-                onGalleryClick: {
-                    sourceType = .photoLibrary
-                    showImagePicker = true
-                },
+                onCameraClick: { imageSource = .camera },
+                onGalleryClick: { imageSource = .gallery },
                 onSend: {
                     let text = inputText.trimmingCharacters(in: .whitespaces)
                     guard !text.isEmpty || chatVM.pendingImageBase64 != nil else { return }
@@ -113,8 +112,20 @@ struct ChatView: View {
         }
         .background(TanayenTheme.background)
         .navigationBarHidden(true)
-        .sheet(isPresented: $showImagePicker) {
-            ImagePicker(sourceType: sourceType) { image in
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Listo") {
+                    UIApplication.shared.sendAction(
+                        #selector(UIResponder.resignFirstResponder),
+                        to: nil, from: nil, for: nil
+                    )
+                }
+                .foregroundColor(TanayenTheme.primaryGreen)
+            }
+        }
+        .sheet(item: $imageSource) { source in
+            ImagePicker(sourceType: source == .camera ? .camera : .photoLibrary) { image in
                 if let image = image, let base64 = image.resizeAndEncode(maxSize: 800) {
                     chatVM.attachImage(base64: base64)
                 }

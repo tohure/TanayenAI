@@ -118,28 +118,26 @@ class BuildContextUseCase {
         clinical.triglycerides?.let { appendLine("Triglicéridos: $it mg/dL") }
         clinical.fastingGlucose?.let { appendLine("Glucosa en ayunas: $it mg/dL") }
         clinical.hba1c?.let { appendLine("HbA1c: $it%") }
+        clinical.homaIr?.let { appendLine("HOMA-IR: $it") }
         clinical.systolicPressure?.let { sys ->
             clinical.diastolicPressure?.let { dia -> appendLine("Presión: $sys/$dia mmHg") }
         }
+        clinical.uricAcid?.let { appendLine("Ácido úrico: $it mg/dL") }
+        clinical.creatinine?.let { appendLine("Creatinina: $it mg/dL") }
+        clinical.gfr?.let { appendLine("FG estimado: ${it.toInt()} mL/min") }
+        clinical.tsh?.let { appendLine("TSH: $it µU/mL") }
+        clinical.hemoglobin?.let { appendLine("Hemoglobina: $it g/dL") }
+        clinical.vitaminD?.let { appendLine("Vitamina D: $it ng/mL") }
+        clinical.vitaminB12?.let { appendLine("Vitamina B12: $it pg/mL") }
+        clinical.crpUltraSensitive?.let { appendLine("PCR ultrasensible: $it mg/L") }
     }
 
     private fun StringBuilder.appendClinicalConstraints(clinical: ClinicalProfile) {
-        if (clinical.hasDyslipidemia) {
-            appendLine("DISLIPIDEMIA → Evitar: mantequilla, embutidos, frituras.")
-            appendLine("  Limitar: carnes rojas, yema de huevo.")
-            appendLine("  Priorizar: avena, aguacate, nueces, aceite de oliva, pescado azul.")
-        }
-        if (clinical.hasHyperglycemia) {
-            appendLine("GLUCOSA ELEVADA → Evitar: azúcar, harinas refinadas, bebidas azucaradas.")
-            appendLine("  Limitar: arroz blanco, pan blanco, papa.")
-            appendLine("  Priorizar: vegetales verdes, proteína magra, fibra.")
-        }
-        if (clinical.hasHypertension) {
-            appendLine("HIPERTENSIÓN → Evitar: exceso de sal, embutidos, enlatados.")
-            appendLine("  Priorizar: potasio, magnesio, vegetales, frutas.")
-        }
-        if (!clinical.hasDyslipidemia && !clinical.hasHyperglycemia && !clinical.hasHypertension) {
+        val restrictions = clinical.activeRestrictions
+        if (restrictions.isEmpty()) {
             appendLine("Sin restricciones clínicas activas.")
+        } else {
+            restrictions.forEach { appendLine("• $it") }
         }
     }
 

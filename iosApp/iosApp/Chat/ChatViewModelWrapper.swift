@@ -10,8 +10,8 @@ class ChatViewModelWrapper: ObservableObject {
     @Published var messages: [ChatMessage] = []
     @Published var isLoading = false
     @Published var contextReady = false
-    @Published var error: String? = nil
-    @Published var pendingImageBase64: String? = nil
+    @Published var error: String?
+    @Published var pendingImageBase64: String?
 
     // ViewModel compartido de KMP
     private let chatVM: ChatViewModel

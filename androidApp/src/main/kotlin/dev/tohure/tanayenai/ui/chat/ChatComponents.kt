@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -55,6 +54,7 @@ import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.tohure.tanayenai.presentation.viewmodel.ClinicalSuggestion
 import dev.tohure.tanayenai.presentation.viewmodel.PantrySuggestion
 import dev.tohure.tanayenai.presentation.viewmodel.PendingImage
 import dev.tohure.tanayenai.presentation.viewmodel.UiChatMessage
@@ -290,6 +290,56 @@ fun PantrySuggestionChip(
 }
 
 @Composable
+fun ClinicalSuggestionChip(
+    suggestion: ClinicalSuggestion,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val blueLight = Color(0xFFE8F0FE)
+    val blueDark = Color(0xFF3B5998)
+
+    if (suggestion.confirmed) {
+        Text(
+            text = "✓ Guardado en tu perfil clínico",
+            style = MaterialTheme.typography.labelSmall.copy(color = Color(0xFF5B9BD5)),
+            modifier = modifier.padding(start = 48.dp, top = 4.dp, bottom = 8.dp),
+        )
+        return
+    }
+
+    Row(
+        modifier =
+            modifier
+                .padding(start = 48.dp, top = 4.dp, end = 16.dp, bottom = 8.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(blueLight)
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = "¿Guardo en tu perfil: ${suggestion.summary}?",
+            style = MaterialTheme.typography.labelSmall.copy(color = blueDark),
+            modifier = Modifier.weight(1f),
+        )
+        TextButton(
+            onClick = onDismiss,
+            contentPadding = PaddingValues(horizontal = 8.dp),
+        ) {
+            Text("No", style = MaterialTheme.typography.labelSmall.copy(color = TextMutedColor))
+        }
+        Button(
+            onClick = onConfirm,
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = blueDark),
+        ) {
+            Text("Sí", style = MaterialTheme.typography.labelSmall)
+        }
+    }
+}
+
+@Composable
 fun ChatInputBar(
     value: String,
     onValueChange: (String) -> Unit,
@@ -303,13 +353,9 @@ fun ChatInputBar(
     Surface(
         modifier = modifier.fillMaxWidth(),
         color = SurfaceColor,
-        tonalElevation = 4.dp,
     ) {
         Row(
-            modifier =
-                Modifier
-                    .padding(horizontal = 16.dp, vertical = 10.dp)
-                    .navigationBarsPadding(),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {

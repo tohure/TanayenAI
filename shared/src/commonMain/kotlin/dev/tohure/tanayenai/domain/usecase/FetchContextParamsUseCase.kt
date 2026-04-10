@@ -1,30 +1,35 @@
 package dev.tohure.tanayenai.domain.usecase
 
-import dev.tohure.tanayenai.domain.model.ClinicalProfile
+import dev.tohure.tanayenai.domain.model.ActivityLevel
+import dev.tohure.tanayenai.domain.model.NutritionGoal
+import dev.tohure.tanayenai.domain.model.Sex
 import dev.tohure.tanayenai.domain.model.User
 import dev.tohure.tanayenai.domain.model.currentIsoDate
 import dev.tohure.tanayenai.domain.model.daysAgo
+import dev.tohure.tanayenai.domain.repository.ClinicalProfileRepository
 import dev.tohure.tanayenai.domain.repository.HealthMetricsRepository
 import dev.tohure.tanayenai.domain.repository.RecommendationRepository
+import dev.tohure.tanayenai.domain.repository.UserRepository
 
 /**
  * Obtiene los datos necesarios para construir el contexto de Gemini.
- * Los ViewModels ya no acceden directamente a los repositorios para este fin.
- *
- * User y ClinicalProfile se reciben como parámetros hasta que UserRepository
- * y ClinicalProfileRepository sean implementados en una fase futura.
+ * Lee User y ClinicalProfile internamente desde sus repositorios.
+ * Si no existe un User guardado, usa un placeholder temporal (hasta Fase 5D).
  */
 class FetchContextParamsUseCase(
     private val healthMetricsRepository: HealthMetricsRepository,
     private val recommendationRepository: RecommendationRepository,
+    private val clinicalProfileRepository: ClinicalProfileRepository,
+    private val userRepository: UserRepository,
 ) {
     suspend fun fetch(
         userId: String,
-        user: User,
-        clinicalProfile: ClinicalProfile?,
         today: String = currentIsoDate(),
         workContext: String = "Sin especificar",
     ): ContextParams {
+        val user = userRepository.getUser(userId) ?: placeholderUser(userId)
+        val clinicalProfile = clinicalProfileRepository.getClinicalProfile(userId)
+
         val recentMetrics =
             healthMetricsRepository.getMetricsForDateRange(
                 userId,
@@ -40,7 +45,7 @@ class FetchContextParamsUseCase(
             user = user,
             clinicalProfile = clinicalProfile,
             recentMetrics = recentMetrics,
-            pantryItems = emptyList(), // TODO: PantryRepository en fase futura
+            pantryItems = emptyList(), // TODO: Conectar PantryRepository cuando la pantalla Dispensa esté lista
             locationNames = emptyMap(),
             recentRecommendations = recentRecommendations,
             todayFoodLogs = emptyList(),
@@ -48,4 +53,16 @@ class FetchContextParamsUseCase(
             workContext = workContext,
         )
     }
+
+    // Placeholder temporal hasta que exista onboarding de usuario (Fase 5D)
+    private fun placeholderUser(userId: String) =
+        User(
+            id = userId,
+            name = "Carlo",
+            birthDate = "1990-05-15",
+            sex = Sex.MALE,
+            heightCm = 175f,
+            goal = NutritionGoal.EAT_HEALTHY,
+            activityLevel = ActivityLevel.MODERATE,
+        )
 }

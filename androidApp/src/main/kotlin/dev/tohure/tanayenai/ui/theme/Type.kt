@@ -24,7 +24,6 @@ val TanayenTypography =
                 fontWeight = FontWeight.Bold,
                 fontSize = 28.sp,
                 lineHeight = 36.sp,
-                color = TextDark,
             ),
         headlineMedium =
             TextStyle(
@@ -32,7 +31,6 @@ val TanayenTypography =
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 22.sp,
                 lineHeight = 30.sp,
-                color = TextDark,
             ),
         titleMedium =
             TextStyle(
@@ -40,7 +38,6 @@ val TanayenTypography =
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 16.sp,
                 lineHeight = 24.sp,
-                color = TextDark,
             ),
         bodyLarge =
             TextStyle(
@@ -48,7 +45,6 @@ val TanayenTypography =
                 fontWeight = FontWeight.Normal,
                 fontSize = 16.sp,
                 lineHeight = 24.sp,
-                color = TextDark,
             ),
         bodyMedium =
             TextStyle(
@@ -56,7 +52,6 @@ val TanayenTypography =
                 fontWeight = FontWeight.Normal,
                 fontSize = 14.sp,
                 lineHeight = 20.sp,
-                color = TextMutedColor,
             ),
         labelSmall =
             TextStyle(
@@ -64,6 +59,5 @@ val TanayenTypography =
                 fontWeight = FontWeight.Medium,
                 fontSize = 12.sp,
                 lineHeight = 16.sp,
-                color = TextMutedColor,
             ),
     )

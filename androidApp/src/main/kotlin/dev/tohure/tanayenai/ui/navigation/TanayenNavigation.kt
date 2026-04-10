@@ -27,6 +27,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import dev.tohure.tanayenai.R
 import dev.tohure.tanayenai.ui.chat.ChatScreen
+import dev.tohure.tanayenai.ui.clinical.ClinicalProfileScreen
 import dev.tohure.tanayenai.ui.dashboard.DashboardScreen
 import dev.tohure.tanayenai.ui.theme.BackgroundColor
 import dev.tohure.tanayenai.ui.theme.PrimaryGreen
@@ -131,7 +132,7 @@ fun TanayenNavigation() {
             composable(Screen.Dashboard.route) { DashboardScreen() }
             composable(Screen.Chat.route) { ChatScreen() }
             composable(Screen.Pantry.route) { PlaceholderScreen("Alacena — TODO") }
-            composable(Screen.Profile.route) { PlaceholderScreen("Perfil — TODO") }
+            composable(Screen.Profile.route) { ClinicalProfileScreen() }
         }
     }
 }

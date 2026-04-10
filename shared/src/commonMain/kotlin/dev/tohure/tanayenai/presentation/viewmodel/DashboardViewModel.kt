@@ -3,13 +3,8 @@ package dev.tohure.tanayenai.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rickclephas.kmp.nativecoroutines.NativeCoroutinesState
-import dev.tohure.tanayenai.domain.model.ActivityLevel
-import dev.tohure.tanayenai.domain.model.ClinicalProfile
 import dev.tohure.tanayenai.domain.model.FoodLog
 import dev.tohure.tanayenai.domain.model.HealthMetrics
-import dev.tohure.tanayenai.domain.model.NutritionGoal
-import dev.tohure.tanayenai.domain.model.Sex
-import dev.tohure.tanayenai.domain.model.User
 import dev.tohure.tanayenai.domain.model.currentIsoDate
 import dev.tohure.tanayenai.domain.usecase.BuildContextUseCase
 import dev.tohure.tanayenai.domain.usecase.FetchContextParamsUseCase
@@ -76,12 +71,7 @@ class DashboardViewModel(
     private suspend fun buildGeminiContext() {
         try {
             val params =
-                fetchContextParamsUseCase.fetch(
-                    userId = userId,
-                    user = placeholderUser(),
-                    clinicalProfile = placeholderClinicalProfile(),
-                    today = currentIsoDate(),
-                )
+                fetchContextParamsUseCase.fetch(userId = userId, today = currentIsoDate())
             val context = buildContextUseCase.build(params)
             _uiState.value = _uiState.value.copy(geminiContext = context)
         } catch (e: Exception) {
@@ -104,29 +94,4 @@ class DashboardViewModel(
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
     }
-
-    // ── Dummies (reemplazar en fase futura con UserRepository / ClinicalProfileRepository) ──
-    private fun placeholderUser() =
-        User(
-            id = userId,
-            name = "Carlo",
-            birthDate = "1990-05-15",
-            sex = Sex.MALE,
-            heightCm = 175f,
-            goal = NutritionGoal.EAT_HEALTHY,
-            activityLevel = ActivityLevel.MODERATE,
-        )
-
-    private fun placeholderClinicalProfile() =
-        ClinicalProfile(
-            userId = userId,
-            cholesterolTotal = 215f,
-            hdl = 42f,
-            ldl = 148f,
-            triglycerides = 180f,
-            fastingGlucose = 102f,
-            hba1c = 5.8f,
-            systolicPressure = 125,
-            diastolicPressure = 82,
-        )
 }

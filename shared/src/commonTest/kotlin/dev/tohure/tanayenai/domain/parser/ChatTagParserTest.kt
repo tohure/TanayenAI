@@ -1,4 +1,4 @@
-package dev.tohure.tanayenai.domain.usecase
+package dev.tohure.tanayenai.domain.parser
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -87,6 +87,40 @@ class ChatTagParserTest {
     fun stripTags_leavesTextUnchangedWhenNoTagsPresent() {
         val response = "Respuesta sin ningún tag."
         assertEquals(response, ChatTagParser.stripTags(response))
+    }
+
+    // ── extractClinicalJson ───────────────────────────────────────────────────
+
+    @Test
+    fun extractClinicalJson_returnsJsonFromTag() {
+        val response = "Tu glucosa está bien. [CLINICAL:{\"fasting_glucose\":94}]"
+        assertEquals("{\"fasting_glucose\":94}", ChatTagParser.extractClinicalJson(response))
+    }
+
+    @Test
+    fun extractClinicalJson_returnsJsonWithMultipleFields() {
+        val response = "Guardé tu presión. [CLINICAL:{\"systolic_pressure\":125,\"diastolic_pressure\":82}]"
+        assertEquals(
+            "{\"systolic_pressure\":125,\"diastolic_pressure\":82}",
+            ChatTagParser.extractClinicalJson(response),
+        )
+    }
+
+    @Test
+    fun extractClinicalJson_returnsNullWhenNoTagPresent() {
+        assertNull(ChatTagParser.extractClinicalJson("Respuesta sin tag clínico."))
+    }
+
+    @Test
+    fun stripTags_removesClinicalTagFromResponse() {
+        val response = "Tu glucosa está en rango normal. [CLINICAL:{\"fasting_glucose\":94}]"
+        assertEquals("Tu glucosa está en rango normal.", ChatTagParser.stripTags(response))
+    }
+
+    @Test
+    fun stripForStreaming_hidesClinicalTagDuringStream() {
+        val partialResponse = "Tu glucosa está bien. [CLINICAL"
+        assertEquals("Tu glucosa está bien.", ChatTagParser.stripForStreaming(partialResponse))
     }
 
     // ── stripForStreaming ─────────────────────────────────────────────────────

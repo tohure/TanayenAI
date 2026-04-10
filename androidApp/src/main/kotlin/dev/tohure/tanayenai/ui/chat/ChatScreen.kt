@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -82,17 +81,14 @@ fun ChatScreen() {
     }
 
     Column(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .statusBarsPadding(),
+        modifier = Modifier.fillMaxSize(),
     ) {
         // Header
         Row(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 16.dp),
+                    .padding(horizontal = 24.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column {
@@ -115,12 +111,21 @@ fun ChatScreen() {
             items(uiState.messages, key = { it.id }) { message ->
                 MessageBubble(message = message)
 
-                // Si este mensaje trajo una sugerencia de alacena, mostramos el chip
+                // Chip de alacena (verde)
                 message.pantrySuggestion?.let { suggestion ->
                     PantrySuggestionChip(
                         suggestion = suggestion,
                         onConfirm = { viewModel.confirmPantrySuggestion(message.id) },
                         onDismiss = { viewModel.dismissPantrySuggestion(message.id) },
+                    )
+                }
+
+                // Chip clínico (azul)
+                message.clinicalSuggestion?.let { suggestion ->
+                    ClinicalSuggestionChip(
+                        suggestion = suggestion,
+                        onConfirm = { viewModel.confirmClinicalSuggestion(message.id) },
+                        onDismiss = { viewModel.dismissClinicalSuggestion(message.id) },
                     )
                 }
             }

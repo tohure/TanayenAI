@@ -2,10 +2,13 @@ package dev.tohure.tanayenai.di
 
 import dev.tohure.tanayenai.data.health.HealthDataReader
 import dev.tohure.tanayenai.data.local.DatabaseDriverFactory
+import dev.tohure.tanayenai.data.pdf.PdfPicker
 import dev.tohure.tanayenai.data.remote.SyncManager
+import dev.tohure.tanayenai.domain.model.GeminiConfig
 import dev.tohure.tanayenai.domain.model.PROTOTYPE_USER_ID
 import dev.tohure.tanayenai.domain.usecase.SyncHealthMetricsUseCase
 import dev.tohure.tanayenai.presentation.viewmodel.ChatViewModel
+import dev.tohure.tanayenai.presentation.viewmodel.ClinicalProfileViewModel
 import dev.tohure.tanayenai.presentation.viewmodel.DashboardViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -36,6 +39,7 @@ fun initKoin(
                     single(named("SUPABASE_ANON_KEY")) { supabaseAnonKey }
                     single { GeminiConfig(geminiApiKey) }
                     single { HealthDataReader() }
+                    single { PdfPicker() }
                 },
         )
     }
@@ -64,6 +68,13 @@ fun getDashboardViewModel(userId: String): DashboardViewModel =
 
 @Suppress("unused") // Called from Swift
 fun getChatViewModel(userId: String): ChatViewModel = KoinPlatform.getKoin().get<ChatViewModel> { parametersOf(userId) }
+
+@Suppress("unused") // Called from Swift
+fun getClinicalProfileViewModel(userId: String): ClinicalProfileViewModel =
+    KoinPlatform.getKoin().get<ClinicalProfileViewModel> { parametersOf(userId) }
+
+@Suppress("unused") // Called from Swift
+fun getPdfPicker(): PdfPicker = KoinPlatform.getKoin().get()
 
 @OptIn(ExperimentalObjCName::class)
 @ObjCName(name = "requestHealthPermissionsFromIos")

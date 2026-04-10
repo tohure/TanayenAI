@@ -59,8 +59,6 @@ fun DashboardScreen(onNavigateToChat: () -> Unit = {}) {
         modifier = Modifier.fillMaxSize().verticalScroll(scrollState),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Spacer(Modifier.height(8.dp))
-
         GreetingHeader(
             userName = "Carlo",
             greeting = greetingByHour(),

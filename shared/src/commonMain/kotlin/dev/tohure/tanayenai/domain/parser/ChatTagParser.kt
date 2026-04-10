@@ -1,8 +1,17 @@
-package dev.tohure.tanayenai.domain.usecase
+package dev.tohure.tanayenai.domain.parser
 
+/**
+ * Parsea y elimina tags de sistema invisibles generados por Gemini en las respuestas.
+ *
+ * Tags soportados:
+ * - [PANTRY:ingrediente1|ingrediente2|...]
+ * - [REC:TIPO:título:ingrediente1|ingrediente2|...]
+ * - [CLINICAL:{"campo":valor,...}]
+ */
 object ChatTagParser {
     val REC_TAG_REGEX = Regex("""\[REC:([A-Z]+):([^:]+):([^\]]+)\]""", RegexOption.IGNORE_CASE)
     val PANTRY_TAG_REGEX = Regex("""\[PANTRY:([^\]]+)\]""", RegexOption.IGNORE_CASE)
+    val CLINICAL_TAG_REGEX = Regex("""\[CLINICAL:(\{[^\]]+\})\]""", RegexOption.IGNORE_CASE)
 
     // Detecta tags incompletos al final del texto durante el streaming.
     // [^\]]* captura cualquier carácter excepto "]", incluyendo minúsculas y acentos de los ingredientes.
@@ -34,11 +43,18 @@ object ChatTagParser {
         )
     }
 
+    /** Extrae el JSON del tag [CLINICAL:{...}]. Retorna null si no hay tag. */
+    fun extractClinicalJson(response: String): String? {
+        val match = CLINICAL_TAG_REGEX.find(response) ?: return null
+        return match.groupValues[1].ifEmpty { null }
+    }
+
     /** Elimina tags completos del texto para mostrarlo al usuario. */
     fun stripTags(text: String): String =
         text
             .replace(REC_TAG_REGEX, "")
             .replace(PANTRY_TAG_REGEX, "")
+            .replace(CLINICAL_TAG_REGEX, "")
             .trim()
 
     /** Oculta tags completos Y parciales durante el streaming, evitando parpadeos. */
@@ -46,6 +62,7 @@ object ChatTagParser {
         text
             .replace(REC_TAG_REGEX, "")
             .replace(PANTRY_TAG_REGEX, "")
+            .replace(CLINICAL_TAG_REGEX, "")
             .replace(PARTIAL_TAG_REGEX, "")
             .trim()
 }

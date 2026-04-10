@@ -10,18 +10,52 @@ CREATE TABLE UserProfile (
 );
 
 CREATE TABLE ClinicalProfile (
-    user_id             TEXT NOT NULL PRIMARY KEY,
-    cholesterol_total   REAL,
-    hdl                 REAL,
-    ldl                 REAL,
-    triglycerides       REAL,
-    fasting_glucose     REAL,
-    hba1c               REAL,
-    systolic_pressure   INTEGER,
-    diastolic_pressure  INTEGER,
-    uric_acid           REAL,
-    recorded_at         TEXT NOT NULL,  -- ISO-8601 datetime del análisis
-    synced              INTEGER NOT NULL DEFAULT 0,
+    user_id                  TEXT NOT NULL PRIMARY KEY,
+    -- Perfil lipídico
+    cholesterol_total        REAL,
+    hdl                      REAL,
+    ldl                      REAL,
+    triglycerides            REAL,
+    vldl                     REAL,
+    -- Glucosa
+    fasting_glucose          REAL,
+    hba1c                    REAL,
+    fasting_insulin          REAL,
+    homa_ir                  REAL,
+    -- Función renal
+    creatinine               REAL,
+    urea                     REAL,
+    gfr                      REAL,
+    uric_acid                REAL,
+    -- Función hepática
+    alt                      REAL,
+    ast                      REAL,
+    ggt                      REAL,
+    total_bilirubin          REAL,
+    -- Tiroides
+    tsh                      REAL,
+    t3_free                  REAL,
+    t4_free                  REAL,
+    -- Hemograma
+    hemoglobin               REAL,
+    hematocrit               REAL,
+    ferritin                 REAL,
+    serum_iron               REAL,
+    transferrin_saturation   REAL,
+    -- Vitaminas y minerales
+    vitamin_d                REAL,
+    vitamin_b12              REAL,
+    folate                   REAL,
+    zinc                     REAL,
+    magnesium                REAL,
+    -- Inflamación
+    crp_ultra_sensitive      REAL,
+    homocysteine             REAL,
+    -- Presión arterial
+    systolic_pressure        INTEGER,
+    diastolic_pressure       INTEGER,
+    recorded_at              TEXT NOT NULL,
+    synced                   INTEGER NOT NULL DEFAULT 0,
     FOREIGN KEY (user_id) REFERENCES UserProfile(id)
 );
 
@@ -40,18 +74,64 @@ WHERE id = :id;
 
 -- Queries ClinicalProfile
 upsertClinicalProfile:
-INSERT INTO ClinicalProfile(user_id, cholesterol_total, hdl, ldl, triglycerides, fasting_glucose, hba1c, systolic_pressure, diastolic_pressure, uric_acid, recorded_at, synced)
-VALUES (:userId, :cholesterolTotal, :hdl, :ldl, :triglycerides, :fastingGlucose, :hba1c, :systolicPressure, :diastolicPressure, :uricAcid, :recordedAt, 0)
+INSERT INTO ClinicalProfile(
+    user_id, cholesterol_total, hdl, ldl, triglycerides, vldl,
+    fasting_glucose, hba1c, fasting_insulin, homa_ir,
+    creatinine, urea, gfr, uric_acid,
+    alt, ast, ggt, total_bilirubin,
+    tsh, t3_free, t4_free,
+    hemoglobin, hematocrit, ferritin, serum_iron, transferrin_saturation,
+    vitamin_d, vitamin_b12, folate, zinc, magnesium,
+    crp_ultra_sensitive, homocysteine,
+    systolic_pressure, diastolic_pressure,
+    recorded_at, synced
+) VALUES (
+    :userId, :cholesterolTotal, :hdl, :ldl, :triglycerides, :vldl,
+    :fastingGlucose, :hba1c, :fastingInsulin, :homaIr,
+    :creatinine, :urea, :gfr, :uricAcid,
+    :alt, :ast, :ggt, :totalBilirubin,
+    :tsh, :t3Free, :t4Free,
+    :hemoglobin, :hematocrit, :ferritin, :serumIron, :transferrinSaturation,
+    :vitaminD, :vitaminB12, :folate, :zinc, :magnesium,
+    :crpUltraSensitive, :homocysteine,
+    :systolicPressure, :diastolicPressure,
+    :recordedAt, 0
+)
 ON CONFLICT(user_id) DO UPDATE SET
     cholesterol_total = excluded.cholesterol_total,
     hdl = excluded.hdl,
     ldl = excluded.ldl,
     triglycerides = excluded.triglycerides,
+    vldl = excluded.vldl,
     fasting_glucose = excluded.fasting_glucose,
     hba1c = excluded.hba1c,
+    fasting_insulin = excluded.fasting_insulin,
+    homa_ir = excluded.homa_ir,
+    creatinine = excluded.creatinine,
+    urea = excluded.urea,
+    gfr = excluded.gfr,
+    uric_acid = excluded.uric_acid,
+    alt = excluded.alt,
+    ast = excluded.ast,
+    ggt = excluded.ggt,
+    total_bilirubin = excluded.total_bilirubin,
+    tsh = excluded.tsh,
+    t3_free = excluded.t3_free,
+    t4_free = excluded.t4_free,
+    hemoglobin = excluded.hemoglobin,
+    hematocrit = excluded.hematocrit,
+    ferritin = excluded.ferritin,
+    serum_iron = excluded.serum_iron,
+    transferrin_saturation = excluded.transferrin_saturation,
+    vitamin_d = excluded.vitamin_d,
+    vitamin_b12 = excluded.vitamin_b12,
+    folate = excluded.folate,
+    zinc = excluded.zinc,
+    magnesium = excluded.magnesium,
+    crp_ultra_sensitive = excluded.crp_ultra_sensitive,
+    homocysteine = excluded.homocysteine,
     systolic_pressure = excluded.systolic_pressure,
     diastolic_pressure = excluded.diastolic_pressure,
-    uric_acid = excluded.uric_acid,
     recorded_at = excluded.recorded_at,
     synced = 0;
 

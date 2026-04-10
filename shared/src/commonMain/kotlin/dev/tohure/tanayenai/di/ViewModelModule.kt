@@ -1,6 +1,7 @@
 package dev.tohure.tanayenai.di
 
 import dev.tohure.tanayenai.presentation.viewmodel.ChatViewModel
+import dev.tohure.tanayenai.presentation.viewmodel.ClinicalProfileViewModel
 import dev.tohure.tanayenai.presentation.viewmodel.DashboardViewModel
 import dev.tohure.tanayenai.presentation.viewmodel.HealthViewModel
 import dev.tohure.tanayenai.presentation.viewmodel.PantryViewModel
@@ -26,13 +27,24 @@ val viewModelModule =
             )
         }
         viewModel { params ->
+            val userId = params.get<String>()
             ChatViewModel(
-                generativeModel = get(),
+                generativeModel = get(GEMINI_CHAT),
                 buildContextUseCase = get(),
                 fetchContextParamsUseCase = get(),
                 savePantryIngredientsUseCase = get(),
                 recommendationRepository = get(),
-                userId = params.get(),
+                extractClinicalProfileUseCase = get { parametersOf(userId) },
+                userId = userId,
+            )
+        }
+        viewModel { params ->
+            val userId = params.get<String>()
+            ClinicalProfileViewModel(
+                pdfPicker = get(),
+                extractUseCase = get { parametersOf(userId) },
+                repository = get(),
+                userId = userId,
             )
         }
         // factory en lugar de viewModel para compatibilidad con iOS (KoinPlatform.getKoin().get())

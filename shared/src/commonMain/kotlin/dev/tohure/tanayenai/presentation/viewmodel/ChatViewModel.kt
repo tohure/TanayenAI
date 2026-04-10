@@ -7,19 +7,17 @@ import co.touchlab.kermit.Logger
 import com.rickclephas.kmp.nativecoroutines.NativeCoroutinesState
 import dev.shreyaspatil.ai.client.generativeai.GenerativeModel
 import dev.shreyaspatil.ai.client.generativeai.type.content
-import dev.tohure.tanayenai.domain.model.ActivityLevel
-import dev.tohure.tanayenai.domain.model.ClinicalProfile
-import dev.tohure.tanayenai.domain.model.NutritionGoal
+import dev.tohure.tanayenai.data.remote.dto.buildClinicalSummaryFromJson
+import dev.tohure.tanayenai.domain.model.DEFAULT_LOCATION_ID
 import dev.tohure.tanayenai.domain.model.Recommendation
 import dev.tohure.tanayenai.domain.model.RecommendationType
-import dev.tohure.tanayenai.domain.model.Sex
-import dev.tohure.tanayenai.domain.model.User
 import dev.tohure.tanayenai.domain.model.currentIsoDate
 import dev.tohure.tanayenai.domain.model.currentIsoDateTime
 import dev.tohure.tanayenai.domain.model.generateId
+import dev.tohure.tanayenai.domain.parser.ChatTagParser
 import dev.tohure.tanayenai.domain.repository.RecommendationRepository
 import dev.tohure.tanayenai.domain.usecase.BuildContextUseCase
-import dev.tohure.tanayenai.domain.usecase.ChatTagParser
+import dev.tohure.tanayenai.domain.usecase.ExtractClinicalProfileUseCase
 import dev.tohure.tanayenai.domain.usecase.FetchContextParamsUseCase
 import dev.tohure.tanayenai.domain.usecase.SavePantryIngredientsUseCase
 import kotlinx.collections.immutable.ImmutableList
@@ -42,6 +40,13 @@ data class PantrySuggestion(
 )
 
 @Immutable
+data class ClinicalSuggestion(
+    val rawJson: String,
+    val summary: String,
+    val confirmed: Boolean = false,
+)
+
+@Immutable
 data class UiChatMessage(
     val id: String,
     val content: String,
@@ -49,6 +54,7 @@ data class UiChatMessage(
     val isLoading: Boolean = false,
     val hasAttachedImage: Boolean = false,
     val pantrySuggestion: PantrySuggestion? = null,
+    val clinicalSuggestion: ClinicalSuggestion? = null,
 )
 
 @Immutable
@@ -80,6 +86,7 @@ class ChatViewModel(
     private val fetchContextParamsUseCase: FetchContextParamsUseCase,
     private val savePantryIngredientsUseCase: SavePantryIngredientsUseCase,
     private val recommendationRepository: RecommendationRepository,
+    private val extractClinicalProfileUseCase: ExtractClinicalProfileUseCase,
     private val userId: String,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -98,12 +105,7 @@ class ChatViewModel(
         viewModelScope.launch {
             try {
                 val contextParams =
-                    fetchContextParamsUseCase.fetch(
-                        userId = userId,
-                        user = placeholderUser(),
-                        clinicalProfile = placeholderClinicalProfile(),
-                        today = currentIsoDate(),
-                    )
+                    fetchContextParamsUseCase.fetch(userId = userId, today = currentIsoDate())
                 cachedContext = buildContextUseCase.build(contextParams)
                 _uiState.value = _uiState.value.copy(contextReady = true)
             } catch (e: Exception) {
@@ -241,6 +243,7 @@ class ChatViewModel(
                     }
                     extractAndSaveRecommendation(fullResponse)
                     extractPantrySuggestion(fullResponse, assistantMessageId)
+                    extractClinicalSuggestion(fullResponse, assistantMessageId)
                     buildContext()
                 }
             } catch (e: Exception) {
@@ -275,7 +278,7 @@ class ChatViewModel(
             val message = _uiState.value.messages.find { it.id == messageId } ?: return@launch
             val suggestion = message.pantrySuggestion ?: return@launch
             try {
-                val defaultLocationId = "10000000-0000-0000-0000-000000000001"
+                val defaultLocationId = DEFAULT_LOCATION_ID
                 savePantryIngredientsUseCase.saveIngredientsByName(
                     names = suggestion.ingredients,
                     locationId = defaultLocationId,
@@ -312,6 +315,61 @@ class ChatViewModel(
             )
     }
 
+    // ── Perfil Clínico Sugerencias ────────────────────────────────────────────
+    private fun extractClinicalSuggestion(
+        response: String,
+        messageId: String,
+    ) {
+        val rawJson = ChatTagParser.extractClinicalJson(response) ?: return
+        val summary = buildClinicalSummaryFromJson(rawJson).ifEmpty { return }
+
+        _uiState.value =
+            _uiState.value.copy(
+                messages =
+                    _uiState.value.messages.map { msg ->
+                        if (msg.id == messageId) {
+                            msg.copy(clinicalSuggestion = ClinicalSuggestion(rawJson, summary))
+                        } else {
+                            msg
+                        }
+                    },
+            )
+    }
+
+    fun confirmClinicalSuggestion(messageId: String) {
+        viewModelScope.launch {
+            val msg = _uiState.value.messages.find { it.id == messageId } ?: return@launch
+            val suggestion = msg.clinicalSuggestion ?: return@launch
+            try {
+                extractClinicalProfileUseCase.saveFromJson(suggestion.rawJson)
+                _uiState.value =
+                    _uiState.value.copy(
+                        messages =
+                            _uiState.value.messages.map {
+                                if (it.id == messageId) {
+                                    it.copy(clinicalSuggestion = suggestion.copy(confirmed = true))
+                                } else {
+                                    it
+                                }
+                            },
+                    )
+                buildContext()
+            } catch (e: Exception) {
+                log.e(e) { "Failed to save clinical suggestion" }
+            }
+        }
+    }
+
+    fun dismissClinicalSuggestion(messageId: String) {
+        _uiState.value =
+            _uiState.value.copy(
+                messages =
+                    _uiState.value.messages.map {
+                        if (it.id == messageId) it.copy(clinicalSuggestion = null) else it
+                    },
+            )
+    }
+
     // ── REC Tag → Recomendaciones ─────────────────────────────────────────────
     private suspend fun extractAndSaveRecommendation(response: String) {
         val rec = ChatTagParser.extractRecAction(response) ?: return
@@ -335,29 +393,4 @@ class ChatViewModel(
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
     }
-
-    // ── Dummies (reemplazar en fase futura con UserRepository / ClinicalProfileRepository) ──
-    private fun placeholderUser() =
-        User(
-            id = userId,
-            name = "Carlo",
-            birthDate = "1990-05-15",
-            sex = Sex.MALE,
-            heightCm = 175f,
-            goal = NutritionGoal.EAT_HEALTHY,
-            activityLevel = ActivityLevel.MODERATE,
-        )
-
-    private fun placeholderClinicalProfile() =
-        ClinicalProfile(
-            userId = userId,
-            cholesterolTotal = 215f,
-            hdl = 42f,
-            ldl = 148f,
-            triglycerides = 180f,
-            fastingGlucose = 102f,
-            hba1c = 5.8f,
-            systolicPressure = 125,
-            diastolicPressure = 82,
-        )
 }

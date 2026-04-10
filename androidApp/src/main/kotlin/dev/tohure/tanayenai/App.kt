@@ -3,8 +3,9 @@ package dev.tohure.tanayenai
 import android.app.Application
 import dev.tohure.tanayenai.data.health.HealthDataReader
 import dev.tohure.tanayenai.data.local.DatabaseDriverFactory
-import dev.tohure.tanayenai.di.GeminiConfig
+import dev.tohure.tanayenai.data.pdf.PdfPicker
 import dev.tohure.tanayenai.di.sharedModules
+import dev.tohure.tanayenai.domain.model.GeminiConfig
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
 import org.koin.core.qualifier.named
@@ -23,6 +24,7 @@ class App : Application() {
                         single(named("SUPABASE_ANON_KEY")) { BuildConfig.SUPABASE_ANON_KEY }
                         single { GeminiConfig(BuildConfig.GEMINI_API_KEY) }
                         single { HealthDataReader(androidContext()) }
+                        // PdfPicker se registra en MainActivity tras tener la activity
                     },
             )
         }

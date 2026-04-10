@@ -2,7 +2,9 @@ package dev.tohure.tanayenai.domain.usecase
 
 import dev.tohure.tanayenai.domain.model.ActivityLevel
 import dev.tohure.tanayenai.domain.model.ClinicalProfile
+import dev.tohure.tanayenai.domain.model.FoodLog
 import dev.tohure.tanayenai.domain.model.HealthMetrics
+import dev.tohure.tanayenai.domain.model.MealType
 import dev.tohure.tanayenai.domain.model.MetricsSource
 import dev.tohure.tanayenai.domain.model.NutritionGoal
 import dev.tohure.tanayenai.domain.model.PantryItem
@@ -53,9 +55,8 @@ class BuildContextUseCaseTest {
 
         val context = useCase.build(params)
 
-        assertContains(context, "DISLIPIDEMIA")
-        assertContains(context, "Evitar: mantequilla")
-        assertContains(context, "avena")
+        assertContains(context, "Dislipidemia")
+        assertContains(context, "grasas saturadas")
     }
 
     @Test
@@ -118,6 +119,93 @@ class BuildContextUseCaseTest {
         val context = useCase.build(params)
 
         assertContains(context, "STOCK BAJO")
+    }
+
+    @Test
+    fun `context includes low hrv alert when hrv under 45ms`() {
+        val metrics =
+            HealthMetrics(
+                id = "m1",
+                userId = "user_1",
+                date = "2026-02-27",
+                hrv = 38f,
+                source = MetricsSource.FITBIT,
+            )
+
+        val params =
+            ContextParams(
+                user = testUser,
+                clinicalProfile = null,
+                recentMetrics = listOf(metrics),
+                pantryItems = emptyList(),
+                locationNames = emptyMap(),
+                recentRecommendations = emptyList(),
+                todayFoodLogs = emptyList(),
+                today = "2026-02-27",
+                workContext = "Remoto",
+            )
+
+        val context = useCase.build(params)
+
+        assertContains(context, "VFC baja")
+        assertContains(context, "antiinflamatorios")
+    }
+
+    @Test
+    fun `context includes hyperglycemia alert when fasting glucose is elevated`() {
+        val profile =
+            ClinicalProfile(
+                userId = "user_1",
+                fastingGlucose = 112f,
+            )
+
+        val params =
+            ContextParams(
+                user = testUser,
+                clinicalProfile = profile,
+                recentMetrics = emptyList(),
+                pantryItems = emptyList(),
+                locationNames = emptyMap(),
+                recentRecommendations = emptyList(),
+                todayFoodLogs = emptyList(),
+                today = "2026-02-27",
+                workContext = "Remoto",
+            )
+
+        val context = useCase.build(params)
+
+        assertContains(context, "Glucosa elevada")
+        assertContains(context, "carbohidratos simples")
+    }
+
+    @Test
+    fun `context includes today food logs when present`() {
+        val foodLog =
+            FoodLog(
+                id = "log_1",
+                userId = "user_1",
+                foodName = "Avena con frutas",
+                mealType = MealType.BREAKFAST,
+                loggedAt = "2026-02-27T08:00:00Z",
+            )
+
+        val params =
+            ContextParams(
+                user = testUser,
+                clinicalProfile = null,
+                recentMetrics = emptyList(),
+                pantryItems = emptyList(),
+                locationNames = emptyMap(),
+                recentRecommendations = emptyList(),
+                todayFoodLogs = listOf(foodLog),
+                today = "2026-02-27",
+                workContext = "Remoto",
+            )
+
+        val context = useCase.build(params)
+
+        assertContains(context, "Ya consumido hoy")
+        assertContains(context, "Avena con frutas")
     }
 
     @Test
