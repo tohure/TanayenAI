@@ -22,7 +22,7 @@ jobs:
           distribution: "zulu"
 
       - name: Setup Gradle cache
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v5
 
       - name: Install ktlint
         run: |
@@ -63,7 +63,7 @@ jobs:
           distribution: "zulu"
 
       - name: Setup Gradle cache
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v5
 
       - name: Cache Kotlin Native
         uses: actions/cache@v4

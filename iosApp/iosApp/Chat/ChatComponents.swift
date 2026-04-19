@@ -196,19 +196,31 @@ struct ChatInputBarView: View {
                     .clipShape(Circle())
             }
 
-            TextField("Escribe o pregunta algo...", text: $text, axis: .vertical)
-                .font(.system(.body, design: .rounded))
-                .foregroundColor(TanayenTheme.textDark)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(TanayenTheme.background)
-                .cornerRadius(24)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 24)
-                        .stroke(Color(hex: "#E0E0E0"), lineWidth: 1)
-                )
-                .lineLimit(1...4)
-                .onSubmit { if !isLoading { onSend() } }
+            ZStack(alignment: .leading) {
+                if text.isEmpty {
+                    Text("Escribe o pregunta algo...")
+                        .font(.system(.body, design: .rounded))
+                        .foregroundColor(TanayenTheme.textMuted)
+                        .lineLimit(1)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .allowsHitTesting(false)
+                }
+                TextField("", text: $text, axis: .vertical)
+                    .font(.system(.body, design: .rounded))
+                    .foregroundColor(TanayenTheme.textDark)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .lineLimit(1...4)
+                    .onSubmit { if !isLoading { onSend() } }
+            }
+            .frame(maxWidth: .infinity)
+            .background(TanayenTheme.background)
+            .cornerRadius(24)
+            .overlay(
+                RoundedRectangle(cornerRadius: 24)
+                    .stroke(Color(hex: "#E0E0E0"), lineWidth: 1)
+            )
 
             let isSendEnabled = (!text.trimmingCharacters(in: .whitespaces).isEmpty || hasPendingImage) && !isLoading
 

@@ -45,6 +45,7 @@ import dev.tohure.tanayenai.ui.theme.ErrorRed
 import dev.tohure.tanayenai.ui.theme.PrimaryGreen
 import dev.tohure.tanayenai.ui.theme.SecondaryMint
 import dev.tohure.tanayenai.ui.theme.SurfaceColor
+import dev.tohure.tanayenai.ui.theme.TextMutedColor
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -66,6 +67,7 @@ fun ClinicalProfileScreen() {
                 "Puedes subir tu PDF de laboratorio, tomar foto del análisis impreso, " +
                     "escribirle a Tanayen tus valores, o ingresarlos aquí manualmente.",
                 style = MaterialTheme.typography.bodyMedium,
+                color = TextMutedColor,
             )
         }
 

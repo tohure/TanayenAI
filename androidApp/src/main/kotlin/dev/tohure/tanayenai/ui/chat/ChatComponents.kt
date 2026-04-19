@@ -408,7 +408,7 @@ fun ChatInputBar(
                     Box(contentAlignment = Alignment.CenterStart) {
                         if (value.isEmpty()) {
                             Text(
-                                "Escribe aquí...",
+                                "Escribe o pregunta algo...",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = TextMutedColor,
                             )

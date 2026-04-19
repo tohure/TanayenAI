@@ -25,8 +25,7 @@ struct ContentView: View {
                     Label("Asistente", systemImage: "bubble.left.and.bubble.right.fill")
                 }
 
-            // Placeholder
-            PlaceholderView(title: "Alacena", subtitle: "Disponible próximamente")
+            PantryView()
                 .tabItem {
                     Label("Alacena", systemImage: "cabinet.fill")
                 }

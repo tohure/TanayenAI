@@ -23,7 +23,7 @@ class SavePantryIngredientsUseCase(
                     it.ingredient.equals(name.trim(), ignoreCase = true)
                 }
             if (existing == null) {
-                pantryRepository.addItem(
+                pantryRepository.upsertItem(
                     PantryItem(
                         id = generateId(),
                         userId = userId,

@@ -21,6 +21,25 @@ class PantryRepositoryImpl(
     private val itemQueries = database.pantryItemQueries
     private val locationQueries = database.pantryLocationQueries
 
+    override suspend fun getPantryItems(userId: String): List<PantryItem> =
+        withContext(Dispatchers.Default) {
+            itemQueries.getAllItemsByUser(userId).executeAsList().map { it.toDomain() }
+        }
+
+    override suspend fun upsertItem(item: PantryItem): Unit =
+        withContext(Dispatchers.Default) {
+            itemQueries.insertItem(
+                id = item.id,
+                userId = item.userId,
+                locationId = item.locationId,
+                ingredient = item.ingredient,
+                quantity = item.quantity.toDouble(),
+                unit = item.unit.name,
+                expiryDate = item.expiryDate,
+                updatedAt = item.updatedAt,
+            )
+        }
+
     override fun observeItems(
         userId: String,
         locationId: String,
@@ -34,20 +53,6 @@ class PantryRepositoryImpl(
     override suspend fun getLocations(userId: String): List<PantryLocation> =
         withContext(Dispatchers.Default) {
             locationQueries.getLocationsByUser(userId = userId).executeAsList().map { it.toDomain() }
-        }
-
-    override suspend fun addItem(item: PantryItem): Unit =
-        withContext(Dispatchers.Default) {
-            itemQueries.insertItem(
-                id = item.id,
-                userId = item.userId,
-                locationId = item.locationId,
-                ingredient = item.ingredient,
-                quantity = item.quantity.toDouble(),
-                unit = item.unit.name,
-                expiryDate = item.expiryDate,
-                updatedAt = Clock.System.now().toString(),
-            )
         }
 
     override suspend fun updateItem(item: PantryItem): Unit =

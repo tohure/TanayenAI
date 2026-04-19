@@ -44,7 +44,7 @@ class SyncManager(
         items.forEach { dto ->
             try {
                 val domain = with(dataSource) { dto.toDomain() }
-                pantryRepository.addItem(domain)
+                pantryRepository.upsertItem(domain)
                 // TODO: En fase futura, la base de datos marcará is_synced = 1 adentro del repo
             } catch (e: Exception) {
                 log.e(e) { "Failed saving pulled PantryItem ${dto.id}" }

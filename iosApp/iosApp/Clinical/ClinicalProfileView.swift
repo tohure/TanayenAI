@@ -18,7 +18,7 @@ struct ClinicalProfileView: View {
                 // ── Título ────────────────────────────────────────────────
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Perfil Clínico")
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .font(.system(size: 22, weight: .semibold, design: .rounded))
                         .foregroundColor(TanayenTheme.textDark)
                     Text("Sube tu PDF de laboratorio, toma foto del análisis desde el chat, " +
                          "escríbele tus valores a Tanayen, o ingrésalos manualmente.")
@@ -275,15 +275,26 @@ private struct ManualEntrySheet: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 24) {
-                TextField("Valor en \(entry.unit)", text: $text)
-                    .keyboardType(.decimalPad)
-                    .font(.system(size: 32, weight: .light, design: .rounded))
-                    .multilineTextAlignment(.center)
-                    .padding()
-                    .background(Color(hex: "#F0F0F0"))
-                    .cornerRadius(12)
-                    .padding(.horizontal, 32)
-                    .padding(.top, 32)
+                ZStack {
+                    if text.isEmpty {
+                        Text("0.0")
+                            .font(.system(size: 32, weight: .light, design: .rounded))
+                            .foregroundColor(TanayenTheme.textMuted)
+                            .allowsHitTesting(false)
+                    }
+                    TextField("", text: $text)
+                        .keyboardType(.decimalPad)
+                        .font(.system(size: 32, weight: .light, design: .rounded))
+                        .foregroundColor(TanayenTheme.textDark)
+                        .multilineTextAlignment(.center)
+                }
+                .padding()
+                .frame(maxWidth: .infinity)
+                .background(TanayenTheme.surface)
+                .cornerRadius(12)
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color(hex: "#E0E0E0"), lineWidth: 1))
+                .padding(.horizontal, 32)
+                .padding(.top, 32)
 
                 Text(entry.unit)
                     .font(.system(.subheadline, design: .rounded))
@@ -291,6 +302,8 @@ private struct ManualEntrySheet: View {
 
                 Spacer()
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(TanayenTheme.background)
             .navigationTitle(entry.name)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

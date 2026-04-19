@@ -20,12 +20,14 @@ class SavePantryIngredientsUseCaseTest {
         val savedItems = mutableListOf<PantryItem>()
         var existingItems: List<PantryItem> = emptyList()
 
+        override suspend fun getPantryItems(userId: String): List<PantryItem> = existingItems
+
         override fun observeItems(
             userId: String,
             locationId: String,
         ): Flow<List<PantryItem>> = flowOf(existingItems)
 
-        override suspend fun addItem(item: PantryItem) {
+        override suspend fun upsertItem(item: PantryItem) {
             savedItems.add(item)
         }
 

@@ -51,7 +51,7 @@ class PantryRepositoryIntegrationTest {
         runTest {
             val item = buildItem(id = "item_1", ingredient = "Avena", quantity = 500f, unit = PantryUnit.GRAMS)
 
-            repository.addItem(item)
+            repository.upsertItem(item)
 
             val result = repository.getLocations(testUserId)
             assertTrue(result.isNotEmpty(), "Debe haber al menos una ubicación")
@@ -70,9 +70,9 @@ class PantryRepositoryIntegrationTest {
     @Test
     fun `insert multiple items and retrieve all by user`() =
         runTest {
-            repository.addItem(buildItem("item_1", "Huevo", 12f, PantryUnit.UNITS))
-            repository.addItem(buildItem("item_2", "Leche", 1f, PantryUnit.L))
-            repository.addItem(buildItem("item_3", "Arroz", 2f, PantryUnit.KG))
+            repository.upsertItem(buildItem("item_1", "Huevo", 12f, PantryUnit.UNITS))
+            repository.upsertItem(buildItem("item_2", "Leche", 1f, PantryUnit.L))
+            repository.upsertItem(buildItem("item_3", "Arroz", 2f, PantryUnit.KG))
 
             val items =
                 database.pantryItemQueries
@@ -92,7 +92,7 @@ class PantryRepositoryIntegrationTest {
     fun `update item quantity and verify change persists`() =
         runTest {
             val item = buildItem("item_1", "Avena", 500f, PantryUnit.GRAMS)
-            repository.addItem(item)
+            repository.upsertItem(item)
 
             repository.updateItem(item.copy(quantity = 250f))
 
@@ -111,7 +111,7 @@ class PantryRepositoryIntegrationTest {
     fun `delete item removes it from DB`() =
         runTest {
             val item = buildItem("item_1", "Avena", 500f, PantryUnit.GRAMS)
-            repository.addItem(item)
+            repository.upsertItem(item)
 
             repository.deleteItem("item_1")
 
@@ -128,7 +128,7 @@ class PantryRepositoryIntegrationTest {
     @Test
     fun `decrement quantity reduces stock correctly`() =
         runTest {
-            repository.addItem(buildItem("item_1", "Nueces", 300f, PantryUnit.GRAMS))
+            repository.upsertItem(buildItem("item_1", "Nueces", 300f, PantryUnit.GRAMS))
 
             repository.decrementQuantity("item_1", 100f)
 
@@ -144,7 +144,7 @@ class PantryRepositoryIntegrationTest {
     @Test
     fun `decrement quantity does not go below zero`() =
         runTest {
-            repository.addItem(buildItem("item_1", "Nueces", 50f, PantryUnit.GRAMS))
+            repository.upsertItem(buildItem("item_1", "Nueces", 50f, PantryUnit.GRAMS))
 
             repository.decrementQuantity("item_1", 200f) // Más de lo que hay
 

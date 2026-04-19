@@ -2,26 +2,36 @@ package dev.tohure.tanayenai.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.rickclephas.kmp.nativecoroutines.NativeCoroutinesState
+import dev.tohure.tanayenai.domain.model.DEFAULT_LOCATION_ID
 import dev.tohure.tanayenai.domain.model.PantryItem
-import dev.tohure.tanayenai.domain.model.PantryLocation
 import dev.tohure.tanayenai.domain.model.PantryUnit
+import dev.tohure.tanayenai.domain.model.classifyIngredient
 import dev.tohure.tanayenai.domain.model.currentIsoDateTime
 import dev.tohure.tanayenai.domain.model.generateId
 import dev.tohure.tanayenai.domain.repository.PantryRepository
+import dev.tohure.tanayenai.presentation.model.CategorizedItem
+import dev.tohure.tanayenai.presentation.model.CategoryGroup
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
 data class PantryUiState(
-    val locations: List<PantryLocation> = emptyList(),
-    val items: List<PantryItem> = emptyList(),
-    val selectedLocationId: String? = null,
-    val isLoading: Boolean = false,
+    /**
+     * Items grouped and sorted by category.
+     *
+     * Exposed as [List]<[CategoryGroup]> instead of Map to bridge cleanly through the
+     * Kotlin/Native ObjC layer to Swift without runtime casts.
+     */
+    val categoryGroups: List<CategoryGroup> = emptyList(),
+    val isLoading: Boolean = true,
+    val searchQuery: String = "",
     val error: String? = null,
+    /** Non-null while the edit bottom sheet is open. */
+    val editingItem: PantryItem? = null,
+    /** True while a save/delete operation is in-flight. */
+    val isSaving: Boolean = false,
 )
 
 class PantryViewModel(
@@ -29,88 +39,169 @@ class PantryViewModel(
     private val userId: String,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(PantryUiState())
+
+    @NativeCoroutinesState
     val uiState: StateFlow<PantryUiState> = _uiState.asStateFlow()
 
+    /** In-memory cache — avoids re-querying the DB on every search keystroke. */
+    private var allItems: List<PantryItem> = emptyList()
+
     init {
-        loadLocations()
+        loadItems()
     }
 
-    fun loadLocations() {
+    // ── Load & group ──────────────────────────────────────────────────────────
+
+    fun loadItems() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            try {
-                val locations = pantryRepository.getLocations(userId)
+            _uiState.value = _uiState.value.copy(isLoading = true)
+            runCatching { pantryRepository.getPantryItems(userId) }
+                .onSuccess { items ->
+                    allItems = items
+                    _uiState.value =
+                        _uiState.value.copy(
+                            categoryGroups = buildGroups(allItems, _uiState.value.searchQuery),
+                            isLoading = false,
+                        )
+                }.onFailure { e ->
+                    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+                }
+        }
+    }
+
+    // ── Search ────────────────────────────────────────────────────────────────
+
+    fun search(query: String) {
+        _uiState.value =
+            _uiState.value.copy(
+                searchQuery = query,
+                categoryGroups = buildGroups(allItems, query),
+            )
+    }
+
+    // ── Edit existing item ────────────────────────────────────────────────────
+
+    fun openEdit(item: PantryItem) {
+        _uiState.value = _uiState.value.copy(editingItem = item)
+    }
+
+    fun closeEdit() {
+        _uiState.value = _uiState.value.copy(editingItem = null)
+    }
+
+    fun saveEdit(
+        itemId: String,
+        newQuantity: Float,
+        newUnit: PantryUnit,
+        newExpiryDate: String?,
+    ) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isSaving = true)
+            runCatching {
+                val existing =
+                    allItems.find { it.id == itemId }
+                        ?: error("Item $itemId not found in cache")
+                existing
+                    .copy(
+                        quantity = newQuantity,
+                        unit = newUnit,
+                        expiryDate = newExpiryDate,
+                        updatedAt = currentIsoDateTime(),
+                    ).also { pantryRepository.upsertItem(it) }
+            }.onSuccess { updated ->
+                // Update in-memory cache immediately to avoid UI flash
+                allItems = allItems.map { if (it.id == itemId) updated else it }
                 _uiState.value =
                     _uiState.value.copy(
-                        locations = locations,
-                        isLoading = false,
+                        categoryGroups = buildGroups(allItems, _uiState.value.searchQuery),
+                        isSaving = false,
+                        editingItem = null,
                     )
-                val defaultLocation = locations.firstOrNull { it.isDefault } ?: locations.firstOrNull()
-                defaultLocation?.let { selectLocation(it.id) }
-            } catch (e: Exception) {
-                _uiState.value =
-                    _uiState.value.copy(
-                        isLoading = false,
-                        error = "Error cargando ubicaciones: ${e.message}",
-                    )
+                // Background DB refresh to confirm DB consistency
+                loadItems()
+            }.onFailure { e ->
+                _uiState.value = _uiState.value.copy(isSaving = false, error = e.message)
             }
         }
     }
 
-    fun selectLocation(locationId: String) {
-        _uiState.value = _uiState.value.copy(selectedLocationId = locationId)
-        observeItemsForLocation(locationId)
-    }
-
-    private fun observeItemsForLocation(locationId: String) {
-        pantryRepository
-            .observeItems(userId, locationId)
-            .onEach { items ->
-                _uiState.value = _uiState.value.copy(items = items)
-            }.catch { e ->
-                _uiState.value =
-                    _uiState.value.copy(
-                        error = "Error observando items: ${e.message}",
-                    )
-            }.launchIn(viewModelScope)
-    }
+    // ── Add manually ──────────────────────────────────────────────────────────
 
     fun addItem(
         ingredient: String,
         quantity: Float,
         unit: PantryUnit,
+        expiryDate: String?,
+        locationId: String = DEFAULT_LOCATION_ID,
     ) {
-        val locationId = _uiState.value.selectedLocationId ?: return
         viewModelScope.launch {
-            val item =
+            _uiState.value = _uiState.value.copy(isSaving = true)
+            runCatching {
                 PantryItem(
                     id = generateId(),
                     userId = userId,
                     locationId = locationId,
-                    ingredient = ingredient,
+                    ingredient = ingredient.trim(),
                     quantity = quantity,
                     unit = unit,
+                    expiryDate = expiryDate,
                     updatedAt = currentIsoDateTime(),
-                )
-            try {
-                pantryRepository.addItem(item)
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(error = e.message)
+                ).also { pantryRepository.upsertItem(it) }
+            }.onSuccess { newItem ->
+                // Update in-memory cache immediately
+                allItems = allItems + newItem
+                _uiState.value =
+                    _uiState.value.copy(
+                        categoryGroups = buildGroups(allItems, _uiState.value.searchQuery),
+                        isSaving = false,
+                    )
+                loadItems()
+            }.onFailure { e ->
+                _uiState.value = _uiState.value.copy(isSaving = false, error = e.message)
             }
         }
     }
 
+    // ── Delete ────────────────────────────────────────────────────────────────
+
     fun deleteItem(itemId: String) {
         viewModelScope.launch {
-            try {
-                pantryRepository.deleteItem(itemId)
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(error = e.message)
-            }
+            runCatching { pantryRepository.deleteItem(itemId) }
+                .onSuccess {
+                    allItems = allItems.filter { it.id != itemId }
+                    _uiState.value =
+                        _uiState.value.copy(
+                            categoryGroups = buildGroups(allItems, _uiState.value.searchQuery),
+                        )
+                    loadItems()
+                }.onFailure { e ->
+                    _uiState.value = _uiState.value.copy(error = e.message)
+                }
         }
     }
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
+    }
+
+    // ── Private helpers ───────────────────────────────────────────────────────
+
+    private fun buildGroups(
+        items: List<PantryItem>,
+        query: String,
+    ): List<CategoryGroup> {
+        val filtered =
+            if (query.isBlank()) {
+                items
+            } else {
+                items.filter { it.ingredient.contains(query, ignoreCase = true) }
+            }
+
+        return filtered
+            .map { CategorizedItem(it, classifyIngredient(it.ingredient)) }
+            .groupBy { it.category }
+            .entries
+            .sortedBy { it.key.displayName }
+            .map { (category, categorized) -> CategoryGroup(category, categorized) }
     }
 }

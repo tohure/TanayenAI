@@ -49,8 +49,6 @@ struct ChatView: View {
             .padding(.horizontal, 24)
             .padding(.vertical, 16)
 
-            Divider().opacity(0.3)
-
             // Mensajes
             ScrollViewReader { proxy in
                 ScrollView {
