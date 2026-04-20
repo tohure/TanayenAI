@@ -6,7 +6,6 @@ import dev.tohure.tanayenai.domain.usecase.FetchContextParamsUseCase
 import dev.tohure.tanayenai.domain.usecase.GetLatestMetricsUseCase
 import dev.tohure.tanayenai.domain.usecase.SavePantryIngredientsUseCase
 import dev.tohure.tanayenai.domain.usecase.SyncHealthMetricsUseCase
-import org.koin.core.parameter.parametersOf
 import org.koin.dsl.module
 
 val useCaseModule =

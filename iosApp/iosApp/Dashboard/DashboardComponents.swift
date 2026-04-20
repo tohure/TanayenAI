@@ -78,7 +78,10 @@ struct StressLevelCardView: View {
                     RoundedRectangle(cornerRadius: height / 2)
                         .fill(
                             LinearGradient(
-                                gradient: Gradient(colors: [Color(hex: "#E63946"), Color(hex: "#FFB703"), TanayenTheme.secondaryMint]),
+                                gradient: Gradient(colors: [
+                                    Color(hex: "#E63946"),
+                                    Color(hex: "#FFB703"),
+                                    TanayenTheme.secondaryMint]),
                                 startPoint: .leading,
                                 endPoint: .trailing
                             )

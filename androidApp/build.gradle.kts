@@ -7,10 +7,11 @@ plugins {
     alias(libs.plugins.composeCompiler)
 }
 
-val localProperties = Properties().apply {
-    val file = rootProject.file("local.properties")
-    if (file.exists()) load(file.inputStream())
-}
+val localProperties =
+    Properties().apply {
+        val file = rootProject.file("local.properties")
+        if (file.exists()) load(file.inputStream())
+    }
 
 kotlin {
     target {
@@ -37,6 +38,7 @@ kotlin {
         implementation(libs.androidx.lifecycle.runtimeCompose)
         implementation(libs.health.connect)
         implementation(libs.kotlinx.collections.immutable)
+        implementation(libs.androidx.work.runtime)
 
         debugImplementation(libs.compose.uiTooling)
     }
@@ -63,15 +65,20 @@ android {
         versionName = "1.0"
 
         buildConfigField(
-            "String", "SUPABASE_URL",
-            "\"${localProperties["SUPABASE_URL"] ?: ""}\""
+            "String",
+            "SUPABASE_URL",
+            "\"${localProperties["SUPABASE_URL"] ?: ""}\"",
         )
         buildConfigField(
-            "String", "SUPABASE_ANON_KEY",
-            "\"${localProperties["SUPABASE_ANON_KEY"] ?: ""}\""
+            "String",
+            "SUPABASE_ANON_KEY",
+            "\"${localProperties["SUPABASE_ANON_KEY"] ?: ""}\"",
         )
-        buildConfigField("String", "GEMINI_API_KEY",
-            "\"${localProperties["GEMINI_API_KEY"] ?: ""}\"")
+        buildConfigField(
+            "String",
+            "GEMINI_API_KEY",
+            "\"${localProperties["GEMINI_API_KEY"] ?: ""}\"",
+        )
     }
     buildFeatures {
         buildConfig = true

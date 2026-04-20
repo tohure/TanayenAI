@@ -29,6 +29,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import dev.tohure.tanayenai.domain.model.PROTOTYPE_USER_ID
 import dev.tohure.tanayenai.presentation.viewmodel.ChatViewModel
+import dev.tohure.tanayenai.ui.ScreenHeader
 import dev.tohure.tanayenai.ui.theme.TextMutedColor
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -84,22 +85,11 @@ fun ChatScreen() {
         modifier = Modifier.fillMaxSize(),
     ) {
         // Header
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column {
-                Text("Asistente", style = MaterialTheme.typography.headlineMedium)
-                Text(
-                    text = if (uiState.contextReady) "Contexto listo 🌿" else "Cargando contexto...",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = TextMutedColor,
-                )
-            }
-        }
+        ScreenHeader(
+            title = "Asistente",
+            subtitle = if (uiState.contextReady) "Contexto listo 🌿" else "Cargando contexto...",
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
+        )
 
         // Mensajes
         LazyColumn(

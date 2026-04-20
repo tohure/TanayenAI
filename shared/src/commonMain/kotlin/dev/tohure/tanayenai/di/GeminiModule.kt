@@ -10,6 +10,7 @@ import org.koin.dsl.module
 
 val GEMINI_CHAT = named("gemini_chat")
 val GEMINI_CLINICAL = named("gemini_clinical")
+val GEMINI_ADVICE = named("gemini_advice")
 
 val geminiModule =
     module {
@@ -29,6 +30,18 @@ val geminiModule =
                 generationConfig =
                     generationConfig {
                         temperature = 0f
+                        responseMimeType = "application/json"
+                    },
+            )
+        }
+        single(GEMINI_ADVICE) {
+            val config = get<GeminiConfig>()
+            GenerativeModel(
+                modelName = "gemini-2.5-flash",
+                apiKey = config.apiKey.trim(),
+                generationConfig =
+                    generationConfig {
+                        temperature = 0.7f
                         responseMimeType = "application/json"
                     },
             )

@@ -20,11 +20,14 @@ struct PantryView: View {
                         .foregroundColor(TanayenTheme.textMuted)
                 }
                 Spacer()
-                Button(action: { showAddSheet = true }) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(TanayenTheme.primaryGreen)
-                }
+                Button(
+                    action: { showAddSheet = true },
+                    label: {
+                        Image(systemName: "plus")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(TanayenTheme.primaryGreen)
+                    }
+                )
                 .padding(.top, 4)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -351,4 +354,6 @@ struct AddPantryItemSheet: View {
 // MARK: - Protocol conformances for KMP bridged types
 
 /// Required for `.sheet(item: $vm.editingItem)` to work with the KMP-bridged PantryItem.
-extension PantryItem_: Identifiable {}
+/// @retroactive silences the "extension declares conformance of imported type to imported protocol"
+/// warning — the correct Swift approach when conforming a type you don't own.
+extension PantryItem_: @retroactive Identifiable {}

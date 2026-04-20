@@ -2,19 +2,23 @@ package dev.tohure.tanayenai.ui.dashboard
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -28,10 +32,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush.Companion.horizontalGradient
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.tohure.tanayenai.R
 import dev.tohure.tanayenai.ui.theme.AccentTerra
 import dev.tohure.tanayenai.ui.theme.PrimaryGreen
 import dev.tohure.tanayenai.ui.theme.SecondaryMint
@@ -63,25 +69,45 @@ fun GreetingHeader(
     greeting: String, // "Buenos días", "Buenas tardes", etc.
     subtitle: String, // "Hoy te ves bien 🌿" o alerta si VFC baja
     modifier: Modifier = Modifier,
+    onSettingsClick: (() -> Unit)? = null,
 ) {
-    Column(
+    Row(
         modifier = modifier.padding(horizontal = 24.dp, vertical = 20.dp),
+        verticalAlignment = Alignment.Top,
     ) {
-        Text(
-            text = greeting,
-            style = MaterialTheme.typography.bodyMedium,
-        )
-        Spacer(Modifier.height(4.dp))
-        Text(
-            text = userName,
-            style = MaterialTheme.typography.headlineLarge,
-        )
-        Spacer(Modifier.height(6.dp))
-        Text(
-            text = subtitle,
-            style = MaterialTheme.typography.bodyMedium,
-            color = TextMutedColor,
-        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = greeting,
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = userName,
+                style = MaterialTheme.typography.headlineLarge,
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = TextMutedColor,
+            )
+        }
+        if (onSettingsClick != null) {
+            Box(
+                modifier =
+                    Modifier
+                        .size(40.dp)
+                        .clickable(onClick = onSettingsClick),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_notification),
+                    contentDescription = "Notificaciones",
+                    tint = TextMutedColor,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+        }
     }
 }
 

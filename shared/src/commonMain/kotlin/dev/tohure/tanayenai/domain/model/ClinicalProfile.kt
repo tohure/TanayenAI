@@ -48,8 +48,10 @@ data class ClinicalProfile(
     val recordedAt: String? = null,
 ) {
     val hasDyslipidemia: Boolean get() =
-        (cholesterolTotal ?: 0f) > 200f || (ldl ?: 0f) > 130f ||
-            (hdl ?: 999f) < 40f || (triglycerides ?: 0f) > 150f
+        (cholesterolTotal ?: 0f) > 200f ||
+            (ldl ?: 0f) > 130f ||
+            (hdl ?: 999f) < 40f ||
+            (triglycerides ?: 0f) > 150f
 
     val hasHyperglycemia: Boolean get() =
         (fastingGlucose ?: 0f) > 100f || (hba1c ?: 0f) > 5.7f

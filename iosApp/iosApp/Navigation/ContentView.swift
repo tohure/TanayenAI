@@ -3,14 +3,30 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct ContentView: View {
     init() {
-        let appearance = UITabBarAppearance()
-        appearance.configureWithOpaqueBackground()
-        appearance.backgroundColor = UIColor(white: 1.0, alpha: 1.0)
-        UITabBar.appearance().standardAppearance = appearance
-        UITabBar.appearance().scrollEdgeAppearance = appearance
+        // ── Tab bar ──────────────────────────────────────────────────────────
+        let tabAppearance = UITabBarAppearance()
+        tabAppearance.configureWithOpaqueBackground()
+        tabAppearance.backgroundColor = UIColor(white: 1.0, alpha: 1.0)
+        UITabBar.appearance().standardAppearance = tabAppearance
+        UITabBar.appearance().scrollEdgeAppearance = tabAppearance
+
+        // ── Navigation bar (fixes white title in all modal sheets) ───────────
+        // #F7F6F3 background, #1A1A2E title, #2D6A4F buttons
+        let navBgColor = UIColor(red: 247 / 255.0, green: 246 / 255.0, blue: 243 / 255.0, alpha: 1)
+        let navTitleColor = UIColor(red: 26 / 255.0, green: 26 / 255.0, blue: 46 / 255.0, alpha: 1)
+        let navTintColor = UIColor(red: 45 / 255.0, green: 106 / 255.0, blue: 79 / 255.0, alpha: 1)
+        let navAppearance = UINavigationBarAppearance()
+        navAppearance.configureWithOpaqueBackground()
+        navAppearance.backgroundColor = navBgColor
+        navAppearance.titleTextAttributes = [.foregroundColor: navTitleColor]
+        UINavigationBar.appearance().standardAppearance = navAppearance
+        UINavigationBar.appearance().scrollEdgeAppearance = navAppearance
+        UINavigationBar.appearance().compactAppearance = navAppearance
+        UINavigationBar.appearance().tintColor = navTintColor
     }
 
     var body: some View {

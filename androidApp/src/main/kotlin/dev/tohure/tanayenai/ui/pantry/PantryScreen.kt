@@ -65,6 +65,7 @@ import dev.tohure.tanayenai.domain.model.PantryItem
 import dev.tohure.tanayenai.domain.model.PantryUnit
 import dev.tohure.tanayenai.presentation.model.CategorizedItem
 import dev.tohure.tanayenai.presentation.viewmodel.PantryViewModel
+import dev.tohure.tanayenai.ui.ScreenHeader
 import dev.tohure.tanayenai.ui.theme.BackgroundColor
 import dev.tohure.tanayenai.ui.theme.ErrorRed
 import dev.tohure.tanayenai.ui.theme.PrimaryGreen
@@ -105,16 +106,11 @@ fun PantryScreen() {
                     .padding(innerPadding),
         ) {
             // Header
-            Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)) {
-                Text("Alacena", style = MaterialTheme.typography.headlineMedium)
-                Spacer(Modifier.height(4.dp))
-                val totalItems = state.categoryGroups.sumOf { it.items.size }
-                Text(
-                    "$totalItems ingredientes",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = TextMutedColor,
-                )
-            }
+            ScreenHeader(
+                title = "Alacena",
+                subtitle = "${state.categoryGroups.sumOf { it.items.size }} ingredientes",
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
+            )
 
             // Search bar
             BasicTextField(

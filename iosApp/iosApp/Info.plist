@@ -21,5 +21,9 @@
     <string>Necesitamos acceso a tu cámara para que puedas tomar fotos de tus alimentos, menús o alacena y evaluarlos con AI.</string>
     <key>NSPhotoLibraryUsageDescription</key>
     <string>Necesitamos acceso a tu galería para poder enviarle a Tanayen fotos de tus alimentos o alacena.</string>
+    <key>BGTaskSchedulerPermittedIdentifiers</key>
+    <array>
+        <string>dev.tohure.tanayenai.morning-advice</string>
+    </array>
 </dict>
 </plist>

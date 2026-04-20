@@ -6,25 +6,40 @@ import Shared
 
 struct DashboardView: View {
     @StateObject private var viewmodel = DashboardViewModelWrapper()
+    @State private var showNotificationSettings = false
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
 
                 // Saludo
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(greetingByHour())
-                        .font(.system(.subheadline, design: .rounded))
-                        .foregroundColor(TanayenTheme.textMuted)
-                    Text("Carlo")
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
-                        .foregroundColor(TanayenTheme.textDark)
-                    Text(viewmodel.alerts.first ?? "Todo bien por ahora 🌿")
-                        .font(.system(.subheadline, design: .rounded))
-                        .foregroundColor(TanayenTheme.textMuted)
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(greetingByHour())
+                            .font(.system(.subheadline, design: .rounded))
+                            .foregroundColor(TanayenTheme.textMuted)
+                        Text("Carlo")
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .foregroundColor(TanayenTheme.textDark)
+                        Text(viewmodel.alerts.first ?? "Todo bien por ahora 🌿")
+                            .font(.system(.subheadline, design: .rounded))
+                            .foregroundColor(TanayenTheme.textMuted)
+                    }
+                    Spacer()
+                    Button {
+                        showNotificationSettings = true
+                    } label: {
+                        Image(systemName: "bell")
+                            .font(.system(size: 20))
+                            .foregroundColor(TanayenTheme.textMuted)
+                            .frame(width: 40, height: 40)
+                    }
                 }
                 .padding(.horizontal, 24)
                 .padding(.top, 16)
+                .sheet(isPresented: $showNotificationSettings) {
+                    NotificationSettingsView()
+                }
 
                 // Alertas dinámicas
                 if let firstAlert = viewmodel.alerts.first {

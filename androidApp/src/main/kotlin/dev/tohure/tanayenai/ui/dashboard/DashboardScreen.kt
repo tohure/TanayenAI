@@ -34,7 +34,10 @@ import org.koin.core.parameter.parametersOf
 import java.util.Calendar
 
 @Composable
-fun DashboardScreen(onNavigateToChat: () -> Unit = {}) {
+fun DashboardScreen(
+    onNavigateToChat: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {},
+) {
     val viewModel: DashboardViewModel =
         koinViewModel {
             parametersOf(PROTOTYPE_USER_ID)
@@ -68,6 +71,7 @@ fun DashboardScreen(onNavigateToChat: () -> Unit = {}) {
                 } else {
                     uiState.activeAlerts.first()
                 },
+            onSettingsClick = onNavigateToSettings,
         )
 
         // Mostrar alerta si existe

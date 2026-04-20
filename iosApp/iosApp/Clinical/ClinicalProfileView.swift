@@ -48,15 +48,18 @@ struct ClinicalProfileView: View {
                                     .foregroundColor(TanayenTheme.textMuted)
                             }
                         } else {
-                            Button(action: { wrapper.pickAndExtractPdf() }) {
-                                Text("Seleccionar PDF")
-                                    .font(.system(.headline, design: .rounded, weight: .semibold))
-                                    .foregroundColor(.white)
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 48)
-                                    .background(TanayenTheme.primaryGreen)
-                                    .cornerRadius(12)
-                            }
+                            Button(
+                                action: { wrapper.pickAndExtractPdf() },
+                                label: {
+                                    Text("Seleccionar PDF")
+                                        .font(.system(.headline, design: .rounded, weight: .semibold))
+                                        .foregroundColor(.white)
+                                        .frame(maxWidth: .infinity)
+                                        .frame(height: 48)
+                                        .background(TanayenTheme.primaryGreen)
+                                        .cornerRadius(12)
+                                }
+                            )
                         }
 
                         if wrapper.extractionSuccess {
@@ -94,20 +97,23 @@ struct ClinicalProfileView: View {
                         let columns = [GridItem(.flexible()), GridItem(.flexible())]
                         LazyVGrid(columns: columns, spacing: 8) {
                             ForEach(allClinicalFields) { entry in
-                                Button(action: {
-                                    manualValueText = ""
-                                    selectedField = entry
-                                }) {
-                                    Text(entry.name)
-                                        .font(.system(.caption, design: .rounded))
-                                        .foregroundColor(TanayenTheme.primaryGreen)
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 8)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 10)
-                                                .stroke(TanayenTheme.primaryGreen, lineWidth: 1)
-                                        )
-                                }
+                                Button(
+                                    action: {
+                                        manualValueText = ""
+                                        selectedField = entry
+                                    },
+                                    label: {
+                                        Text(entry.name)
+                                            .font(.system(.caption, design: .rounded))
+                                            .foregroundColor(TanayenTheme.primaryGreen)
+                                            .frame(maxWidth: .infinity)
+                                            .padding(.vertical, 8)
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 10)
+                                                    .stroke(TanayenTheme.primaryGreen, lineWidth: 1)
+                                            )
+                                    }
+                                )
                             }
                         }
                     }

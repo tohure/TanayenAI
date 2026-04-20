@@ -40,6 +40,7 @@ import dev.tohure.tanayenai.domain.model.ClinicalProfile
 import dev.tohure.tanayenai.domain.model.PROTOTYPE_USER_ID
 import dev.tohure.tanayenai.domain.usecase.ClinicalField
 import dev.tohure.tanayenai.presentation.viewmodel.ClinicalProfileViewModel
+import dev.tohure.tanayenai.ui.ScreenHeader
 import dev.tohure.tanayenai.ui.theme.AccentTerra
 import dev.tohure.tanayenai.ui.theme.ErrorRed
 import dev.tohure.tanayenai.ui.theme.PrimaryGreen
@@ -57,17 +58,16 @@ fun ClinicalProfileScreen() {
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(top = 8.dp, start = 24.dp, end = 24.dp, bottom = 24.dp),
+        contentPadding = PaddingValues(top = 0.dp, start = 24.dp, end = 24.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item {
-            Text("Perfil Clínico", style = MaterialTheme.typography.headlineMedium)
-            Spacer(Modifier.height(4.dp))
-            Text(
-                "Puedes subir tu PDF de laboratorio, tomar foto del análisis impreso, " +
-                    "escribirle a Tanayen tus valores, o ingresarlos aquí manualmente.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = TextMutedColor,
+            ScreenHeader(
+                title = "Perfil Clínico",
+                subtitle =
+                    "Puedes subir tu PDF de laboratorio, tomar foto del análisis impreso, " +
+                        "escribirle a Tanayen tus valores, o ingresarlos aquí manualmente.",
+                modifier = Modifier.padding(vertical = 16.dp),
             )
         }
 

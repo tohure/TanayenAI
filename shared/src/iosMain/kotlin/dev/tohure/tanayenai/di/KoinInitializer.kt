@@ -3,13 +3,16 @@ package dev.tohure.tanayenai.di
 import dev.tohure.tanayenai.data.health.HealthDataReader
 import dev.tohure.tanayenai.data.local.DatabaseDriverFactory
 import dev.tohure.tanayenai.data.pdf.PdfPicker
+import dev.tohure.tanayenai.data.prefs.NotificationPrefs
 import dev.tohure.tanayenai.data.remote.SyncManager
 import dev.tohure.tanayenai.domain.model.GeminiConfig
 import dev.tohure.tanayenai.domain.model.PROTOTYPE_USER_ID
+import dev.tohure.tanayenai.domain.usecase.GenerateMorningAdviceUseCase
 import dev.tohure.tanayenai.domain.usecase.SyncHealthMetricsUseCase
 import dev.tohure.tanayenai.presentation.viewmodel.ChatViewModel
 import dev.tohure.tanayenai.presentation.viewmodel.ClinicalProfileViewModel
 import dev.tohure.tanayenai.presentation.viewmodel.DashboardViewModel
+import dev.tohure.tanayenai.presentation.viewmodel.NotificationSettingsViewModel
 import dev.tohure.tanayenai.presentation.viewmodel.PantryViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -41,6 +44,7 @@ fun initKoin(
                     single { GeminiConfig(geminiApiKey) }
                     single { HealthDataReader() }
                     single { PdfPicker() }
+                    single { NotificationPrefs() }
                 },
         )
     }
@@ -80,6 +84,19 @@ fun getPantryViewModel(userId: String): PantryViewModel =
 
 @Suppress("unused") // Called from Swift
 fun getPdfPicker(): PdfPicker = KoinPlatform.getKoin().get()
+
+@Suppress("unused") // Called from Swift
+fun getNotificationSettingsViewModel(
+    userId: String,
+    onScheduleChanged: (Int, Int, Boolean) -> Unit,
+): NotificationSettingsViewModel = KoinPlatform.getKoin().get { parametersOf(userId, onScheduleChanged) }
+
+@Suppress("unused") // Called from Swift
+fun getMorningAdviceUseCase(userId: String): GenerateMorningAdviceUseCase =
+    KoinPlatform.getKoin().get { parametersOf(userId) }
+
+@Suppress("unused") // Called from Swift
+fun getNotificationPrefs(): NotificationPrefs = KoinPlatform.getKoin().get()
 
 @OptIn(ExperimentalObjCName::class)
 @ObjCName(name = "requestHealthPermissionsFromIos")
