@@ -51,6 +51,7 @@ struct ChatView: View {
                                     FoodLogSuggestionChipView(
                                         description: foodLog.description,
                                         confirmed: foodLog.confirmed,
+                                        isLoading: foodLog.isLoading,
                                         onConfirm: { chatVM.confirmFoodLogSuggestion(messageId: message.id) },
                                         onDismiss: { chatVM.dismissFoodLogSuggestion(messageId: message.id) }
                                     )
@@ -61,6 +62,7 @@ struct ChatView: View {
                                         mealType: checkIn.mealType,
                                         recommendedFood: checkIn.recommendedFood,
                                         userResponse: checkIn.userResponse,
+                                        isLoading: checkIn.isLoading,
                                         onYes: { chatVM.confirmCheckInYes(messageId: message.id) },
                                         onNo: { chatVM.confirmCheckInNo(messageId: message.id) }
                                     )

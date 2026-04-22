@@ -8,10 +8,12 @@ import KMPNativeCoroutinesAsync
 struct FoodLogSuggestionData: Equatable {
     let description: String
     let confirmed: Bool
+    let isLoading: Bool
 
     init(from shared: Shared.FoodLogSuggestion) {
         self.description = shared.description_
         self.confirmed = shared.confirmed
+        self.isLoading = shared.isLoading
     }
 }
 
@@ -19,10 +21,12 @@ struct CheckInSuggestionData: Equatable {
     let mealType: String
     let recommendedFood: String
     let userResponse: CheckInUserResponse
+    let isLoading: Bool
 
     init(from shared: Shared.CheckInSuggestion) {
         self.mealType = shared.mealType
         self.recommendedFood = shared.recommendedFood
+        self.isLoading = shared.isLoading
         switch shared.userResponse {
         case .yes:
             self.userResponse = .yes
@@ -48,10 +52,12 @@ struct ChatMessage: Identifiable {
 struct PantrySuggestionWrapper: Equatable {
     let ingredients: [String]
     let confirmed: Bool
+    let isLoading: Bool
 
     init(from shared: Shared.PantrySuggestion) {
         self.ingredients = shared.ingredients
         self.confirmed = shared.confirmed
+        self.isLoading = shared.isLoading
     }
 }
 

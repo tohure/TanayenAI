@@ -34,6 +34,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -281,16 +282,25 @@ fun PantrySuggestionChip(
         )
         TextButton(
             onClick = onDismiss,
+            enabled = !suggestion.isLoading,
             contentPadding = PaddingValues(horizontal = 8.dp),
         ) {
             Text("No", style = MaterialTheme.typography.labelSmall.copy(color = TextMutedColor))
         }
-        Button(
-            onClick = onConfirm,
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen),
-        ) {
-            Text("Sí", style = MaterialTheme.typography.labelSmall)
+        if (suggestion.isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(20.dp),
+                strokeWidth = 2.dp,
+                color = PrimaryGreen,
+            )
+        } else {
+            Button(
+                onClick = onConfirm,
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen),
+            ) {
+                Text("Sí", style = MaterialTheme.typography.labelSmall)
+            }
         }
     }
 }
@@ -331,16 +341,25 @@ fun ClinicalSuggestionChip(
         )
         TextButton(
             onClick = onDismiss,
+            enabled = !suggestion.isLoading,
             contentPadding = PaddingValues(horizontal = 8.dp),
         ) {
             Text("No", style = MaterialTheme.typography.labelSmall.copy(color = TextMutedColor))
         }
-        Button(
-            onClick = onConfirm,
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = blueDark),
-        ) {
-            Text("Sí", style = MaterialTheme.typography.labelSmall)
+        if (suggestion.isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(20.dp),
+                strokeWidth = 2.dp,
+                color = blueDark,
+            )
+        } else {
+            Button(
+                onClick = onConfirm,
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = blueDark),
+            ) {
+                Text("Sí", style = MaterialTheme.typography.labelSmall)
+            }
         }
     }
 }
@@ -491,16 +510,25 @@ fun FoodLogSuggestionChip(
         )
         TextButton(
             onClick = onDismiss,
+            enabled = !suggestion.isLoading,
             contentPadding = PaddingValues(horizontal = 8.dp),
         ) {
             Text("No", style = MaterialTheme.typography.labelSmall.copy(color = TextMutedColor))
         }
-        Button(
-            onClick = onConfirm,
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = orangeDark),
-        ) {
-            Text("Sí", style = MaterialTheme.typography.labelSmall)
+        if (suggestion.isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(20.dp),
+                strokeWidth = 2.dp,
+                color = orangeDark,
+            )
+        } else {
+            Button(
+                onClick = onConfirm,
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = orangeDark),
+            ) {
+                Text("Sí", style = MaterialTheme.typography.labelSmall)
+            }
         }
     }
 }
@@ -547,17 +575,26 @@ fun CheckInChip(
                 )
                 OutlinedButton(
                     onClick = onNo,
+                    enabled = !suggestion.isLoading,
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                     border = androidx.compose.foundation.BorderStroke(1.dp, orangeDark),
                 ) {
                     Text("No", style = MaterialTheme.typography.labelSmall.copy(color = orangeDark))
                 }
-                Button(
-                    onClick = onYes,
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = orangeDark),
-                ) {
-                    Text("Sí", style = MaterialTheme.typography.labelSmall)
+                if (suggestion.isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = orangeDark,
+                    )
+                } else {
+                    Button(
+                        onClick = onYes,
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = orangeDark),
+                    ) {
+                        Text("Sí", style = MaterialTheme.typography.labelSmall)
+                    }
                 }
             }
         }

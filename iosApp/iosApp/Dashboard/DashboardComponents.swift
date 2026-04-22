@@ -71,7 +71,7 @@ struct StressLevelCardView: View {
             GeometryReader { geometry in
                 let width = geometry.size.width
                 let height: CGFloat = 12
-                let fraction = CGFloat(min(max(hrv / 100.0, 0), 1))
+                let fraction = CGFloat(min(max(1.0 - hrv / 100.0, 0), 1))
 
                 ZStack(alignment: .leading) {
                     // Fondo gradiente
@@ -79,9 +79,9 @@ struct StressLevelCardView: View {
                         .fill(
                             LinearGradient(
                                 gradient: Gradient(colors: [
-                                    Color(hex: "#E63946"),
+                                    TanayenTheme.secondaryMint,
                                     Color(hex: "#FFB703"),
-                                    TanayenTheme.secondaryMint]),
+                                    Color(hex: "#E63946")]),
                                 startPoint: .leading,
                                 endPoint: .trailing
                             )

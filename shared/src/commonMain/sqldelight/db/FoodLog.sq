@@ -37,6 +37,13 @@ WHERE user_id = :userId
 AND logged_at LIKE :datePrefix || '%'
 ORDER BY logged_at ASC;
 
+getLatestTodayFoodLogs:
+SELECT * FROM FoodLog
+WHERE user_id = :userId
+AND logged_at LIKE :datePrefix || '%'
+ORDER BY logged_at DESC
+LIMIT :limit;
+
 getDailySummary:
 SELECT
     SUM(calories)  AS total_calories,

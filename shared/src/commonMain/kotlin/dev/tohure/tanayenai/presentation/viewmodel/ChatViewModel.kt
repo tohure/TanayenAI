@@ -49,6 +49,7 @@ private val jsonParser =
 data class PantrySuggestion(
     val ingredients: ImmutableList<String>,
     val confirmed: Boolean = false,
+    val isLoading: Boolean = false,
 )
 
 @Immutable
@@ -56,12 +57,14 @@ data class ClinicalSuggestion(
     val rawJson: String,
     val summary: String,
     val confirmed: Boolean = false,
+    val isLoading: Boolean = false,
 )
 
 @Immutable
 data class FoodLogSuggestion(
     val description: String,
     val confirmed: Boolean = false,
+    val isLoading: Boolean = false,
 )
 
 @Immutable
@@ -69,6 +72,7 @@ data class CheckInSuggestion(
     val mealType: String,
     val recommendedFood: String,
     val userResponse: CheckInResponse = CheckInResponse.PENDING,
+    val isLoading: Boolean = false,
 )
 
 enum class CheckInResponse { PENDING, YES, NO }
@@ -324,6 +328,17 @@ class ChatViewModel(
     }
 
     fun confirmPantrySuggestion(messageId: String) {
+        _uiState.value =
+            _uiState.value.copy(
+                messages =
+                    _uiState.value.messages.map { msg ->
+                        if (msg.id == messageId) {
+                            msg.copy(pantrySuggestion = msg.pantrySuggestion?.copy(isLoading = true))
+                        } else {
+                            msg
+                        }
+                    },
+            )
         viewModelScope.launch {
             val message = _uiState.value.messages.find { it.id == messageId } ?: return@launch
             val suggestion = message.pantrySuggestion ?: return@launch
@@ -387,6 +402,17 @@ class ChatViewModel(
     }
 
     fun confirmClinicalSuggestion(messageId: String) {
+        _uiState.value =
+            _uiState.value.copy(
+                messages =
+                    _uiState.value.messages.map { msg ->
+                        if (msg.id == messageId) {
+                            msg.copy(clinicalSuggestion = msg.clinicalSuggestion?.copy(isLoading = true))
+                        } else {
+                            msg
+                        }
+                    },
+            )
         viewModelScope.launch {
             val msg = _uiState.value.messages.find { it.id == messageId } ?: return@launch
             val suggestion = msg.clinicalSuggestion ?: return@launch
@@ -450,6 +476,17 @@ class ChatViewModel(
     }
 
     fun confirmFoodLogSuggestion(messageId: String) {
+        _uiState.value =
+            _uiState.value.copy(
+                messages =
+                    _uiState.value.messages.map { msg ->
+                        if (msg.id == messageId) {
+                            msg.copy(foodLogSuggestion = msg.foodLogSuggestion?.copy(isLoading = true))
+                        } else {
+                            msg
+                        }
+                    },
+            )
         viewModelScope.launch {
             val msg = _uiState.value.messages.find { it.id == messageId } ?: return@launch
             val suggestion = msg.foodLogSuggestion ?: return@launch
@@ -513,6 +550,17 @@ class ChatViewModel(
     }
 
     fun confirmCheckInYes(messageId: String) {
+        _uiState.value =
+            _uiState.value.copy(
+                messages =
+                    _uiState.value.messages.map { msg ->
+                        if (msg.id == messageId) {
+                            msg.copy(checkInSuggestion = msg.checkInSuggestion?.copy(isLoading = true))
+                        } else {
+                            msg
+                        }
+                    },
+            )
         viewModelScope.launch {
             val msg = _uiState.value.messages.find { it.id == messageId } ?: return@launch
             val checkIn = msg.checkInSuggestion ?: return@launch

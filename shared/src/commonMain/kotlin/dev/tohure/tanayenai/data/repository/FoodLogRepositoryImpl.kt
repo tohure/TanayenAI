@@ -53,6 +53,18 @@ class FoodLogRepositoryImpl(
                 .map { it.toDomain() }
         }
 
+    override suspend fun getLatestTodayFoodLogs(
+        userId: String,
+        datePrefix: String,
+        limit: Int,
+    ): List<FoodLog> =
+        withContext(Dispatchers.Default) {
+            queries
+                .getLatestTodayFoodLogs(userId = userId, datePrefix = datePrefix, limit = limit.toLong())
+                .executeAsList()
+                .map { it.toDomain() }
+        }
+
     override suspend fun getDailySummary(
         userId: String,
         datePrefix: String,

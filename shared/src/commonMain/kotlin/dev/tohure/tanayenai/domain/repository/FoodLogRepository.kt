@@ -11,6 +11,12 @@ interface FoodLogRepository {
         datePrefix: String,
     ): List<FoodLog>
 
+    suspend fun getLatestTodayFoodLogs(
+        userId: String,
+        datePrefix: String,
+        limit: Int,
+    ): List<FoodLog>
+
     suspend fun getDailySummary(
         userId: String,
         datePrefix: String,

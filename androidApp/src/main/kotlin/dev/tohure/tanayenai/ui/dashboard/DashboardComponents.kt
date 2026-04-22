@@ -177,9 +177,9 @@ fun StressLevelCard(
             else -> "Bajo" to SecondaryMint
         }
 
-    // Normalizamos la VFC en un rango de 0 a 100 para pintar el indicador en la barra
-    // Limitado a 100 para que el punto no se salga de la tarjeta si la VFC > 100.
-    val fraction = (hrv / 100f).coerceIn(0f, 1f)
+    // Invertimos: alto estrés (VFC baja) → indicador a la derecha (rojo).
+    // Bajo estrés (VFC alta) → indicador a la izquierda (verde).
+    val fraction = (1f - (hrv / 100f)).coerceIn(0f, 1f)
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -211,11 +211,11 @@ fun StressLevelCard(
                         .height(12.dp),
             ) {
                 val cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
-                // Fondo gradiente rojo -> amarillo -> verde (Rojo = bajo VFC = Alto estrés)
+                // Fondo gradiente verde -> amarillo -> rojo (Verde = bajo estrés, Rojo = alto estrés)
                 drawRoundRect(
                     brush =
                         horizontalGradient(
-                            colors = listOf(Color(0xFFE63946), Color(0xFFFFB703), SecondaryMint),
+                            colors = listOf(SecondaryMint, Color(0xFFFFB703), Color(0xFFE63946)),
                         ),
                     size = size,
                     cornerRadius = cornerRadius,

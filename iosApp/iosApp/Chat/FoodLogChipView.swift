@@ -7,6 +7,7 @@ import SwiftUI
 struct FoodLogSuggestionChipView: View {
     let description: String
     let confirmed: Bool
+    let isLoading: Bool
     let onConfirm: () -> Void
     let onDismiss: () -> Void
 
@@ -29,14 +30,22 @@ struct FoodLogSuggestionChipView: View {
                 Button("No", action: onDismiss)
                     .font(.system(.caption, design: .rounded))
                     .foregroundColor(TanayenTheme.textMuted)
-                Button(action: onConfirm) {
-                    Text("Sí")
-                        .font(.system(.caption, design: .rounded, weight: .semibold))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 4)
-                        .background(orangeDark)
-                        .cornerRadius(8)
+                    .disabled(isLoading)
+                if isLoading {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: orangeDark))
+                        .scaleEffect(0.8)
+                        .frame(width: 32, height: 32)
+                } else {
+                    Button(action: onConfirm) {
+                        Text("Sí")
+                            .font(.system(.caption, design: .rounded, weight: .semibold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 4)
+                            .background(orangeDark)
+                            .cornerRadius(8)
+                    }
                 }
             }
             .padding(.horizontal, 12)
@@ -58,6 +67,7 @@ struct CheckInChipView: View {
     let mealType: String
     let recommendedFood: String
     let userResponse: CheckInUserResponse
+    let isLoading: Bool
     let onYes: () -> Void
     let onNo: () -> Void
 
@@ -91,14 +101,22 @@ struct CheckInChipView: View {
                                 .stroke(orangeDark, lineWidth: 1)
                         )
                 }
-                Button(action: onYes) {
-                    Text("Sí")
-                        .font(.system(.caption, design: .rounded, weight: .semibold))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 4)
-                        .background(orangeDark)
-                        .cornerRadius(8)
+                .disabled(isLoading)
+                if isLoading {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: orangeDark))
+                        .scaleEffect(0.8)
+                        .frame(width: 32, height: 32)
+                } else {
+                    Button(action: onYes) {
+                        Text("Sí")
+                            .font(.system(.caption, design: .rounded, weight: .semibold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 4)
+                            .background(orangeDark)
+                            .cornerRadius(8)
+                    }
                 }
             }
             .padding(.horizontal, 12)

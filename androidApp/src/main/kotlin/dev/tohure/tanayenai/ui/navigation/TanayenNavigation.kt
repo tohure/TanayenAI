@@ -2,6 +2,7 @@ package dev.tohure.tanayenai.ui.navigation
 
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -69,7 +70,7 @@ fun TanayenNavigation() {
         bottomBar = {
             NavigationBar(
                 containerColor = SurfaceColor,
-                tonalElevation = 2f.dp,
+                tonalElevation = 0.dp,
             ) {
                 bottomNavItems.forEach { screen ->
                     NavigationBarItem(
@@ -111,7 +112,10 @@ fun TanayenNavigation() {
         NavHost(
             navController = navController,
             startDestination = Screen.Dashboard.route,
-            modifier = Modifier.padding(innerPadding),
+            modifier =
+                Modifier
+                    .padding(innerPadding)
+                    .consumeWindowInsets(innerPadding),
             enterTransition = {
                 slideIntoContainer(
                     AnimatedContentTransitionScope.SlideDirection.Start,

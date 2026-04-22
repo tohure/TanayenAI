@@ -85,15 +85,23 @@ struct PantrySuggestionChipView: View {
                         .foregroundColor(TanayenTheme.textMuted)
                 }
                 .padding(.horizontal, 8)
+                .disabled(suggestion.isLoading)
 
-                Button(action: onConfirm) {
-                    Text("Sí")
-                        .font(.system(size: 12, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(TanayenTheme.primaryGreen)
-                        .cornerRadius(12)
+                if suggestion.isLoading {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: TanayenTheme.primaryGreen))
+                        .scaleEffect(0.8)
+                        .frame(width: 32, height: 32)
+                } else {
+                    Button(action: onConfirm) {
+                        Text("Sí")
+                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(TanayenTheme.primaryGreen)
+                            .cornerRadius(12)
+                    }
                 }
             }
             .padding(.horizontal, 12)

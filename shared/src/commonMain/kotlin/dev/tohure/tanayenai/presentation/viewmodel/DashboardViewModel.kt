@@ -68,7 +68,7 @@ class DashboardViewModel(
                 val alerts = buildAlerts(latestMetrics)
                 val today = currentIsoDate()
                 val todayNutrition = foodLogRepository.getDailySummary(userId, today)
-                val todayFoodLogs = foodLogRepository.getTodayFoodLogs(userId, today)
+                val todayFoodLogs = foodLogRepository.getLatestTodayFoodLogs(userId, today, limit = 4)
 
                 _uiState.value =
                     _uiState.value.copy(
