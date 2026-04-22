@@ -29,28 +29,33 @@ struct ContentView: View {
         UINavigationBar.appearance().tintColor = navTintColor
     }
 
+    @State private var selectedTab: Int = 0
+
     var body: some View {
-        TabView {
-            DashboardView()
+        TabView(selection: $selectedTab) {
+            DashboardView(onNavigateToChat: { selectedTab = 1 })
                 .tabItem {
                     Label("Inicio", systemImage: "house.fill")
                 }
+                .tag(0)
 
             ChatView()
                 .tabItem {
                     Label("Asistente", systemImage: "bubble.left.and.bubble.right.fill")
                 }
+                .tag(1)
 
             PantryView()
                 .tabItem {
                     Label("Alacena", systemImage: "cabinet.fill")
                 }
+                .tag(2)
 
-            // Placeholder
             ClinicalProfileView()
                 .tabItem {
                     Label("Perfil", systemImage: "person.fill")
                 }
+                .tag(3)
         }
         .tint(TanayenTheme.primaryGreen)
         .background(TanayenTheme.background)

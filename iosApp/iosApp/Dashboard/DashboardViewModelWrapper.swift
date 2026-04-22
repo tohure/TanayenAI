@@ -5,6 +5,34 @@
 import Shared
 import KMPNativeCoroutinesAsync
 
+struct NutritionSummaryData {
+    let totalCalories: Float
+    let totalProteinG: Float
+    let totalCarbsG: Float
+    let totalFatG: Float
+    let totalFiberG: Float
+    let totalSodiumMg: Float
+    let totalSugarG: Float
+    let mealCount: Int
+    let calorieGoal: Float
+    let calorieProgress: Float
+    let remainingCalories: Float
+
+    init(from shared: Shared.DailyNutritionSummary) {
+        self.totalCalories = shared.totalCalories
+        self.totalProteinG = shared.totalProteinG
+        self.totalCarbsG = shared.totalCarbsG
+        self.totalFatG = shared.totalFatG
+        self.totalFiberG = shared.totalFiberG
+        self.totalSodiumMg = shared.totalSodiumMg
+        self.totalSugarG = shared.totalSugarG
+        self.mealCount = Int(shared.mealCount)
+        self.calorieGoal = shared.calorieGoal
+        self.calorieProgress = shared.calorieProgress
+        self.remainingCalories = shared.remainingCalories
+    }
+}
+
 @MainActor
 class DashboardViewModelWrapper: ObservableObject {
     @Published var sleepHours: String = "--"
@@ -13,6 +41,7 @@ class DashboardViewModelWrapper: ObservableObject {
     @Published var caloriesBurned: String = "--"
     @Published var alerts: [String] = []
     @Published var foodLogs: [(String, String)] = []
+    @Published var todayNutrition: NutritionSummaryData?
 
     // ViewModel compartido de KMP
     private let dashboardVM: DashboardViewModel
@@ -49,8 +78,8 @@ class DashboardViewModelWrapper: ObservableObject {
             if let hrv = metrics.hrv {
                 self.hrv = String(format: "%.0f", hrv.floatValue)
             }
-            if let weightKg = metrics.weightKg {
-                self.weightKg = String(format: "%.1f", weightKg.floatValue)
+            if let weight = metrics.weightKg {
+                self.weightKg = String(format: "%.1f", weight.floatValue)
             }
             if let kcal = metrics.caloriesBurned {
                 self.caloriesBurned = "\(kcal.int32Value)"
@@ -62,6 +91,12 @@ class DashboardViewModelWrapper: ObservableObject {
         self.foodLogs = state.todayFoodLogs.compactMap { log in
             let mealName = log.mealType.name.capitalized
             return (mealName, log.foodName)
+        }
+
+        if let nutrition = state.todayNutrition {
+            self.todayNutrition = NutritionSummaryData(from: nutrition)
+        } else {
+            self.todayNutrition = nil
         }
     }
 }

@@ -6,6 +6,7 @@ import dev.tohure.tanayenai.domain.model.HealthMetrics
 import dev.tohure.tanayenai.domain.model.MealType
 import dev.tohure.tanayenai.domain.model.PantryItem
 import dev.tohure.tanayenai.domain.model.Recommendation
+import dev.tohure.tanayenai.domain.model.RecommendationType
 import dev.tohure.tanayenai.domain.model.User
 
 /**
@@ -50,10 +51,10 @@ class BuildContextUseCase {
                     metrics.weightKg?.let { append("Peso ${it}kg ") }
                     metrics.sleepHours?.let { append("| Sueño ${it}h ") }
                     metrics.hrv?.let { hrv ->
-                        val alert = if (hrv < 50) " ⚠ VFC BAJA" else ""
-                        append("| VFC ${hrv}ms$alert ")
+                        append("| VFC ${hrv}ms ${hrv.toHrvLabel()} ")
                     }
                     metrics.caloriesBurned?.let { append("| Calorías ${it}kcal ") }
+                    metrics.steps?.let { append("| Pasos $it ") }
                     appendLine()
                 }
                 appendLine()
@@ -83,21 +84,25 @@ class BuildContextUseCase {
             appendLine("Fecha: ${params.today}")
             appendLine("Contexto laboral: ${params.workContext}")
             if (params.todayFoodLogs.isNotEmpty()) {
-                appendLine("Ya consumido hoy:")
+                appendLine("Lo que ha consumido hoy:")
                 params.todayFoodLogs.forEach { log ->
-                    appendLine("  - ${log.mealType.name}: ${log.foodName}")
+                    val rawTime = log.loggedAt.substringAfter("T", "")
+                    val time = if (rawTime.length >= 5) rawTime.take(5) else "?"
+                    appendLine(
+                        "  - $time ${log.mealType.displayName}: ${log.foodName} " +
+                            "(${log.calories.toInt()} kcal | " +
+                            "P:${log.proteinG.toInt()}g C:${log.carbsG.toInt()}g G:${log.fatG.toInt()}g)",
+                    )
                 }
+                val totalCals = params.todayFoodLogs.sumOf { it.calories.toDouble() }.toInt()
+                appendLine("  Total: $totalCals kcal consumidas hoy")
             }
             appendLine()
 
-            // ── Capa 5: Recomendaciones recientes (evitar repetición) ──────────
-            if (params.recentRecommendations.isNotEmpty()) {
-                appendLine("── RECOMENDACIONES RECIENTES (últimos 7 días) ──")
-                appendLine("NO repetir estos platos:")
-                params.recentRecommendations.take(14).forEach { rec ->
-                    appendLine("  - ${rec.recommendedAt.take(10)}: ${rec.title}")
-                }
-                appendLine()
+            // ── Capa 5: Memoria de sesiones anteriores ─────────────────────────
+            val memorySection = formatRecommendationsAsMemory(params.recentRecommendations, params.today)
+            if (memorySection.isNotEmpty()) {
+                append(memorySection)
             }
 
             // ── Capa 6: Alertas activas ─────────────────────────────────────────
@@ -140,6 +145,68 @@ class BuildContextUseCase {
             restrictions.forEach { appendLine("• $it") }
         }
     }
+
+    private fun formatRecommendationsAsMemory(
+        recommendations: List<Recommendation>,
+        today: String,
+    ): String {
+        if (recommendations.isEmpty()) return ""
+
+        val todayRecs =
+            recommendations
+                .filter { it.recommendedAt.startsWith(today) }
+                .sortedByDescending { it.recommendedAt }
+        val pastRecs =
+            recommendations
+                .filter { !it.recommendedAt.startsWith(today) }
+                .sortedByDescending { it.recommendedAt }
+                .take(5)
+
+        return buildString {
+            appendLine("── MEMORIA DE SESIONES ANTERIORES ──")
+            appendLine("Úsala para dar seguimiento natural — conecta, no repitas.")
+
+            if (todayRecs.isNotEmpty()) {
+                appendLine("Hoy:")
+                todayRecs.forEach { rec ->
+                    val time = rec.recommendedAt.substringAfter("T", "").take(5)
+                    val label = rec.type.toMealLabel()
+                    append("  - $time $label: ${rec.title}")
+                    if (rec.ingredientsUsed.isNotEmpty()) {
+                        append(" (${rec.ingredientsUsed.joinToString(", ")})")
+                    }
+                    appendLine()
+                }
+            }
+
+            if (pastRecs.isNotEmpty()) {
+                appendLine("Días anteriores:")
+                pastRecs.forEach { rec ->
+                    val date = rec.recommendedAt.take(10)
+                    val time = rec.recommendedAt.substringAfter("T", "").take(5)
+                    appendLine("  - $date $time: ${rec.title}")
+                }
+            }
+
+            appendLine()
+        }
+    }
+
+    private fun RecommendationType.toMealLabel(): String =
+        when (this) {
+            RecommendationType.MEAL -> "Comida"
+            RecommendationType.SNACK -> "Snack"
+            RecommendationType.RECIPE -> "Receta"
+            RecommendationType.PLAN -> "Plan"
+            RecommendationType.ALERT -> "Alerta"
+        }
+
+    private fun Float.toHrvLabel(): String =
+        when {
+            this >= 60 -> "(buena)"
+            this >= 40 -> "(moderada)"
+            else -> "(baja — priorizar recuperación)"
+        }
 
     private fun buildAlerts(params: ContextParams): List<String> {
         val alerts = mutableListOf<String>()

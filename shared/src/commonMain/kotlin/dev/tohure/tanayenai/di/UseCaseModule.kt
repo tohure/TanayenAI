@@ -1,6 +1,7 @@
 package dev.tohure.tanayenai.di
 
 import dev.tohure.tanayenai.domain.usecase.BuildContextUseCase
+import dev.tohure.tanayenai.domain.usecase.EstimateFoodNutritionUseCase
 import dev.tohure.tanayenai.domain.usecase.ExtractClinicalProfileUseCase
 import dev.tohure.tanayenai.domain.usecase.FetchContextParamsUseCase
 import dev.tohure.tanayenai.domain.usecase.GetLatestMetricsUseCase
@@ -24,6 +25,13 @@ val useCaseModule =
         factory { (userId: String) ->
             ExtractClinicalProfileUseCase(
                 generativeModel = get(GEMINI_CLINICAL),
+                repository = get(),
+                userId = userId,
+            )
+        }
+        factory { (userId: String) ->
+            EstimateFoodNutritionUseCase(
+                generativeModel = get(GEMINI_ADVICE),
                 repository = get(),
                 userId = userId,
             )

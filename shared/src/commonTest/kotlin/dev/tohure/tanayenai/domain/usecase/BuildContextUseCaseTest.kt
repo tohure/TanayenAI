@@ -15,6 +15,7 @@ import dev.tohure.tanayenai.domain.model.Sex
 import dev.tohure.tanayenai.domain.model.User
 import kotlin.test.Test
 import kotlin.test.assertContains
+import kotlin.test.assertFalse
 
 class BuildContextUseCaseTest {
     private val useCase = BuildContextUseCase()
@@ -204,7 +205,7 @@ class BuildContextUseCaseTest {
 
         val context = useCase.build(params)
 
-        assertContains(context, "Ya consumido hoy")
+        assertContains(context, "Lo que ha consumido hoy:")
         assertContains(context, "Avena con frutas")
     }
 
@@ -236,7 +237,107 @@ class BuildContextUseCaseTest {
 
         val context = useCase.build(params)
 
+        assertContains(context, "MEMORIA DE SESIONES ANTERIORES")
         assertContains(context, "Huevo sancochado con avena")
-        assertContains(context, "NO repetir")
+    }
+
+    @Test
+    fun `context shows today recs separately from past recs in memory section`() {
+        val todayRec =
+            Recommendation(
+                id = "rec_today",
+                userId = "user_1",
+                type = RecommendationType.MEAL,
+                title = "Pechuga con quinoa",
+                content = "{}",
+                ingredientsUsed = listOf("pechuga", "quinoa"),
+                recommendedAt = "2026-02-27T13:00:00Z",
+            )
+        val pastRec =
+            Recommendation(
+                id = "rec_past",
+                userId = "user_1",
+                type = RecommendationType.SNACK,
+                title = "Nueces con arándanos",
+                content = "{}",
+                ingredientsUsed = emptyList(),
+                recommendedAt = "2026-02-26T10:00:00Z",
+            )
+
+        val params =
+            ContextParams(
+                user = testUser,
+                clinicalProfile = null,
+                recentMetrics = emptyList(),
+                pantryItems = emptyList(),
+                locationNames = emptyMap(),
+                recentRecommendations = listOf(todayRec, pastRec),
+                todayFoodLogs = emptyList(),
+                today = "2026-02-27",
+                workContext = "Remoto",
+            )
+
+        val context = useCase.build(params)
+
+        assertContains(context, "Hoy:")
+        assertContains(context, "13:00")
+        assertContains(context, "Pechuga con quinoa")
+        assertContains(context, "Días anteriores:")
+        assertContains(context, "Nueces con arándanos")
+    }
+
+    @Test
+    fun `context shows food log macros when present`() {
+        val foodLog =
+            FoodLog(
+                id = "log_1",
+                userId = "user_1",
+                foodName = "Avena con leche",
+                mealType = MealType.BREAKFAST,
+                calories = 350f,
+                proteinG = 12f,
+                carbsG = 55f,
+                fatG = 8f,
+                loggedAt = "2026-02-27T08:00:00Z",
+            )
+
+        val params =
+            ContextParams(
+                user = testUser,
+                clinicalProfile = null,
+                recentMetrics = emptyList(),
+                pantryItems = emptyList(),
+                locationNames = emptyMap(),
+                recentRecommendations = emptyList(),
+                todayFoodLogs = listOf(foodLog),
+                today = "2026-02-27",
+                workContext = "Remoto",
+            )
+
+        val context = useCase.build(params)
+
+        assertContains(context, "350 kcal")
+        assertContains(context, "P:12g")
+        assertContains(context, "Total:")
+    }
+
+    @Test
+    fun `memory section is empty when no recommendations exist`() {
+        val params =
+            ContextParams(
+                user = testUser,
+                clinicalProfile = null,
+                recentMetrics = emptyList(),
+                pantryItems = emptyList(),
+                locationNames = emptyMap(),
+                recentRecommendations = emptyList(),
+                todayFoodLogs = emptyList(),
+                today = "2026-02-27",
+                workContext = "Remoto",
+            )
+
+        val context = useCase.build(params)
+
+        assertFalse(context.contains("MEMORIA DE SESIONES ANTERIORES"))
     }
 }

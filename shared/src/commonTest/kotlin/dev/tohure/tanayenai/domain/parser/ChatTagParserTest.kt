@@ -144,4 +144,23 @@ class ChatTagParserTest {
         val full = "Aquí tu respuesta. [PANTRY:avena|almendras]"
         assertEquals("Aquí tu respuesta.", ChatTagParser.stripForStreaming(full))
     }
+
+    @Test
+    fun stripForStreaming_hidesPartialFoodlogTagDuringStream() {
+        val partial = "Registré tu comida. [FOODLOG"
+        assertEquals("Registré tu comida.", ChatTagParser.stripForStreaming(partial))
+    }
+
+    @Test
+    fun stripForStreaming_hidesPartialCheckinTagDuringStream() {
+        val partial = "¿Desayunaste la avena? [CHECKIN"
+        assertEquals("¿Desayunaste la avena?", ChatTagParser.stripForStreaming(partial))
+    }
+
+    @Test
+    fun stripTags_doesNotAffectNormalBracketsInText() {
+        // Corchetes en minúscula no deben eliminarse
+        val response = "Opción [a] o [b] para elegir."
+        assertEquals(response, ChatTagParser.stripTags(response))
+    }
 }

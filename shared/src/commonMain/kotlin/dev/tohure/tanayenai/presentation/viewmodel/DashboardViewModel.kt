@@ -2,10 +2,13 @@ package dev.tohure.tanayenai.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import co.touchlab.kermit.Logger
 import com.rickclephas.kmp.nativecoroutines.NativeCoroutinesState
+import dev.tohure.tanayenai.domain.model.DailyNutritionSummary
 import dev.tohure.tanayenai.domain.model.FoodLog
 import dev.tohure.tanayenai.domain.model.HealthMetrics
 import dev.tohure.tanayenai.domain.model.currentIsoDate
+import dev.tohure.tanayenai.domain.repository.FoodLogRepository
 import dev.tohure.tanayenai.domain.usecase.BuildContextUseCase
 import dev.tohure.tanayenai.domain.usecase.FetchContextParamsUseCase
 import dev.tohure.tanayenai.domain.usecase.GetLatestMetricsUseCase
@@ -19,6 +22,7 @@ data class DashboardUiState(
     val userName: String = "",
     val latestMetrics: HealthMetrics? = null,
     val todayFoodLogs: List<FoodLog> = emptyList(),
+    val todayNutrition: DailyNutritionSummary? = null,
     val activeAlerts: List<String> = emptyList(),
     val isLoading: Boolean = true,
     val error: String? = null,
@@ -26,11 +30,14 @@ data class DashboardUiState(
     val showPermissionAlert: Boolean = false,
 )
 
+private val log = Logger.withTag("DashboardViewModel")
+
 class DashboardViewModel(
     private val getLatestMetricsUseCase: GetLatestMetricsUseCase,
     private val fetchContextParamsUseCase: FetchContextParamsUseCase,
     private val buildContextUseCase: BuildContextUseCase,
     private val syncHealthMetricsUseCase: SyncHealthMetricsUseCase,
+    private val foodLogRepository: FoodLogRepository,
     private val userId: String,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(DashboardUiState())
@@ -49,15 +56,26 @@ class DashboardViewModel(
             }
             try {
                 val isGranted = syncHealthMetricsUseCase.hasPermissions()
-                if (isGranted) syncHealthMetricsUseCase.syncToday()
+                if (isGranted) {
+                    try {
+                        syncHealthMetricsUseCase.syncToday()
+                    } catch (e: Exception) {
+                        log.e(e) { "Health sync failed, continuing with local data" }
+                    }
+                }
 
                 val latestMetrics = getLatestMetricsUseCase.execute(userId)
                 val alerts = buildAlerts(latestMetrics)
+                val today = currentIsoDate()
+                val todayNutrition = foodLogRepository.getDailySummary(userId, today)
+                val todayFoodLogs = foodLogRepository.getTodayFoodLogs(userId, today)
 
                 _uiState.value =
                     _uiState.value.copy(
                         latestMetrics = latestMetrics,
                         activeAlerts = alerts,
+                        todayNutrition = todayNutrition,
+                        todayFoodLogs = todayFoodLogs,
                         isLoading = false,
                         showPermissionAlert = !isGranted,
                     )

@@ -138,8 +138,130 @@ struct AlertBannerView: View {
     }
 }
 
+struct NutritionSummaryCardView: View {
+    let nutrition: NutritionSummaryData
+
+    private let orangeDark = Color(hex: "#F4A261")
+    private let blueMint = Color(hex: "#74C69D")
+    private let blueLight = Color(hex: "#74B9FF")
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Text("Nutrición hoy")
+                    .font(.system(.headline, design: .rounded, weight: .semibold))
+                    .foregroundColor(TanayenTheme.textDark)
+                Spacer()
+                Text("\(nutrition.mealCount) comida\(nutrition.mealCount != 1 ? "s" : "")")
+                    .font(.system(.subheadline, design: .rounded))
+                    .foregroundColor(TanayenTheme.textMuted)
+            }
+
+            // Calorías y barra de progreso
+            VStack(spacing: 6) {
+                HStack {
+                    Text("\(Int(nutrition.totalCalories)) kcal")
+                        .font(.system(size: 22, weight: .bold, design: .rounded))
+                        .foregroundColor(TanayenTheme.primaryGreen)
+                    Spacer()
+                    Text("/\(Int(nutrition.calorieGoal)) objetivo")
+                        .font(.system(.subheadline, design: .rounded))
+                        .foregroundColor(TanayenTheme.textMuted)
+                }
+
+                GeometryReader { geometry in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color(hex: "#EEEEEE"))
+                            .frame(height: 8)
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(progressColor)
+                            .frame(width: geometry.size.width * CGFloat(nutrition.calorieProgress), height: 8)
+                    }
+                }
+                .frame(height: 8)
+
+                if nutrition.remainingCalories > 0 {
+                    Text("Quedan \(Int(nutrition.remainingCalories)) kcal para hoy")
+                        .font(.system(.caption, design: .rounded))
+                        .foregroundColor(TanayenTheme.textMuted)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+
+            // Macros
+            HStack {
+                Spacer()
+                MacroItemView(label: "Proteína", value: "\(Int(nutrition.totalProteinG))g", color: blueMint)
+                Spacer()
+                MacroItemView(label: "Carbos", value: "\(Int(nutrition.totalCarbsG))g", color: blueLight)
+                Spacer()
+                MacroItemView(label: "Grasa", value: "\(Int(nutrition.totalFatG))g", color: orangeDark)
+                Spacer()
+            }
+
+            Divider()
+
+            // Micronutrientes
+            HStack {
+                Spacer()
+                MicroItemView(label: "Fibra", value: "\(Int(nutrition.totalFiberG))g")
+                Spacer()
+                MicroItemView(label: "Sodio", value: "\(Int(nutrition.totalSodiumMg))mg")
+                Spacer()
+                MicroItemView(label: "Azúcar", value: "\(Int(nutrition.totalSugarG))g")
+                Spacer()
+            }
+        }
+        .padding(16)
+        .background(TanayenTheme.surface)
+        .cornerRadius(20)
+        .shadow(color: .black.opacity(0.06), radius: 4, x: 0, y: 2)
+    }
+
+    private var progressColor: Color {
+        if nutrition.calorieProgress < 0.5 { return blueMint }
+        if nutrition.calorieProgress < 0.9 { return TanayenTheme.primaryGreen }
+        return orangeDark
+    }
+}
+
+struct MacroItemView: View {
+    let label: String
+    let value: String
+    let color: Color
+
+    var body: some View {
+        VStack(spacing: 2) {
+            Text(value)
+                .font(.system(.subheadline, design: .rounded, weight: .bold))
+                .foregroundColor(color)
+            Text(label)
+                .font(.system(.caption2, design: .rounded))
+                .foregroundColor(TanayenTheme.textMuted)
+        }
+    }
+}
+
+struct MicroItemView: View {
+    let label: String
+    let value: String
+
+    var body: some View {
+        VStack(spacing: 2) {
+            Text(value)
+                .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                .foregroundColor(TanayenTheme.textDark)
+            Text(label)
+                .font(.system(.caption2, design: .rounded))
+                .foregroundColor(TanayenTheme.textMuted)
+        }
+    }
+}
+
 struct TodayFoodCardView: View {
     let foodLogs: [(String, String)]
+    let onAddClick: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -148,8 +270,7 @@ struct TodayFoodCardView: View {
                     .font(.system(.headline, design: .rounded, weight: .semibold))
                     .foregroundColor(TanayenTheme.textDark)
                 Spacer()
-                // Botón dummy — funcionalidad en fase futura
-                Button("+ Agregar") {}
+                Button("+ Agregar", action: onAddClick)
                     .font(.system(.caption, design: .rounded, weight: .medium))
                     .foregroundColor(TanayenTheme.primaryGreen)
             }

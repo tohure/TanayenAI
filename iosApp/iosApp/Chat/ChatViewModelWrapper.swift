@@ -5,6 +5,61 @@
 import Shared
 import KMPNativeCoroutinesAsync
 
+struct FoodLogSuggestionData: Equatable {
+    let description: String
+    let confirmed: Bool
+
+    init(from shared: Shared.FoodLogSuggestion) {
+        self.description = shared.description_
+        self.confirmed = shared.confirmed
+    }
+}
+
+struct CheckInSuggestionData: Equatable {
+    let mealType: String
+    let recommendedFood: String
+    let userResponse: CheckInUserResponse
+
+    init(from shared: Shared.CheckInSuggestion) {
+        self.mealType = shared.mealType
+        self.recommendedFood = shared.recommendedFood
+        switch shared.userResponse {
+        case .yes:
+            self.userResponse = .yes
+        case .no:
+            self.userResponse = .no
+        default:
+            self.userResponse = .pending
+        }
+    }
+}
+
+struct ChatMessage: Identifiable {
+    let id: String
+    let content: String
+    let isUser: Bool
+    var isLoading: Bool = false
+    var hasAttachedImage: Bool = false
+    var pantrySuggestion: PantrySuggestionWrapper?
+    var foodLogSuggestion: FoodLogSuggestionData?
+    var checkInSuggestion: CheckInSuggestionData?
+}
+
+struct PantrySuggestionWrapper: Equatable {
+    let ingredients: [String]
+    let confirmed: Bool
+
+    init(from shared: Shared.PantrySuggestion) {
+        self.ingredients = shared.ingredients
+        self.confirmed = shared.confirmed
+    }
+}
+
+private enum ImageSource: Identifiable {
+    case camera, gallery
+    var id: Self { self }
+}
+
 @MainActor
 class ChatViewModelWrapper: ObservableObject {
     @Published var messages: [ChatMessage] = []
@@ -44,7 +99,9 @@ class ChatViewModelWrapper: ObservableObject {
                 isUser: msg.isUser,
                 isLoading: msg.isLoading,
                 hasAttachedImage: msg.hasAttachedImage,
-                pantrySuggestion: msg.pantrySuggestion.map { PantrySuggestionWrapper(from: $0) }
+                pantrySuggestion: msg.pantrySuggestion.map { PantrySuggestionWrapper(from: $0) },
+                foodLogSuggestion: msg.foodLogSuggestion.map { FoodLogSuggestionData(from: $0) },
+                checkInSuggestion: msg.checkInSuggestion.map { CheckInSuggestionData(from: $0) }
             )
         }
         self.isLoading = state.isLoading
@@ -67,6 +124,22 @@ class ChatViewModelWrapper: ObservableObject {
 
     func dismissPantrySuggestion(messageId: String) {
         chatVM.dismissPantrySuggestion(messageId: messageId)
+    }
+
+    func confirmFoodLogSuggestion(messageId: String) {
+        chatVM.confirmFoodLogSuggestion(messageId: messageId)
+    }
+
+    func dismissFoodLogSuggestion(messageId: String) {
+        chatVM.dismissFoodLogSuggestion(messageId: messageId)
+    }
+
+    func confirmCheckInYes(messageId: String) {
+        chatVM.confirmCheckInYes(messageId: messageId)
+    }
+
+    func confirmCheckInNo(messageId: String) {
+        chatVM.confirmCheckInNo(messageId: messageId)
     }
 
     func sendMessage(_ text: String) {

@@ -5,25 +5,6 @@
 import SwiftUI
 import Shared
 
-struct ChatMessage: Identifiable {
-    let id: String
-    let content: String
-    let isUser: Bool
-    var isLoading: Bool = false
-    var hasAttachedImage: Bool = false
-    var pantrySuggestion: PantrySuggestionWrapper?
-}
-
-struct PantrySuggestionWrapper: Equatable {
-    let ingredients: [String]
-    let confirmed: Bool
-
-    init(from shared: Shared.PantrySuggestion) {
-        self.ingredients = shared.ingredients
-        self.confirmed = shared.confirmed
-    }
-}
-
 private enum ImageSource: Identifiable {
     case camera, gallery
     var id: Self { self }
@@ -63,6 +44,25 @@ struct ChatView: View {
                                         suggestion: suggestion,
                                         onConfirm: { chatVM.confirmPantrySuggestion(messageId: message.id) },
                                         onDismiss: { chatVM.dismissPantrySuggestion(messageId: message.id) }
+                                    )
+                                }
+
+                                if let foodLog = message.foodLogSuggestion {
+                                    FoodLogSuggestionChipView(
+                                        description: foodLog.description,
+                                        confirmed: foodLog.confirmed,
+                                        onConfirm: { chatVM.confirmFoodLogSuggestion(messageId: message.id) },
+                                        onDismiss: { chatVM.dismissFoodLogSuggestion(messageId: message.id) }
+                                    )
+                                }
+
+                                if let checkIn = message.checkInSuggestion {
+                                    CheckInChipView(
+                                        mealType: checkIn.mealType,
+                                        recommendedFood: checkIn.recommendedFood,
+                                        userResponse: checkIn.userResponse,
+                                        onYes: { chatVM.confirmCheckInYes(messageId: message.id) },
+                                        onNo: { chatVM.confirmCheckInNo(messageId: message.id) }
                                     )
                                 }
                             }

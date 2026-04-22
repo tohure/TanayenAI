@@ -5,6 +5,7 @@ import SwiftUI
 import Shared
 
 struct DashboardView: View {
+    var onNavigateToChat: () -> Void = {}
     @StateObject private var viewmodel = DashboardViewModelWrapper()
     @State private var showNotificationSettings = false
 
@@ -69,12 +70,19 @@ struct DashboardView: View {
 
                 // Lo que comiste hoy
                 TodayFoodCardView(
-                    foodLogs: viewmodel.foodLogs
+                    foodLogs: viewmodel.foodLogs,
+                    onAddClick: onNavigateToChat
                 )
-                    .padding(.horizontal, 24)
+                .padding(.horizontal, 24)
+
+                // Resumen nutricional
+                if let nutrition = viewmodel.todayNutrition {
+                    NutritionSummaryCardView(nutrition: nutrition)
+                        .padding(.horizontal, 24)
+                }
 
                 // CTA
-                NavigationLink(destination: ChatView()) {
+                Button(action: onNavigateToChat) {
                     HStack {
                         Spacer()
                         Text("¿Qué como hoy? 🌿")
@@ -94,10 +102,12 @@ struct DashboardView: View {
         .background(TanayenTheme.background)
         .navigationBarHidden(true)
         .onAppear {
+            // Recarga inmediata — no esperar permisos de salud
+            viewmodel.load()
+            // Sincronización de salud en paralelo
             KoinInitializerKt.requestHealthPermissionsFromIos { _ in
                 DispatchQueue.main.async {
                     KoinInitializerKt.triggerSyncFromIos()
-                    viewmodel.load()
                 }
             }
         }

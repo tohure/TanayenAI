@@ -118,6 +118,24 @@ fun ChatScreen() {
                         onDismiss = { viewModel.dismissClinicalSuggestion(message.id) },
                     )
                 }
+
+                // Chip food log detectado (naranja)
+                message.foodLogSuggestion?.let { suggestion ->
+                    FoodLogSuggestionChip(
+                        suggestion = suggestion,
+                        onConfirm = { viewModel.confirmFoodLogSuggestion(message.id) },
+                        onDismiss = { viewModel.dismissFoodLogSuggestion(message.id) },
+                    )
+                }
+
+                // Chip check-in proactivo (naranja)
+                message.checkInSuggestion?.let { suggestion ->
+                    CheckInChip(
+                        suggestion = suggestion,
+                        onYes = { viewModel.confirmCheckInYes(message.id) },
+                        onNo = { viewModel.confirmCheckInNo(message.id) },
+                    )
+                }
             }
         }
 

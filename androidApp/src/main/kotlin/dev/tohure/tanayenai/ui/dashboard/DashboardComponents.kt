@@ -18,7 +18,9 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -38,6 +40,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.tohure.tanayenai.R
+import dev.tohure.tanayenai.domain.model.DailyNutritionSummary
 import dev.tohure.tanayenai.ui.theme.AccentTerra
 import dev.tohure.tanayenai.ui.theme.PrimaryGreen
 import dev.tohure.tanayenai.ui.theme.SecondaryMint
@@ -429,6 +432,124 @@ fun HealthPermissionBanner(
                 Text("Conceder permisos", color = Color.White)
             }
         }
+    }
+}
+
+// ── Card de nutrición del día ─────────────────────────────────────────────────
+@Composable
+fun NutritionSummaryCard(
+    summary: DailyNutritionSummary,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = SurfaceColor),
+        elevation = CardDefaults.cardElevation(2.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("Nutrición hoy", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "${summary.mealCount} comida${if (summary.mealCount != 1) "s" else ""}",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        "${summary.totalCalories.toInt()} kcal",
+                        style =
+                            MaterialTheme.typography.headlineSmall.copy(
+                                color = PrimaryGreen,
+                                fontWeight = FontWeight.Bold,
+                            ),
+                    )
+                    Text(
+                        "/${summary.calorieGoal.toInt()} objetivo",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+                LinearProgressIndicator(
+                    progress = { summary.calorieProgress },
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(8.dp)
+                            .clip(RoundedCornerShape(4.dp)),
+                    color =
+                        when {
+                            summary.calorieProgress < 0.5f -> SecondaryMint
+                            summary.calorieProgress < 0.9f -> PrimaryGreen
+                            else -> AccentTerra
+                        },
+                    trackColor = Color(0xFFEEEEEE),
+                )
+                if (summary.remainingCalories > 0) {
+                    Text(
+                        "Quedan ${summary.remainingCalories.toInt()} kcal para hoy",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+            ) {
+                MacroItem("Proteína", "${summary.totalProteinG.toInt()}g", SecondaryMint)
+                MacroItem("Carbos", "${summary.totalCarbsG.toInt()}g", Color(0xFF74B9FF))
+                MacroItem("Grasa", "${summary.totalFatG.toInt()}g", AccentTerra)
+            }
+
+            HorizontalDivider(color = Color(0xFFF0F0F0))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+            ) {
+                MicroItem("Fibra", "${summary.totalFiberG.toInt()}g")
+                MicroItem("Sodio", "${summary.totalSodiumMg.toInt()}mg")
+                MicroItem("Azúcar", "${summary.totalSugarG.toInt()}g")
+            }
+        }
+    }
+}
+
+@Composable
+private fun MacroItem(
+    label: String,
+    value: String,
+    color: Color,
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(value, style = MaterialTheme.typography.titleMedium.copy(color = color, fontWeight = FontWeight.Bold))
+        Text(label, style = MaterialTheme.typography.labelSmall)
+    }
+}
+
+@Composable
+private fun MicroItem(
+    label: String,
+    value: String,
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(value, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold))
+        Text(label, style = MaterialTheme.typography.labelSmall)
     }
 }
 

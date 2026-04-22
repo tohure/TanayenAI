@@ -15,6 +15,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -53,6 +54,12 @@ fun DashboardScreen(
             viewModel.loadDashboard()
         }
 
+    // Recarga al entrar al tab (composable se recrea en cada switch de tab)
+    LaunchedEffect(Unit) {
+        viewModel.loadDashboard()
+    }
+
+    // Recarga adicional al volver la app del fondo
     LifecycleResumeEffect(Unit) {
         viewModel.loadDashboard()
         onPauseOrDispose { }
@@ -176,8 +183,12 @@ fun DashboardScreen(
                             foodName = it.foodName,
                         )
                     }.toImmutableList(),
-            onAddManuallyClick = { /* TODO: Fase futura */ },
+            onAddManuallyClick = onNavigateToChat,
         )
+
+        uiState.todayNutrition?.let { nutrition ->
+            NutritionSummaryCard(summary = nutrition)
+        }
 
         AskAssistantButton(onClick = onNavigateToChat)
         Spacer(Modifier.height(16.dp))

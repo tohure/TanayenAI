@@ -17,6 +17,7 @@ val viewModelModule =
                 fetchContextParamsUseCase = get(),
                 buildContextUseCase = get(),
                 syncHealthMetricsUseCase = get { parametersOf(params.get<String>()) },
+                foodLogRepository = get(),
                 userId = params.get(),
             )
         }
@@ -35,6 +36,8 @@ val viewModelModule =
                 savePantryIngredientsUseCase = get(),
                 recommendationRepository = get(),
                 extractClinicalProfileUseCase = get { parametersOf(userId) },
+                estimateFoodNutritionUseCase = get { parametersOf(userId) },
+                foodLogRepository = get(),
                 userId = userId,
             )
         }

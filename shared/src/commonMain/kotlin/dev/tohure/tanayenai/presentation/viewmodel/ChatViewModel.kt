@@ -9,14 +9,18 @@ import dev.shreyaspatil.ai.client.generativeai.GenerativeModel
 import dev.shreyaspatil.ai.client.generativeai.type.content
 import dev.tohure.tanayenai.data.remote.dto.buildClinicalSummaryFromJson
 import dev.tohure.tanayenai.domain.model.DEFAULT_LOCATION_ID
+import dev.tohure.tanayenai.domain.model.FoodLogSource
+import dev.tohure.tanayenai.domain.model.MealType
 import dev.tohure.tanayenai.domain.model.Recommendation
 import dev.tohure.tanayenai.domain.model.RecommendationType
 import dev.tohure.tanayenai.domain.model.currentIsoDate
 import dev.tohure.tanayenai.domain.model.currentIsoDateTime
 import dev.tohure.tanayenai.domain.model.generateId
 import dev.tohure.tanayenai.domain.parser.ChatTagParser
+import dev.tohure.tanayenai.domain.repository.FoodLogRepository
 import dev.tohure.tanayenai.domain.repository.RecommendationRepository
 import dev.tohure.tanayenai.domain.usecase.BuildContextUseCase
+import dev.tohure.tanayenai.domain.usecase.EstimateFoodNutritionUseCase
 import dev.tohure.tanayenai.domain.usecase.ExtractClinicalProfileUseCase
 import dev.tohure.tanayenai.domain.usecase.FetchContextParamsUseCase
 import dev.tohure.tanayenai.domain.usecase.SavePantryIngredientsUseCase
@@ -29,10 +33,17 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
 private val log = Logger.withTag("ChatViewModel")
+private val jsonParser =
+    Json {
+        ignoreUnknownKeys = true
+        isLenient = true
+    }
 
 @Immutable
 data class PantrySuggestion(
@@ -48,6 +59,21 @@ data class ClinicalSuggestion(
 )
 
 @Immutable
+data class FoodLogSuggestion(
+    val description: String,
+    val confirmed: Boolean = false,
+)
+
+@Immutable
+data class CheckInSuggestion(
+    val mealType: String,
+    val recommendedFood: String,
+    val userResponse: CheckInResponse = CheckInResponse.PENDING,
+)
+
+enum class CheckInResponse { PENDING, YES, NO }
+
+@Immutable
 data class UiChatMessage(
     val id: String,
     val content: String,
@@ -56,6 +82,8 @@ data class UiChatMessage(
     val hasAttachedImage: Boolean = false,
     val pantrySuggestion: PantrySuggestion? = null,
     val clinicalSuggestion: ClinicalSuggestion? = null,
+    val foodLogSuggestion: FoodLogSuggestion? = null,
+    val checkInSuggestion: CheckInSuggestion? = null,
 )
 
 @Immutable
@@ -88,6 +116,8 @@ class ChatViewModel(
     private val savePantryIngredientsUseCase: SavePantryIngredientsUseCase,
     private val recommendationRepository: RecommendationRepository,
     private val extractClinicalProfileUseCase: ExtractClinicalProfileUseCase,
+    private val estimateFoodNutritionUseCase: EstimateFoodNutritionUseCase,
+    private val foodLogRepository: FoodLogRepository,
     private val userId: String,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -99,6 +129,11 @@ class ChatViewModel(
     private var cachedContext: String = ""
     private var contextJob: Job? = null
 
+    companion object {
+        val FOODLOG_TAG_REGEX = Regex("""\[FOODLOG:(\{[^\]]+\})\]""", RegexOption.IGNORE_CASE)
+        val CHECKIN_TAG_REGEX = Regex("""\[CHECKIN:(\{[^\]]+\})\]""", RegexOption.IGNORE_CASE)
+    }
+
     init {
         buildContext()
     }
@@ -108,9 +143,12 @@ class ChatViewModel(
         contextJob =
             viewModelScope.launch {
                 try {
+                    val today = currentIsoDate()
                     val contextParams =
-                        fetchContextParamsUseCase.fetch(userId = userId, today = currentIsoDate())
-                    cachedContext = buildContextUseCase.build(contextParams)
+                        fetchContextParamsUseCase.fetch(userId = userId, today = today)
+                    val todayFoodLogs = foodLogRepository.getTodayFoodLogs(userId, today)
+                    val enrichedParams = contextParams.copy(todayFoodLogs = todayFoodLogs)
+                    cachedContext = buildContextUseCase.build(enrichedParams)
                     _uiState.value = _uiState.value.copy(contextReady = true)
                 } catch (e: Exception) {
                     log.e(e) { "Failed to build context" }
@@ -221,7 +259,7 @@ class ChatViewModel(
 
                         for (char in text) {
                             fullResponse += char
-                            val visibleContent = ChatTagParser.stripForStreaming(fullResponse)
+                            val visibleContent = buildVisibleContent(fullResponse)
                             _uiState.value =
                                 _uiState.value.copy(
                                     messages =
@@ -247,6 +285,8 @@ class ChatViewModel(
                     extractAndSaveRecommendation(fullResponse)
                     extractPantrySuggestion(fullResponse, assistantMessageId)
                     extractClinicalSuggestion(fullResponse, assistantMessageId)
+                    extractFoodLogSuggestion(fullResponse, assistantMessageId)
+                    extractCheckInSuggestion(fullResponse, assistantMessageId)
                     buildContext()
                 }
             } catch (e: Exception) {
@@ -256,6 +296,13 @@ class ChatViewModel(
             }
         }
     }
+
+    private fun buildVisibleContent(fullResponse: String): String =
+        ChatTagParser
+            .stripForStreaming(fullResponse)
+            .replace(FOODLOG_TAG_REGEX, "")
+            .replace(CHECKIN_TAG_REGEX, "")
+            .trim()
 
     // ── Alacena Sugerencias ───────────────────────────────────────────────────
     private fun extractPantrySuggestion(
@@ -371,6 +418,157 @@ class ChatViewModel(
                         if (it.id == messageId) it.copy(clinicalSuggestion = null) else it
                     },
             )
+    }
+
+    // ── Food Log detectado del chat ───────────────────────────────────────────
+    private fun extractFoodLogSuggestion(
+        response: String,
+        messageId: String,
+    ) {
+        val match = FOODLOG_TAG_REGEX.find(response) ?: return
+        val rawJson = match.groupValues[1]
+        val description =
+            runCatching {
+                jsonParser
+                    .parseToJsonElement(rawJson)
+                    .jsonObject["description"]
+                    ?.toString()
+                    ?.trim('"')
+            }.getOrNull() ?: return
+
+        _uiState.value =
+            _uiState.value.copy(
+                messages =
+                    _uiState.value.messages.map { msg ->
+                        if (msg.id == messageId) {
+                            msg.copy(foodLogSuggestion = FoodLogSuggestion(description))
+                        } else {
+                            msg
+                        }
+                    },
+            )
+    }
+
+    fun confirmFoodLogSuggestion(messageId: String) {
+        viewModelScope.launch {
+            val msg = _uiState.value.messages.find { it.id == messageId } ?: return@launch
+            val suggestion = msg.foodLogSuggestion ?: return@launch
+            try {
+                estimateFoodNutritionUseCase.estimateAndSave(
+                    foodDescription = suggestion.description,
+                    source = FoodLogSource.CHAT_DETECTED,
+                )
+                _uiState.value =
+                    _uiState.value.copy(
+                        messages =
+                            _uiState.value.messages.map {
+                                if (it.id == messageId) {
+                                    it.copy(foodLogSuggestion = suggestion.copy(confirmed = true))
+                                } else {
+                                    it
+                                }
+                            },
+                    )
+                buildContext()
+            } catch (e: Exception) {
+                log.e(e) { "Failed to save food log" }
+            }
+        }
+    }
+
+    fun dismissFoodLogSuggestion(messageId: String) {
+        _uiState.value =
+            _uiState.value.copy(
+                messages =
+                    _uiState.value.messages.map {
+                        if (it.id == messageId) it.copy(foodLogSuggestion = null) else it
+                    },
+            )
+    }
+
+    // ── Check-in proactivo ────────────────────────────────────────────────────
+    private fun extractCheckInSuggestion(
+        response: String,
+        messageId: String,
+    ) {
+        val match = CHECKIN_TAG_REGEX.find(response) ?: return
+        val rawJson = match.groupValues[1]
+        runCatching {
+            val obj = jsonParser.parseToJsonElement(rawJson).jsonObject
+            val mealType = obj["meal_type"]?.toString()?.trim('"') ?: return
+            val recommendedFood = obj["recommended_food"]?.toString()?.trim('"') ?: return
+
+            _uiState.value =
+                _uiState.value.copy(
+                    messages =
+                        _uiState.value.messages.map { msg ->
+                            if (msg.id == messageId) {
+                                msg.copy(checkInSuggestion = CheckInSuggestion(mealType, recommendedFood))
+                            } else {
+                                msg
+                            }
+                        },
+                )
+        }
+    }
+
+    fun confirmCheckInYes(messageId: String) {
+        viewModelScope.launch {
+            val msg = _uiState.value.messages.find { it.id == messageId } ?: return@launch
+            val checkIn = msg.checkInSuggestion ?: return@launch
+
+            val mealType = runCatching { MealType.valueOf(checkIn.mealType) }.getOrDefault(MealType.SNACK)
+
+            estimateFoodNutritionUseCase.estimateAndSave(
+                foodDescription = checkIn.recommendedFood,
+                source = FoodLogSource.PROACTIVE_CHECKIN,
+                mealTypeHint = mealType,
+            )
+
+            _uiState.value =
+                _uiState.value.copy(
+                    messages =
+                        _uiState.value.messages.map {
+                            if (it.id == messageId) {
+                                it.copy(checkInSuggestion = checkIn.copy(userResponse = CheckInResponse.YES))
+                            } else {
+                                it
+                            }
+                        },
+                )
+            buildContext()
+            sendMessage("Registrado, gracias")
+        }
+    }
+
+    fun confirmCheckInNo(messageId: String) {
+        _uiState.value =
+            _uiState.value.copy(
+                messages =
+                    _uiState.value.messages.map {
+                        if (it.id == messageId) {
+                            it.copy(
+                                checkInSuggestion =
+                                    it.checkInSuggestion
+                                        ?.copy(userResponse = CheckInResponse.NO),
+                            )
+                        } else {
+                            it
+                        }
+                    },
+            )
+        viewModelScope.launch {
+            val followUp =
+                UiChatMessage(
+                    id = generateId(),
+                    content = "Está bien, ¿qué comiste en su lugar?",
+                    isUser = false,
+                )
+            _uiState.value =
+                _uiState.value.copy(
+                    messages = _uiState.value.messages + followUp,
+                )
+        }
     }
 
     // ── REC Tag → Recomendaciones ─────────────────────────────────────────────

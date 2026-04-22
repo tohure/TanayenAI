@@ -139,6 +139,15 @@ fun TanayenNavigation() {
         ) {
             composable(Screen.Dashboard.route) {
                 DashboardScreen(
+                    onNavigateToChat = {
+                        navController.navigate(Screen.Chat.route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
                     onNavigateToSettings = { showNotificationSheet = true },
                 )
             }

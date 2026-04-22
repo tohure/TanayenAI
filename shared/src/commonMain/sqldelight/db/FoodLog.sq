@@ -2,12 +2,16 @@ CREATE TABLE FoodLog (
     id          TEXT NOT NULL PRIMARY KEY,
     user_id     TEXT NOT NULL,
     food_name   TEXT NOT NULL,
-    calories    REAL,
-    protein_g   REAL,
-    carbs_g     REAL,
-    fat_g       REAL,
-    meal_type   TEXT NOT NULL,      -- "BREAKFAST", "LUNCH", "DINNER", "SNACK"
-    logged_at   TEXT NOT NULL,      -- ISO-8601 datetime
+    meal_type   TEXT NOT NULL,
+    calories    REAL NOT NULL,
+    protein_g   REAL NOT NULL DEFAULT 0,
+    carbs_g     REAL NOT NULL DEFAULT 0,
+    fat_g       REAL NOT NULL DEFAULT 0,
+    fiber_g     REAL NOT NULL DEFAULT 0,
+    sodium_mg   REAL NOT NULL DEFAULT 0,
+    sugar_g     REAL NOT NULL DEFAULT 0,
+    source      TEXT NOT NULL DEFAULT 'CHAT_DETECTED',
+    logged_at   TEXT NOT NULL,
     synced      INTEGER NOT NULL DEFAULT 0
 );
 
@@ -16,17 +20,40 @@ CREATE INDEX idx_food_log_synced ON FoodLog(synced);
 
 -- Queries
 insertFoodLog:
-INSERT INTO FoodLog(id, user_id, food_name, calories, protein_g, carbs_g, fat_g, meal_type, logged_at, synced)
-VALUES (:id, :userId, :foodName, :calories, :proteinG, :carbsG, :fatG, :mealType, :loggedAt, 0);
+INSERT OR REPLACE INTO FoodLog(
+    id, user_id, food_name, meal_type, calories,
+    protein_g, carbs_g, fat_g, fiber_g, sodium_mg, sugar_g,
+    source, logged_at, synced
+)
+VALUES (
+    :id, :userId, :foodName, :mealType, :calories,
+    :proteinG, :carbsG, :fatG, :fiberG, :sodiumMg, :sugarG,
+    :source, :loggedAt, 0
+);
+
+getTodayFoodLogs:
+SELECT * FROM FoodLog
+WHERE user_id = :userId
+AND logged_at LIKE :datePrefix || '%'
+ORDER BY logged_at ASC;
+
+getDailySummary:
+SELECT
+    SUM(calories)  AS total_calories,
+    SUM(protein_g) AS total_protein,
+    SUM(carbs_g)   AS total_carbs,
+    SUM(fat_g)     AS total_fat,
+    SUM(fiber_g)   AS total_fiber,
+    SUM(sodium_mg) AS total_sodium,
+    SUM(sugar_g)   AS total_sugar,
+    COUNT(*)       AS meal_count
+FROM FoodLog
+WHERE user_id = :userId
+AND logged_at LIKE :datePrefix || '%';
 
 getLogsByDateRange:
 SELECT * FROM FoodLog
 WHERE user_id = :userId AND logged_at >= :fromDate AND logged_at <= :toDate
-ORDER BY logged_at DESC;
-
-getLogsForLastDays:
-SELECT * FROM FoodLog
-WHERE user_id = :userId AND logged_at >= :fromDate
 ORDER BY logged_at DESC;
 
 deleteLog:

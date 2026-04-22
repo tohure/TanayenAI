@@ -35,6 +35,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -56,7 +57,10 @@ import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.tohure.tanayenai.presentation.viewmodel.CheckInResponse
+import dev.tohure.tanayenai.presentation.viewmodel.CheckInSuggestion
 import dev.tohure.tanayenai.presentation.viewmodel.ClinicalSuggestion
+import dev.tohure.tanayenai.presentation.viewmodel.FoodLogSuggestion
 import dev.tohure.tanayenai.presentation.viewmodel.PantrySuggestion
 import dev.tohure.tanayenai.presentation.viewmodel.PendingImage
 import dev.tohure.tanayenai.presentation.viewmodel.UiChatMessage
@@ -445,6 +449,116 @@ fun ChatInputBar(
                                 ),
                         ),
                 )
+            }
+        }
+    }
+}
+
+// ── Chip de comida detectada del chat (naranja) ───────────────────────────────
+@Composable
+fun FoodLogSuggestionChip(
+    suggestion: FoodLogSuggestion,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val orangeLight = Color(0xFFFFF3E0)
+    val orangeDark = Color(0xFFF4A261)
+
+    if (suggestion.confirmed) {
+        Text(
+            text = "✓ Registrado en tu diario",
+            style = MaterialTheme.typography.labelSmall.copy(color = orangeDark),
+            modifier = modifier.padding(start = 48.dp, top = 4.dp, bottom = 8.dp),
+        )
+        return
+    }
+
+    Row(
+        modifier =
+            modifier
+                .padding(start = 48.dp, top = 4.dp, end = 16.dp, bottom = 8.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(orangeLight)
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = "¿Registro \"${suggestion.description}\"?",
+            style = MaterialTheme.typography.labelSmall.copy(color = orangeDark),
+            modifier = Modifier.weight(1f),
+        )
+        TextButton(
+            onClick = onDismiss,
+            contentPadding = PaddingValues(horizontal = 8.dp),
+        ) {
+            Text("No", style = MaterialTheme.typography.labelSmall.copy(color = TextMutedColor))
+        }
+        Button(
+            onClick = onConfirm,
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = orangeDark),
+        ) {
+            Text("Sí", style = MaterialTheme.typography.labelSmall)
+        }
+    }
+}
+
+// ── Chip de check-in proactivo (naranja) ─────────────────────────────────────
+@Composable
+fun CheckInChip(
+    suggestion: CheckInSuggestion,
+    onYes: () -> Unit,
+    onNo: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val orangeLight = Color(0xFFFFF3E0)
+    val orangeDark = Color(0xFFF4A261)
+
+    when (suggestion.userResponse) {
+        CheckInResponse.YES -> {
+            Text(
+                "✓ Perfecto, registrado",
+                style = MaterialTheme.typography.labelSmall.copy(color = orangeDark),
+                modifier = modifier.padding(start = 48.dp, top = 4.dp, bottom = 8.dp),
+            )
+        }
+
+        CheckInResponse.NO -> {
+            // El ViewModel ya envió el follow-up — no mostrar nada
+        }
+
+        CheckInResponse.PENDING -> {
+            Row(
+                modifier =
+                    modifier
+                        .padding(start = 48.dp, top = 4.dp, end = 16.dp, bottom = 8.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(orangeLight)
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "¿Lo comiste?",
+                    style = MaterialTheme.typography.labelSmall.copy(color = orangeDark),
+                    modifier = Modifier.weight(1f),
+                )
+                OutlinedButton(
+                    onClick = onNo,
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, orangeDark),
+                ) {
+                    Text("No", style = MaterialTheme.typography.labelSmall.copy(color = orangeDark))
+                }
+                Button(
+                    onClick = onYes,
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = orangeDark),
+                ) {
+                    Text("Sí", style = MaterialTheme.typography.labelSmall)
+                }
             }
         }
     }
