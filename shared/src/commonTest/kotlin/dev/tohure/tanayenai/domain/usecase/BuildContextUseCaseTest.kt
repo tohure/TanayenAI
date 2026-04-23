@@ -149,7 +149,7 @@ class BuildContextUseCaseTest {
         val context = useCase.build(params)
 
         assertContains(context, "VFC baja")
-        assertContains(context, "antiinflamatorios")
+        assertContains(context, "APLICA PROTOCOLO DE ESTRÉS ALTO")
     }
 
     @Test
@@ -339,5 +339,139 @@ class BuildContextUseCaseTest {
         val context = useCase.build(params)
 
         assertFalse(context.contains("MEMORIA DE SESIONES ANTERIORES"))
+    }
+
+    // ── Meta del usuario ──────────────────────────────────────────────────────
+
+    @Test
+    fun `context shows META NO DEFINIDA when user does not exist in db`() {
+        val params =
+            ContextParams(
+                user = testUser,
+                userExistsInDb = false,
+                clinicalProfile = null,
+                recentMetrics = emptyList(),
+                pantryItems = emptyList(),
+                locationNames = emptyMap(),
+                recentRecommendations = emptyList(),
+                todayFoodLogs = emptyList(),
+                today = "2026-02-27",
+                workContext = "Remoto",
+            )
+
+        val context = useCase.build(params)
+
+        assertContains(context, "META NO DEFINIDA")
+        assertFalse(context.contains("META DEL USUARIO"))
+    }
+
+    @Test
+    fun `context shows current goal when user exists in db`() {
+        val userWithGoal = testUser.copy(goal = NutritionGoal.LOSE_WEIGHT)
+        val params =
+            ContextParams(
+                user = userWithGoal,
+                userExistsInDb = true,
+                clinicalProfile = null,
+                recentMetrics = emptyList(),
+                pantryItems = emptyList(),
+                locationNames = emptyMap(),
+                recentRecommendations = emptyList(),
+                todayFoodLogs = emptyList(),
+                today = "2026-02-27",
+                workContext = "Remoto",
+            )
+
+        val context = useCase.build(params)
+
+        assertContains(context, "META DEL USUARIO")
+        assertContains(context, "LOSE_WEIGHT")
+        assertFalse(context.contains("META NO DEFINIDA"))
+    }
+
+    @Test
+    fun `context includes goal conflict alert for GAIN_MUSCLE with low hemoglobin`() {
+        val userMuscleBuildGoal = testUser.copy(goal = NutritionGoal.GAIN_MUSCLE)
+        val profileWithLowHemoglobin =
+            ClinicalProfile(
+                userId = "user_1",
+                hemoglobin = 10.5f,
+            )
+
+        val params =
+            ContextParams(
+                user = userMuscleBuildGoal,
+                clinicalProfile = profileWithLowHemoglobin,
+                recentMetrics = emptyList(),
+                pantryItems = emptyList(),
+                locationNames = emptyMap(),
+                recentRecommendations = emptyList(),
+                todayFoodLogs = emptyList(),
+                today = "2026-02-27",
+                workContext = "Remoto",
+            )
+
+        val context = useCase.build(params)
+
+        assertContains(context, "CONFLICTO DE META")
+        assertContains(context, "IMPROVE_ANEMIA")
+    }
+
+    @Test
+    fun `context includes critical alert for CONTROL_GLUCOSE with high HbA1c`() {
+        val userGlucoseGoal = testUser.copy(goal = NutritionGoal.CONTROL_GLUCOSE)
+        val profileWithHighHba1c =
+            ClinicalProfile(
+                userId = "user_1",
+                hba1c = 7.2f,
+            )
+
+        val params =
+            ContextParams(
+                user = userGlucoseGoal,
+                clinicalProfile = profileWithHighHba1c,
+                recentMetrics = emptyList(),
+                pantryItems = emptyList(),
+                locationNames = emptyMap(),
+                recentRecommendations = emptyList(),
+                todayFoodLogs = emptyList(),
+                today = "2026-02-27",
+                workContext = "Remoto",
+            )
+
+        val context = useCase.build(params)
+
+        assertContains(context, "HbA1c elevada")
+        assertContains(context, "índice glucémico bajo")
+    }
+
+    @Test
+    fun `context includes very low hrv alert when hrv under 30ms`() {
+        val metrics =
+            HealthMetrics(
+                id = "m1",
+                userId = "user_1",
+                date = "2026-02-27",
+                hrv = 22f,
+                source = MetricsSource.FITBIT,
+            )
+
+        val params =
+            ContextParams(
+                user = testUser,
+                clinicalProfile = null,
+                recentMetrics = listOf(metrics),
+                pantryItems = emptyList(),
+                locationNames = emptyMap(),
+                recentRecommendations = emptyList(),
+                todayFoodLogs = emptyList(),
+                today = "2026-02-27",
+                workContext = "Remoto",
+            )
+
+        val context = useCase.build(params)
+
+        assertContains(context, "VFC MUY BAJA")
+        assertContains(context, "APLICA PROTOCOLO DE ESTRÉS ALTO")
     }
 }

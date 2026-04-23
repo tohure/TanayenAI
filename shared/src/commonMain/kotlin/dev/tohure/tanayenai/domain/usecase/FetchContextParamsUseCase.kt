@@ -27,7 +27,9 @@ class FetchContextParamsUseCase(
         today: String = currentIsoDate(),
         workContext: String = "Sin especificar",
     ): ContextParams {
-        val user = userRepository.getUser(userId) ?: placeholderUser(userId)
+        val storedUser = userRepository.getUser(userId)
+        val userExistsInDb = storedUser != null
+        val user = storedUser ?: placeholderUser(userId)
         val clinicalProfile = clinicalProfileRepository.getClinicalProfile(userId)
 
         val recentMetrics =
@@ -43,6 +45,7 @@ class FetchContextParamsUseCase(
             )
         return ContextParams(
             user = user,
+            userExistsInDb = userExistsInDb,
             clinicalProfile = clinicalProfile,
             recentMetrics = recentMetrics,
             pantryItems = emptyList(), // TODO: Conectar PantryRepository cuando la pantalla Dispensa esté lista

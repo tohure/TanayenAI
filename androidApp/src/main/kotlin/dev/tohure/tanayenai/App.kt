@@ -1,6 +1,7 @@
 package dev.tohure.tanayenai
 
 import android.app.Application
+import dev.tohure.tanayenai.data.ApiKeyStore
 import dev.tohure.tanayenai.data.health.HealthDataReader
 import dev.tohure.tanayenai.data.local.DatabaseDriverFactory
 import dev.tohure.tanayenai.data.pdf.PdfPicker
@@ -26,7 +27,11 @@ class App : Application() {
                         single { DatabaseDriverFactory(androidContext()) }
                         single(named("SUPABASE_URL")) { BuildConfig.SUPABASE_URL }
                         single(named("SUPABASE_ANON_KEY")) { BuildConfig.SUPABASE_ANON_KEY }
-                        single { GeminiConfig(BuildConfig.GEMINI_API_KEY) }
+                        single { ApiKeyStore(androidContext()) }
+                        single {
+                            val stored = get<ApiKeyStore>().getApiKey()
+                            GeminiConfig(stored ?: BuildConfig.GEMINI_API_KEY)
+                        }
                         single { HealthDataReader(androidContext()) }
                         single { NotificationPrefs(androidContext()) }
                         // PdfPicker se registra en MainActivity tras tener la activity

@@ -1,5 +1,6 @@
 package dev.tohure.tanayenai.ui.clinical
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -27,6 +28,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -51,7 +53,7 @@ import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 @Composable
-fun ClinicalProfileScreen() {
+fun ClinicalProfileScreen(onOpenGeminiToken: () -> Unit = {}) {
     val viewModel: ClinicalProfileViewModel = koinViewModel { parametersOf(PROTOTYPE_USER_ID) }
     val state by viewModel.uiState.collectAsState()
     var selectedField by remember { mutableStateOf<ClinicalField?>(null) }
@@ -249,6 +251,11 @@ fun ClinicalProfileScreen() {
                 )
             }
         }
+
+        // ── Easter egg ────────────────────────────────────────────────────────
+        item {
+            EasterEggLeaf(onTriggered = onOpenGeminiToken)
+        }
     }
 
     selectedField?.let { field ->
@@ -387,3 +394,32 @@ private fun inflammationValues(p: ClinicalProfile) =
         "PCR ultrasensible" to p.crpUltraSensitive?.let { "$it mg/L" },
         "Homocisteína" to p.homocysteine?.let { "$it µmol/L" },
     )
+
+@Composable
+private fun EasterEggLeaf(onTriggered: () -> Unit) {
+    var tapCount by remember { mutableIntStateOf(0) }
+    var lastTapTime by remember { mutableStateOf(0L) }
+
+    Column(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(top = 32.dp, bottom = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = "🌿",
+            style = MaterialTheme.typography.bodyLarge,
+            modifier =
+                Modifier.clickable {
+                    val now = System.currentTimeMillis()
+                    tapCount = if (now - lastTapTime < 600) tapCount + 1 else 1
+                    lastTapTime = now
+                    if (tapCount >= 5) {
+                        tapCount = 0
+                        onTriggered()
+                    }
+                },
+        )
+    }
+}

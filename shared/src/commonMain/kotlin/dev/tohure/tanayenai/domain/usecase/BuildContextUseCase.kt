@@ -4,10 +4,12 @@ import dev.tohure.tanayenai.domain.model.ClinicalProfile
 import dev.tohure.tanayenai.domain.model.FoodLog
 import dev.tohure.tanayenai.domain.model.HealthMetrics
 import dev.tohure.tanayenai.domain.model.MealType
+import dev.tohure.tanayenai.domain.model.NutritionGoal
 import dev.tohure.tanayenai.domain.model.PantryItem
 import dev.tohure.tanayenai.domain.model.Recommendation
 import dev.tohure.tanayenai.domain.model.RecommendationType
 import dev.tohure.tanayenai.domain.model.User
+import dev.tohure.tanayenai.domain.model.displayName
 
 /**
  * Construcción del contexto estructurado para inyectar a Gemini.
@@ -25,10 +27,26 @@ class BuildContextUseCase {
             appendLine("=== CONTEXTO DEL SISTEMA ===")
             appendLine()
 
+            // ── Capa 0: Meta del usuario (guía todo lo demás) ──────────────────
+            if (!params.userExistsInDb) {
+                appendLine("── ⚠ META NO DEFINIDA ──")
+                appendLine(
+                    "El usuario NO ha establecido su meta todavía. " +
+                        "ANTES de responder cualquier otra cosa, pregúntale por su meta de salud. " +
+                        "Presenta las opciones numeradas y espera su elección.",
+                )
+                appendLine()
+            } else {
+                appendLine("── META DEL USUARIO ──")
+                appendLine("Meta actual: ${params.user.goal.displayName} (${params.user.goal.name})")
+                appendLine("TODAS las recomendaciones deben estar orientadas a esta meta.")
+                appendLine()
+            }
+
             // ── Capa 1: Perfil (siempre completo) ──────────────────────────────
             appendLine("── PERFIL DEL USUARIO ──")
             with(params.user) {
-                appendLine("Nombre: $name | Objetivo: ${goal.name} | Actividad: ${activityLevel.name}")
+                appendLine("Nombre: $name | Actividad: ${activityLevel.name}")
                 appendLine("Altura: ${heightCm}cm | Sexo: ${sex.name}")
             }
             appendLine()
@@ -216,24 +234,88 @@ class BuildContextUseCase {
             if (sleep < 6f) alerts.add("Sueño insuficiente (${sleep}h) — evitar cafeína después de las 14:00.")
         }
         latestMetrics?.hrv?.let { hrv ->
-            if (hrv <
-                45f
-            ) {
-                alerts.add(
-                    "VFC baja (${hrv}ms) — sistema nervioso bajo estrés. Priorizar alimentos antiinflamatorios.",
-                )
+            when {
+                hrv < 30f -> {
+                    alerts.add(
+                        "VFC MUY BAJA (${hrv}ms) — estrés severo. APLICA PROTOCOLO DE ESTRÉS ALTO. " +
+                            "Prioriza hidratación y descanso. No recomiendes comidas pesadas.",
+                    )
+                }
+
+                hrv < 45f -> {
+                    alerts.add(
+                        "VFC baja (${hrv}ms) — estrés moderado-alto. APLICA PROTOCOLO DE ESTRÉS ALTO. " +
+                            "Sugiere intervención no alimentaria antes que comida.",
+                    )
+                }
             }
         }
         params.clinicalProfile?.let { clinical ->
             if (clinical.hasHyperglycemia) alerts.add("Glucosa elevada — evitar carbohidratos simples hoy.")
+
+            // Conflictos meta vs. clínica — Gemini debe advertir si el usuario quiere cambiar de meta
+            detectGoalConflicts(params.user.goal, clinical, alerts)
         }
 
         return alerts
+    }
+
+    private fun detectGoalConflicts(
+        goal: NutritionGoal,
+        clinical: ClinicalProfile,
+        alerts: MutableList<String>,
+    ) {
+        when (goal) {
+            NutritionGoal.GAIN_MUSCLE -> {
+                clinical.hemoglobin?.let { hb ->
+                    if (hb < 12f) {
+                        alerts.add(
+                            "CONFLICTO DE META: El usuario quiere ganar músculo pero tiene hemoglobina baja " +
+                                "($hb g/dL). Advertir que sin corregir la anemia primero, ganar músculo será " +
+                                "difícil y arriesgado. Sugerir priorizar IMPROVE_ANEMIA.",
+                        )
+                    }
+                }
+                clinical.ferritin?.let { fe ->
+                    if (fe < 20f) {
+                        alerts.add(
+                            "CONFLICTO DE META: Ferritina baja ($fe ng/mL) limita la recuperación muscular. " +
+                                "Recomendar suplementación de hierro antes de intensificar entrenamiento.",
+                        )
+                    }
+                }
+            }
+
+            NutritionGoal.LOSE_WEIGHT -> {
+                clinical.hemoglobin?.let { hb ->
+                    if (hb < 12f) {
+                        alerts.add(
+                            "PRECAUCIÓN: Déficit calórico agresivo con hemoglobina baja ($hb g/dL) puede " +
+                                "empeorar la anemia. Recomendar pérdida de peso gradual (≤500 kcal/día de déficit).",
+                        )
+                    }
+                }
+            }
+
+            NutritionGoal.CONTROL_GLUCOSE -> {
+                clinical.hba1c?.let { hba1c ->
+                    if (hba1c >= 6.5f) {
+                        alerts.add(
+                            "HbA1c elevada ($hba1c%) — nivel de diabetes confirmado. " +
+                                "Esta meta es crítica. Todas las recomendaciones deben priorizar índice glucémico bajo.",
+                        )
+                    }
+                }
+            }
+
+            else -> { /* Sin conflictos conocidos para las demás metas */ }
+        }
     }
 }
 
 data class ContextParams(
     val user: User,
+    val userExistsInDb: Boolean = true, // false = primera vez, meta no definida aún
     val clinicalProfile: ClinicalProfile?,
     val recentMetrics: List<HealthMetrics>, // Últimos 7 días
     val pantryItems: List<PantryItem>,

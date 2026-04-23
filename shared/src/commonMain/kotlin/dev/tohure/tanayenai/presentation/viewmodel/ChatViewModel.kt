@@ -11,6 +11,7 @@ import dev.tohure.tanayenai.data.remote.dto.buildClinicalSummaryFromJson
 import dev.tohure.tanayenai.domain.model.DEFAULT_LOCATION_ID
 import dev.tohure.tanayenai.domain.model.FoodLogSource
 import dev.tohure.tanayenai.domain.model.MealType
+import dev.tohure.tanayenai.domain.model.NutritionGoal
 import dev.tohure.tanayenai.domain.model.Recommendation
 import dev.tohure.tanayenai.domain.model.RecommendationType
 import dev.tohure.tanayenai.domain.model.currentIsoDate
@@ -19,7 +20,9 @@ import dev.tohure.tanayenai.domain.model.generateId
 import dev.tohure.tanayenai.domain.parser.ChatTagParser
 import dev.tohure.tanayenai.domain.repository.FoodLogRepository
 import dev.tohure.tanayenai.domain.repository.RecommendationRepository
+import dev.tohure.tanayenai.domain.repository.UserRepository
 import dev.tohure.tanayenai.domain.usecase.BuildContextUseCase
+import dev.tohure.tanayenai.domain.usecase.ContextParams
 import dev.tohure.tanayenai.domain.usecase.EstimateFoodNutritionUseCase
 import dev.tohure.tanayenai.domain.usecase.ExtractClinicalProfileUseCase
 import dev.tohure.tanayenai.domain.usecase.FetchContextParamsUseCase
@@ -122,6 +125,7 @@ class ChatViewModel(
     private val extractClinicalProfileUseCase: ExtractClinicalProfileUseCase,
     private val estimateFoodNutritionUseCase: EstimateFoodNutritionUseCase,
     private val foodLogRepository: FoodLogRepository,
+    private val userRepository: UserRepository,
     private val userId: String,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -131,6 +135,7 @@ class ChatViewModel(
 
     private val conversationHistory = mutableListOf<Pair<String, String>>()
     private var cachedContext: String = ""
+    private var cachedContextParams: ContextParams? = null
     private var contextJob: Job? = null
 
     companion object {
@@ -152,6 +157,7 @@ class ChatViewModel(
                         fetchContextParamsUseCase.fetch(userId = userId, today = today)
                     val todayFoodLogs = foodLogRepository.getTodayFoodLogs(userId, today)
                     val enrichedParams = contextParams.copy(todayFoodLogs = todayFoodLogs)
+                    cachedContextParams = enrichedParams
                     cachedContext = buildContextUseCase.build(enrichedParams)
                     _uiState.value = _uiState.value.copy(contextReady = true)
                 } catch (e: Exception) {
@@ -291,6 +297,8 @@ class ChatViewModel(
                     extractClinicalSuggestion(fullResponse, assistantMessageId)
                     extractFoodLogSuggestion(fullResponse, assistantMessageId)
                     extractCheckInSuggestion(fullResponse, assistantMessageId)
+                    extractGoalSet(fullResponse)
+                    extractGoalChange(fullResponse)
                     buildContext()
                 }
             } catch (e: Exception) {
@@ -306,6 +314,8 @@ class ChatViewModel(
             .stripForStreaming(fullResponse)
             .replace(FOODLOG_TAG_REGEX, "")
             .replace(CHECKIN_TAG_REGEX, "")
+            .replace(ChatTagParser.GOAL_SET_TAG_REGEX, "")
+            .replace(ChatTagParser.GOAL_CHANGE_TAG_REGEX, "")
             .trim()
 
     // ── Alacena Sugerencias ───────────────────────────────────────────────────
@@ -618,6 +628,43 @@ class ChatViewModel(
                 )
         }
     }
+
+    // ── Meta del usuario (GOAL_SET / GOAL_CHANGE) ────────────────────────────
+    private suspend fun extractGoalSet(response: String) {
+        val json = ChatTagParser.extractGoalSetJson(response) ?: return
+        val goal = parseGoalFromJson(json) ?: return
+        val user = cachedContextParams?.user ?: return
+        try {
+            userRepository.saveUser(user.copy(goal = goal))
+            log.i { "Goal set: $goal" }
+        } catch (e: Exception) {
+            log.e(e) { "Failed to save user goal" }
+        }
+    }
+
+    private suspend fun extractGoalChange(response: String) {
+        val json = ChatTagParser.extractGoalChangeJson(response) ?: return
+        val goal = parseGoalFromJson(json) ?: return
+        val user = cachedContextParams?.user ?: return
+        try {
+            userRepository.updateUser(user.copy(goal = goal))
+            log.i { "Goal changed: $goal" }
+        } catch (e: Exception) {
+            log.e(e) { "Failed to update user goal" }
+        }
+    }
+
+    private fun parseGoalFromJson(json: String): NutritionGoal? =
+        runCatching {
+            val goalValue =
+                jsonParser
+                    .parseToJsonElement(json)
+                    .jsonObject["goal"]
+                    ?.toString()
+                    ?.trim('"')
+                    ?: return null
+            NutritionGoal.valueOf(goalValue)
+        }.getOrNull()
 
     // ── REC Tag → Recomendaciones ─────────────────────────────────────────────
     private suspend fun extractAndSaveRecommendation(response: String) {

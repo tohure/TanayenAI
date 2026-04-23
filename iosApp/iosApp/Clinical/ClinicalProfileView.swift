@@ -10,6 +10,9 @@ struct ClinicalProfileView: View {
     @StateObject private var wrapper = ClinicalProfileViewModelWrapper()
     @State private var selectedField: ClinicalFieldEntry?
     @State private var manualValueText = ""
+    @State private var showGeminiToken = false
+    @State private var easterTapCount = 0
+    @State private var easterLastTap = Date.distantPast
 
     var body: some View {
         ScrollView {
@@ -195,11 +198,33 @@ struct ClinicalProfileView: View {
                         .onAppear { DispatchQueue.main.asyncAfter(deadline: .now() + 4) { wrapper.clearError() } }
                 }
 
+                // ── Easter egg ────────────────────────────────────────────
+                Text("🌿")
+                    .font(.system(size: 18))
+                    .padding(.top, 32)
+                    .onTapGesture {
+                        let now = Date()
+                        if now.timeIntervalSince(easterLastTap) < 0.6 {
+                            easterTapCount += 1
+                        } else {
+                            easterTapCount = 1
+                        }
+                        easterLastTap = now
+                        if easterTapCount >= 5 {
+                            easterTapCount = 0
+                            showGeminiToken = true
+                        }
+                    }
+
                 Spacer(minLength: 24)
             }
         }
         .background(TanayenTheme.background)
         .navigationBarHidden(true)
+        // ── Gemini Token (easter egg) ─────────────────────────────────────
+        .sheet(isPresented: $showGeminiToken) {
+            GeminiTokenView()
+        }
         // ── Document picker ───────────────────────────────────────────────
         .sheet(isPresented: $wrapper.showDocumentPicker) {
             DocumentPickerView { url in

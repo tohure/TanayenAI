@@ -38,6 +38,7 @@ val viewModelModule =
                 extractClinicalProfileUseCase = get { parametersOf(userId) },
                 estimateFoodNutritionUseCase = get { parametersOf(userId) },
                 foodLogRepository = get(),
+                userRepository = get(),
                 userId = userId,
             )
         }

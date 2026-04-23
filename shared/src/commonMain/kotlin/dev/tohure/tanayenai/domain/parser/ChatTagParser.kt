@@ -12,6 +12,8 @@ object ChatTagParser {
     val REC_TAG_REGEX = Regex("""\[REC:([A-Z]+):([^:]+):([^\]]+)\]""", RegexOption.IGNORE_CASE)
     val PANTRY_TAG_REGEX = Regex("""\[PANTRY:([^\]]+)\]""", RegexOption.IGNORE_CASE)
     val CLINICAL_TAG_REGEX = Regex("""\[CLINICAL:(\{[^\]]+\})\]""", RegexOption.IGNORE_CASE)
+    val GOAL_SET_TAG_REGEX = Regex("""\[GOAL_SET:(\{[^\]]+\})\]""", RegexOption.IGNORE_CASE)
+    val GOAL_CHANGE_TAG_REGEX = Regex("""\[GOAL_CHANGE:(\{[^\]]+\})\]""", RegexOption.IGNORE_CASE)
 
     // Detecta tags incompletos al final del texto durante el streaming.
     // [^\]]* captura cualquier carácter excepto "]", incluyendo minúsculas y acentos de los ingredientes.
@@ -49,12 +51,26 @@ object ChatTagParser {
         return match.groupValues[1].ifEmpty { null }
     }
 
+    /** Extrae el JSON del tag [GOAL_SET:{...}]. Retorna null si no hay tag. */
+    fun extractGoalSetJson(response: String): String? {
+        val match = GOAL_SET_TAG_REGEX.find(response) ?: return null
+        return match.groupValues[1].ifEmpty { null }
+    }
+
+    /** Extrae el JSON del tag [GOAL_CHANGE:{...}]. Retorna null si no hay tag. */
+    fun extractGoalChangeJson(response: String): String? {
+        val match = GOAL_CHANGE_TAG_REGEX.find(response) ?: return null
+        return match.groupValues[1].ifEmpty { null }
+    }
+
     /** Elimina tags completos del texto para mostrarlo al usuario. */
     fun stripTags(text: String): String =
         text
             .replace(REC_TAG_REGEX, "")
             .replace(PANTRY_TAG_REGEX, "")
             .replace(CLINICAL_TAG_REGEX, "")
+            .replace(GOAL_SET_TAG_REGEX, "")
+            .replace(GOAL_CHANGE_TAG_REGEX, "")
             .trim()
 
     /** Oculta tags completos Y parciales durante el streaming, evitando parpadeos. */
@@ -63,6 +79,8 @@ object ChatTagParser {
             .replace(REC_TAG_REGEX, "")
             .replace(PANTRY_TAG_REGEX, "")
             .replace(CLINICAL_TAG_REGEX, "")
+            .replace(GOAL_SET_TAG_REGEX, "")
+            .replace(GOAL_CHANGE_TAG_REGEX, "")
             .replace(PARTIAL_TAG_REGEX, "")
             .trim()
 }

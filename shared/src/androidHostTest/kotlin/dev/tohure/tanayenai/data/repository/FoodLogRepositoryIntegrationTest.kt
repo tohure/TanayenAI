@@ -2,7 +2,6 @@ package dev.tohure.tanayenai.data.repository
 
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import dev.tohure.tanayenai.db.TanayenDatabase
-import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
 import org.junit.Test

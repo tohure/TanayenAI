@@ -35,6 +35,7 @@ import dev.tohure.tanayenai.ui.clinical.ClinicalProfileScreen
 import dev.tohure.tanayenai.ui.dashboard.DashboardScreen
 import dev.tohure.tanayenai.ui.notification.NotificationSettingsContent
 import dev.tohure.tanayenai.ui.pantry.PantryScreen
+import dev.tohure.tanayenai.ui.settings.GeminiTokenScreen
 import dev.tohure.tanayenai.ui.theme.BackgroundColor
 import dev.tohure.tanayenai.ui.theme.PrimaryGreen
 import dev.tohure.tanayenai.ui.theme.SurfaceColor
@@ -157,7 +158,14 @@ fun TanayenNavigation() {
             }
             composable(Screen.Chat.route) { ChatScreen() }
             composable(Screen.Pantry.route) { PantryScreen() }
-            composable(Screen.Profile.route) { ClinicalProfileScreen() }
+            composable(Screen.Profile.route) {
+                ClinicalProfileScreen(
+                    onOpenGeminiToken = { navController.navigate("gemini_token") },
+                )
+            }
+            composable("gemini_token") {
+                GeminiTokenScreen(onBack = { navController.popBackStack() })
+            }
         }
     }
 

@@ -163,4 +163,48 @@ class ChatTagParserTest {
         val response = "Opción [a] o [b] para elegir."
         assertEquals(response, ChatTagParser.stripTags(response))
     }
+
+    // ── extractGoalSetJson ────────────────────────────────────────────────────
+
+    @Test
+    fun extractGoalSetJson_returnsJsonFromTag() {
+        val response = "¡Perfecto! Tu meta queda registrada. [GOAL_SET:{\"goal\":\"LOSE_WEIGHT\"}]"
+        assertEquals("{\"goal\":\"LOSE_WEIGHT\"}", ChatTagParser.extractGoalSetJson(response))
+    }
+
+    @Test
+    fun extractGoalSetJson_returnsNullWhenNoTagPresent() {
+        assertNull(ChatTagParser.extractGoalSetJson("Respuesta sin tag de meta."))
+    }
+
+    @Test
+    fun stripTags_removesGoalSetTagFromResponse() {
+        val response = "Tu meta fue registrada. [GOAL_SET:{\"goal\":\"GAIN_MUSCLE\"}]"
+        assertEquals("Tu meta fue registrada.", ChatTagParser.stripTags(response))
+    }
+
+    @Test
+    fun stripForStreaming_hidesPartialGoalSetTagDuringStream() {
+        val partial = "Entendido, tu meta será bajar de peso. [GOAL_SET"
+        assertEquals("Entendido, tu meta será bajar de peso.", ChatTagParser.stripForStreaming(partial))
+    }
+
+    // ── extractGoalChangeJson ─────────────────────────────────────────────────
+
+    @Test
+    fun extractGoalChangeJson_returnsJsonFromTag() {
+        val response = "Cambiamos tu meta. [GOAL_CHANGE:{\"goal\":\"MAINTAIN\"}]"
+        assertEquals("{\"goal\":\"MAINTAIN\"}", ChatTagParser.extractGoalChangeJson(response))
+    }
+
+    @Test
+    fun extractGoalChangeJson_returnsNullWhenNoTagPresent() {
+        assertNull(ChatTagParser.extractGoalChangeJson("Respuesta sin tag de cambio de meta."))
+    }
+
+    @Test
+    fun stripTags_removesGoalChangeTagFromResponse() {
+        val response = "Meta actualizada. [GOAL_CHANGE:{\"goal\":\"EAT_HEALTHY\"}]"
+        assertEquals("Meta actualizada.", ChatTagParser.stripTags(response))
+    }
 }
