@@ -31,6 +31,9 @@ jobs:
       - name: Decode keystore
         run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > androidApp/keystore.jks
 
+      - name: Decode google-services.json
+        run: echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 -d > androidApp/google-services.json
+
       - name: Build AAB release (firmado)
         run: ./gradlew :androidApp:bundleRelease
         env:

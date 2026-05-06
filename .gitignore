@@ -76,8 +76,8 @@ local.properties
 secrets.properties
 *.jks
 *.keystore
-# google-services.json — solo contiene IDs públicos de Firebase, es seguro commitear
-# GoogleService-Info.plist — solo contiene IDs públicos de Firebase, es seguro commitear
+google-services.json
+GoogleService-Info.plist
 iosApp/Configuration/Secrets.xcconfig
 *.env
 *.env.local

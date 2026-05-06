@@ -2,7 +2,7 @@ name: CD — Develop
 
 on:
   workflow_run:
-    workflows: [ "CI" ]          # ← nombre exacto del ci.yml (el campo "name:")
+    workflows: [ "CI" ]
     branches: [ develop ]
     types: [ completed ]
 
@@ -27,6 +27,9 @@ jobs:
 
       - name: Decode keystore
         run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > androidApp/keystore.jks
+
+      - name: Decode google-services.json
+        run: echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 -d > androidApp/google-services.json
 
       - name: Build APK debug
         run: ./gradlew :androidApp:assembleDebug
