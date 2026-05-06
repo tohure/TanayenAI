@@ -1,14 +1,17 @@
 name: CD — Develop
 
 on:
-  push:
+  workflow_run:
+    workflows: [ "CI" ]          # ← nombre exacto del ci.yml (el campo "name:")
     branches: [ develop ]
+    types: [ completed ]
 
 jobs:
   # ── Android: Firebase App Distribution ────────────────────────────────────
   distribute-android:
     name: Android → Firebase App Distribution
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     steps:
       - uses: actions/checkout@v4.2.2

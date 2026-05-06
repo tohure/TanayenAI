@@ -1,14 +1,17 @@
 name: CD — Main (Release)
 
 on:
-  push:
+  workflow_run:
+    workflows: [ "CI" ]
     branches: [ main ]
+    types: [ completed ]
 
 jobs:
   # ── Android: Release firmado ───────────────────────────────────────────────
   release-android:
     name: Android Release → Firebase
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     steps:
       - uses: actions/checkout@v4.2.2
