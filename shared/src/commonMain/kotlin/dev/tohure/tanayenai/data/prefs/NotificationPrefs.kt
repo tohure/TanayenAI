@@ -6,4 +6,8 @@ expect class NotificationPrefs {
     fun save(settings: NotificationSettings)
 
     fun load(userId: String): NotificationSettings
+
+    fun saveDisplayName(name: String)
+
+    fun loadDisplayName(): String?
 }

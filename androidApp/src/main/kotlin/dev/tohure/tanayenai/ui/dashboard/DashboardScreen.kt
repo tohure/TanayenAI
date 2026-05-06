@@ -14,10 +14,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -45,6 +52,7 @@ fun DashboardScreen(
         }
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
+    var nameInput by remember { mutableStateOf("") }
 
     val permissionLauncher =
         rememberLauncherForActivityResult(
@@ -53,6 +61,11 @@ fun DashboardScreen(
             // Ya sea que aceptó algo o nada, recargamos para reevaluar e intentar sincronizar
             viewModel.loadDashboard()
         }
+
+    // Pre-popula el campo con el nombre guardado cuando el diálogo se abre para editar
+    LaunchedEffect(uiState.showNameDialog) {
+        if (uiState.showNameDialog) nameInput = uiState.rawDisplayName
+    }
 
     // Recarga al entrar al tab (composable se recrea en cada switch de tab)
     LaunchedEffect(Unit) {
@@ -69,9 +82,37 @@ fun DashboardScreen(
         modifier = Modifier.fillMaxSize().verticalScroll(scrollState),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+        if (uiState.showNameDialog) {
+            AlertDialog(
+                onDismissRequest = { viewModel.dismissNameDialog() },
+                title = { Text("¿Cómo te llamas?") },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("Así te saludaré cada vez que abras la app.")
+                        OutlinedTextField(
+                            value = nameInput,
+                            onValueChange = { nameInput = it },
+                            placeholder = { Text("Tu nombre") },
+                            singleLine = true,
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        viewModel.saveDisplayName(nameInput)
+                        nameInput = ""
+                    }) { Text("Guardar") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { viewModel.dismissNameDialog() }) { Text("Saltar") }
+                },
+            )
+        }
+
         GreetingHeader(
-            userName = "Carlo",
+            userName = uiState.userName,
             greeting = greetingByHour(),
+            onNameTripleTap = { viewModel.requestEditName() },
             subtitle =
                 if (uiState.activeAlerts.isEmpty()) {
                     "Todo bien por ahora 🌿"

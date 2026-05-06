@@ -4,10 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
 import com.rickclephas.kmp.nativecoroutines.NativeCoroutinesState
+import dev.tohure.tanayenai.data.prefs.NotificationPrefs
 import dev.tohure.tanayenai.domain.model.DailyNutritionSummary
 import dev.tohure.tanayenai.domain.model.FoodLog
 import dev.tohure.tanayenai.domain.model.HealthMetrics
 import dev.tohure.tanayenai.domain.model.currentIsoDate
+import dev.tohure.tanayenai.domain.model.resolveDisplayName
 import dev.tohure.tanayenai.domain.repository.FoodLogRepository
 import dev.tohure.tanayenai.domain.usecase.BuildContextUseCase
 import dev.tohure.tanayenai.domain.usecase.FetchContextParamsUseCase
@@ -20,6 +22,8 @@ import kotlinx.coroutines.launch
 
 data class DashboardUiState(
     val userName: String = "",
+    val rawDisplayName: String = "",
+    val showNameDialog: Boolean = false,
     val latestMetrics: HealthMetrics? = null,
     val todayFoodLogs: List<FoodLog> = emptyList(),
     val todayNutrition: DailyNutritionSummary? = null,
@@ -38,6 +42,7 @@ class DashboardViewModel(
     private val buildContextUseCase: BuildContextUseCase,
     private val syncHealthMetricsUseCase: SyncHealthMetricsUseCase,
     private val foodLogRepository: FoodLogRepository,
+    private val notificationPrefs: NotificationPrefs,
     private val userId: String,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(DashboardUiState())
@@ -54,6 +59,17 @@ class DashboardViewModel(
             if (_uiState.value.latestMetrics == null) {
                 _uiState.value = _uiState.value.copy(isLoading = true)
             }
+
+            val storedName = notificationPrefs.loadDisplayName()
+            val displayName =
+                if (storedName.isNullOrBlank()) "Hola" else resolveDisplayName(storedName)
+            _uiState.value =
+                _uiState.value.copy(
+                    userName = displayName,
+                    rawDisplayName = storedName.orEmpty(),
+                    showNameDialog = storedName.isNullOrBlank(),
+                )
+
             try {
                 val isGranted = syncHealthMetricsUseCase.hasPermissions()
                 if (isGranted) {
@@ -84,6 +100,27 @@ class DashboardViewModel(
                 _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
             }
         }
+    }
+
+    fun saveDisplayName(rawName: String) {
+        val trimmed = rawName.trim()
+        notificationPrefs.saveDisplayName(trimmed)
+        _uiState.value =
+            _uiState.value.copy(
+                userName = if (trimmed.isBlank()) "Hola" else resolveDisplayName(trimmed),
+                rawDisplayName = trimmed,
+                showNameDialog = false,
+            )
+    }
+
+    fun dismissNameDialog() {
+        // No guarda nada: si es primera vez, el diálogo reaparece en el próximo lanzamiento.
+        // Si es una edición cancelada, el nombre anterior se preserva en prefs.
+        _uiState.value = _uiState.value.copy(showNameDialog = false)
+    }
+
+    fun requestEditName() {
+        _uiState.value = _uiState.value.copy(showNameDialog = true)
     }
 
     private suspend fun buildGeminiContext() {

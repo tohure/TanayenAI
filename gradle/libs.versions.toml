@@ -5,10 +5,10 @@ android-minSdk = "28"
 android-targetSdk = "36"
 
 # Core
-agp = "9.1.1"
+agp = "9.2.1"
 composeMultiplatform = "1.10.3"
 junit = "4.13.2"
-kotlin = "2.3.20"
+kotlin = "2.3.21"
 kmp-nativecoroutines = "1.0.2"
 
 # Android X
@@ -16,7 +16,7 @@ androidx-activity = "1.13.0"
 androidx-core = "1.18.0"
 androidx-espresso = "3.7.0"
 androidx-lifecycle = "2.10.0"
-androidx-navigation = "2.9.7"
+androidx-navigation = "2.9.8"
 androidx-work = "2.11.2"
 androidx-testExt = "1.3.0"
 material3 = "1.10.0-alpha05"
@@ -26,7 +26,7 @@ coroutines = "1.10.2"
 serialization = "1.11.0"
 
 # Networking
-ktor = "3.4.2"
+ktor = "3.4.3"
 
 # AI
 generativeai-kmp = "0.9.0-1.1.0"
@@ -36,7 +36,7 @@ health-connect = "1.1.0"
 
 # DB Local
 sqldelight = "2.3.2"
-supabase = "3.5.0"
+supabase = "3.6.0"
 
 # DI
 koin = "4.2.1"

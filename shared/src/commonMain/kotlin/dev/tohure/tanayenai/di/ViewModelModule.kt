@@ -18,6 +18,7 @@ val viewModelModule =
                 buildContextUseCase = get(),
                 syncHealthMetricsUseCase = get { parametersOf(params.get<String>()) },
                 foodLogRepository = get(),
+                notificationPrefs = get(),
                 userId = params.get(),
             )
         }

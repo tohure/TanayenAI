@@ -4,9 +4,7 @@ import dev.tohure.tanayenai.data.health.HealthDataReader
 import dev.tohure.tanayenai.data.local.DatabaseDriverFactory
 import dev.tohure.tanayenai.data.pdf.PdfPicker
 import dev.tohure.tanayenai.data.prefs.NotificationPrefs
-import dev.tohure.tanayenai.data.remote.SyncManager
 import dev.tohure.tanayenai.domain.model.GeminiConfig
-import dev.tohure.tanayenai.domain.model.PROTOTYPE_USER_ID
 import dev.tohure.tanayenai.domain.usecase.GenerateMorningAdviceUseCase
 import dev.tohure.tanayenai.domain.usecase.SyncHealthMetricsUseCase
 import dev.tohure.tanayenai.presentation.viewmodel.ChatViewModel
@@ -50,22 +48,23 @@ fun initKoin(
     }
 }
 
-@OptIn(ExperimentalObjCName::class)
-@ObjCName(name = "triggerSyncFromIos")
-@Suppress("unused") // Called from Swift
-fun triggerSyncFromIos() {
-    iosSupportScope.launch {
-        try {
-            KoinPlatform
-                .getKoin()
-                .get<SyncManager>()
-                .pullRemoteData(PROTOTYPE_USER_ID)
-        } catch (e: Exception) {
-            println("=== IOS SYNC ERROR: ${e.message}")
-            e.printStackTrace()
-        }
-    }
-}
+// TODO: re-habilitar sync cuando Auth esté activo (offline-first por ahora)
+// @OptIn(ExperimentalObjCName::class)
+// @ObjCName(name = "triggerSyncFromIos")
+// @Suppress("unused") // Called from Swift
+// fun triggerSyncFromIos() {
+//     iosSupportScope.launch {
+//         try {
+//             KoinPlatform
+//                 .getKoin()
+//                 .get<SyncManager>()
+//                 .pullRemoteData(PROTOTYPE_USER_ID)
+//         } catch (e: Exception) {
+//             println("=== IOS SYNC ERROR: ${e.message}")
+//             e.printStackTrace()
+//         }
+//     }
+// }
 
 @Suppress("unused") // Called from Swift
 fun getDashboardViewModel(userId: String): DashboardViewModel =

@@ -19,9 +19,12 @@ struct DashboardView: View {
                         Text(greetingByHour())
                             .font(.system(.subheadline, design: .rounded))
                             .foregroundColor(TanayenTheme.textMuted)
-                        Text("Carlo")
+                        Text(viewmodel.userName.isEmpty ? "Hola" : viewmodel.userName)
                             .font(.system(size: 28, weight: .bold, design: .rounded))
                             .foregroundColor(TanayenTheme.textDark)
+                            .onTapGesture(count: 3) {
+                                viewmodel.requestEditName()
+                            }
                         Text(viewmodel.alerts.first ?? "Todo bien por ahora 🌿")
                             .font(.system(.subheadline, design: .rounded))
                             .foregroundColor(TanayenTheme.textMuted)
@@ -102,14 +105,18 @@ struct DashboardView: View {
         .background(TanayenTheme.background)
         .navigationBarHidden(true)
         .onAppear {
-            // Recarga inmediata — no esperar permisos de salud
             viewmodel.load()
-            // Sincronización de salud en paralelo
-            KoinInitializerKt.requestHealthPermissionsFromIos { _ in
-                DispatchQueue.main.async {
-                    KoinInitializerKt.triggerSyncFromIos()
-                }
-            }
+            KoinInitializerKt.requestHealthPermissionsFromIos { _ in }
+        }
+        .sheet(isPresented: $viewmodel.showNameDialog, onDismiss: {
+            viewmodel.dismissNameDialog()
+        }) {
+            NameInputView(
+                initialName: viewmodel.rawDisplayName,
+                onSave: { name in viewmodel.saveDisplayName(name) },
+                onSkip: { viewmodel.dismissNameDialog() }
+            )
+            .presentationDetents([.height(280)])
         }
     }
 

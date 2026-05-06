@@ -29,4 +29,10 @@ actual class NotificationPrefs {
                     0
                 },
         )
+
+    actual fun saveDisplayName(name: String) {
+        defaults.setObject(name, "display_name")
+    }
+
+    actual fun loadDisplayName(): String? = defaults.stringForKey("display_name")
 }

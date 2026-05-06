@@ -42,6 +42,9 @@ class DashboardViewModelWrapper: ObservableObject {
     @Published var alerts: [String] = []
     @Published var foodLogs: [(String, String)] = []
     @Published var todayNutrition: NutritionSummaryData?
+    @Published var userName: String = ""
+    @Published var rawDisplayName: String = ""
+    @Published var showNameDialog: Bool = false
 
     // ViewModel compartido de KMP
     private let dashboardVM: DashboardViewModel
@@ -70,6 +73,18 @@ class DashboardViewModelWrapper: ObservableObject {
         dashboardVM.loadDashboard()
     }
 
+    func saveDisplayName(_ name: String) {
+        dashboardVM.saveDisplayName(rawName: name)
+    }
+
+    func dismissNameDialog() {
+        dashboardVM.dismissNameDialog()
+    }
+
+    func requestEditName() {
+        dashboardVM.requestEditName()
+    }
+
     private func updateFromState(_ state: DashboardUiState) {
         if let metrics = state.latestMetrics {
             if let sleep = metrics.sleepHours {
@@ -86,6 +101,9 @@ class DashboardViewModelWrapper: ObservableObject {
             }
         }
 
+        self.userName = state.userName
+        self.rawDisplayName = state.rawDisplayName
+        self.showNameDialog = state.showNameDialog
         self.alerts = state.activeAlerts
 
         self.foodLogs = state.todayFoodLogs.compactMap { log in

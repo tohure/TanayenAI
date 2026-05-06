@@ -24,4 +24,10 @@ actual class NotificationPrefs(
             morningHour = prefs.getInt("morning_hour", 7),
             morningMinute = prefs.getInt("morning_minute", 0),
         )
+
+    actual fun saveDisplayName(name: String) {
+        prefs.edit { putString("display_name", name) }
+    }
+
+    actual fun loadDisplayName(): String? = prefs.getString("display_name", null)
 }
