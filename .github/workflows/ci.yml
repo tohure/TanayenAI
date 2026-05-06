@@ -1,31 +1,29 @@
-name: CI
+name: CI/CD
 
 on:
   pull_request:
     branches: [main, develop]
   push:
-    branches: [develop]
+    branches: [main, develop]
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  # ── Lint + Tests + Android Build ──────────────────────────────────────────
-  android-checks:
-    name: Android — Lint + Tests + Build
+  # ── Lint + Tests (siempre: PR y push) ─────────────────────────────────────
+  checks:
+    name: Lint + Tests
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4.2.2
 
-      - name: Setup JDK 21
-        uses: actions/setup-java@v4.7.0
+      - uses: actions/setup-java@v4.7.0
         with:
           java-version: "21"
           distribution: "zulu"
 
-      - name: Setup Gradle cache
-        uses: gradle/actions/setup-gradle@v5
+      - uses: gradle/actions/setup-gradle@v5
 
       - name: Install ktlint
         run: |
@@ -39,45 +37,57 @@ jobs:
       - name: Run shared unit tests
         run: ./gradlew :shared:allTests
 
+  # ── Android Build (solo PRs — verificación antes de merge) ────────────────
+  android-pr:
+    name: Android — Build PR
+    runs-on: ubuntu-latest
+    needs: checks
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - uses: actions/setup-java@v4.7.0
+        with:
+          java-version: "21"
+          distribution: "zulu"
+
+      - uses: gradle/actions/setup-gradle@v5
+
       - name: Decode google-services.json
         run: echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 -d > androidApp/google-services.json
 
       - name: Build Android debug APK
         run: ./gradlew :androidApp:assembleDebug
 
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4.6.2
+      - uses: actions/upload-artifact@v4.6.2
         with:
           name: debug-apk
           path: androidApp/build/outputs/apk/debug/*.apk
           retention-days: 7
 
-  # ── Build iOS — Solo en Pull Requests ─────────────────────────────────────
-  ios-build:
+  # ── iOS Build (solo PRs — macOS runner es caro) ───────────────────────────
+  ios-pr:
     name: iOS — Build Simulator
     runs-on: macos-15
-    needs: android-checks
+    needs: checks
     if: github.event_name == 'pull_request'
 
     steps:
       - uses: actions/checkout@v4.2.2
 
-      - name: Setup JDK 21
-        uses: actions/setup-java@v4.7.0
+      - uses: actions/setup-java@v4.7.0
         with:
           java-version: "21"
           distribution: "zulu"
 
-      - name: Setup Gradle cache
-        uses: gradle/actions/setup-gradle@v5
+      - uses: gradle/actions/setup-gradle@v5
 
-      - name: Cache Kotlin Native
-        uses: actions/cache@v4.2.3
+      - uses: actions/cache@v4.2.3
         with:
           path: ~/.konan
           key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
-          restore-keys: |
-            konan-${{ runner.os }}-
+          restore-keys: konan-${{ runner.os }}-
 
       - name: Build KMP iOS framework
         run: ./gradlew :shared:linkDebugFrameworkIosSimulatorArm64
@@ -92,3 +102,81 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             | xcpretty
+
+  # ── CD: Firebase App Distribution (push a develop) ────────────────────────
+  distribute-develop:
+    name: Android → Firebase (develop)
+    runs-on: ubuntu-latest
+    needs: checks
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - uses: actions/setup-java@v4.7.0
+        with:
+          java-version: "21"
+          distribution: "zulu"
+
+      - uses: gradle/actions/setup-gradle@v5
+
+      - name: Decode google-services.json
+        run: echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 -d > androidApp/google-services.json
+
+      - name: Build APK debug
+        run: ./gradlew :androidApp:assembleDebug
+
+      - name: Upload to Firebase App Distribution
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId:        ${{ secrets.FIREBASE_APP_ID_ANDROID }}
+          token:        ${{ secrets.FIREBASE_TOKEN }}
+          groups:       testers
+          file:         androidApp/build/outputs/apk/debug/androidApp-debug.apk
+          releaseNotes: "Build desde develop — ${{ github.sha }}"
+
+  # ── CD: Release firmado (push a main) ─────────────────────────────────────
+  release-main:
+    name: Android Release → Firebase (main)
+    runs-on: ubuntu-latest
+    needs: checks
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - uses: actions/setup-java@v4.7.0
+        with:
+          java-version: "21"
+          distribution: "zulu"
+
+      - uses: gradle/actions/setup-gradle@v5
+
+      - name: Decode keystore
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > androidApp/keystore.jks
+
+      - name: Decode google-services.json
+        run: echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 -d > androidApp/google-services.json
+
+      - name: Build AAB release (firmado)
+        run: ./gradlew :androidApp:bundleRelease
+        env:
+          KEYSTORE_PATH:     androidApp/keystore.jks
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS:         ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD:      ${{ secrets.KEY_PASSWORD }}
+
+      - name: Upload AAB to Firebase (release-testers)
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId:        ${{ secrets.FIREBASE_APP_ID_ANDROID }}
+          token:        ${{ secrets.FIREBASE_TOKEN }}
+          groups:       release-testers
+          file:         androidApp/build/outputs/bundle/release/androidApp-release.aab
+          releaseNotes: "Release ${{ github.ref_name }} — ${{ github.sha }}"
+
+      - uses: actions/upload-artifact@v4.6.2
+        with:
+          name: release-aab
+          path: androidApp/build/outputs/bundle/release/*.aab
+          retention-days: 30
