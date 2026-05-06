@@ -46,6 +46,9 @@ kermit = "2.1.0"
 kotlinx-datetime = "0.7.1"
 kotlinx-collections-immutable = "0.4.0"
 
+#Firebase/Google
+google-services = "4.4.4"
+
 [libraries]
 # Kotlin
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -124,3 +127,4 @@ kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref =
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
 kmp-nativecoroutines = { id = "com.rickclephas.kmp.nativecoroutines", version.ref = "kmp-nativecoroutines" }
+google-services = { id = "com.google.gms.google-services", version.ref = "google-services" }
