@@ -1,0 +1,27 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-merge-conflict
+      - id: detect-private-key
+
+  - repo: local
+    hooks:
+      - id: ktlint
+        name: ktlint
+        language: system
+        entry: ktlint
+        args: ["--editorconfig=.editorconfig", "shared/src/**/*.kt", "androidApp/src/**/*.kt"]
+        pass_filenames: false
+        types: [kotlin]
+
+      - id: swiftlint
+        name: swiftlint
+        language: system
+        entry: swiftlint
+        args: ["lint", "iosApp/"]
+        pass_filenames: false
+        types: [swift]
