@@ -17,7 +17,7 @@ val geminiModule =
         single(GEMINI_CHAT) {
             val config = get<GeminiConfig>()
             GenerativeModel(
-                modelName = "gemini-2.5-flash-lite",
+                modelName = "gemini-3.1-flash-lite",
                 apiKey = config.apiKey.trim(),
                 systemInstruction = content { text(NUTRITION_SYSTEM_PROMPT) },
             )
@@ -25,7 +25,7 @@ val geminiModule =
         single(GEMINI_CLINICAL) {
             val config = get<GeminiConfig>()
             GenerativeModel(
-                modelName = "gemini-3.1-flash-lite-preview",
+                modelName = "gemini-3.1-flash-lite",
                 apiKey = config.apiKey.trim(),
                 generationConfig =
                     generationConfig {
@@ -37,7 +37,7 @@ val geminiModule =
         single(GEMINI_ADVICE) {
             val config = get<GeminiConfig>()
             GenerativeModel(
-                modelName = "gemini-2.5-flash",
+                modelName = "gemini-3.1-flash-lite",
                 apiKey = config.apiKey.trim(),
                 generationConfig =
                     generationConfig {
