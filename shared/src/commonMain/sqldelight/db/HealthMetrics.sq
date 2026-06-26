@@ -1,0 +1,44 @@
+CREATE TABLE HealthMetrics (
+    id                  TEXT NOT NULL PRIMARY KEY,
+    user_id             TEXT NOT NULL,
+    date                TEXT NOT NULL,      -- ISO-8601: "2026-02-24"
+    weight_kg           REAL,
+    imc                 REAL,
+    sleep_hours         REAL,
+    hrv                 REAL,               -- VFC en ms
+    calories_burned     INTEGER,
+    steps               INTEGER,
+    source              TEXT NOT NULL,      -- "FITBIT", "HEALTH_CONNECT", "HEALTH_KIT", "MANUAL"
+    synced              INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX idx_health_metrics_user_date ON HealthMetrics(user_id, date DESC);
+CREATE INDEX idx_health_metrics_synced ON HealthMetrics(synced);
+
+-- Queries
+insertMetrics:
+INSERT OR REPLACE INTO HealthMetrics(id, user_id, date, weight_kg, imc, sleep_hours, hrv, calories_burned, steps, source, synced)
+VALUES (:id, :userId, :date, :weightKg, :imc, :sleepHours, :hrv, :caloriesBurned, :steps, :source, 0);
+
+getMetricsByDateRange:
+SELECT * FROM HealthMetrics
+WHERE user_id = :userId AND date >= :fromDate AND date <= :toDate
+ORDER BY date DESC;
+
+getLatestMetrics:
+SELECT * FROM HealthMetrics
+WHERE user_id = :userId
+ORDER BY date DESC, rowid DESC
+LIMIT 1;
+
+getMetricsForContextWindow:
+SELECT * FROM HealthMetrics
+WHERE user_id = :userId
+ORDER BY date DESC, rowid DESC
+LIMIT 7;  -- Solo los últimos 7 días para el ContextBuilder
+
+getPendingSync:
+SELECT * FROM HealthMetrics WHERE synced = 0;
+
+markSynced:
+UPDATE HealthMetrics SET synced = 1 WHERE id = :id;

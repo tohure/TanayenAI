@@ -1,0 +1,35 @@
+CREATE TABLE Recommendation (
+    id                  TEXT NOT NULL PRIMARY KEY,
+    user_id             TEXT NOT NULL,
+    type                TEXT NOT NULL,      -- "MEAL", "RECIPE", "PLAN", "SNACK", "ALERT"
+    title               TEXT NOT NULL,
+    content             TEXT NOT NULL,      -- JSON con detalle
+    ingredients_used    TEXT NOT NULL,      -- JSON array: ["huevo", "avena"]
+    recommended_at      TEXT NOT NULL,      -- ISO-8601 datetime
+    synced              INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX idx_recommendation_user_date ON Recommendation(user_id, recommended_at DESC);
+CREATE INDEX idx_recommendation_synced ON Recommendation(synced);
+
+-- Queries
+insertRecommendation:
+INSERT INTO Recommendation(id, user_id, type, title, content, ingredients_used, recommended_at, synced)
+VALUES (:id, :userId, :type, :title, :content, :ingredientsUsed, :recommendedAt, 0);
+
+getRecentRecommendations:
+SELECT * FROM Recommendation
+WHERE user_id = :userId AND recommended_at >= :fromDate
+ORDER BY recommended_at DESC;
+
+getLastNRecommendations:
+SELECT * FROM Recommendation
+WHERE user_id = :userId
+ORDER BY recommended_at DESC
+LIMIT :limit;
+
+getPendingSync:
+SELECT * FROM Recommendation WHERE synced = 0;
+
+markSynced:
+UPDATE Recommendation SET synced = 1 WHERE id = :id;

@@ -1,0 +1,26 @@
+CREATE TABLE PantryLocation (
+    id          TEXT NOT NULL PRIMARY KEY,
+    user_id     TEXT NOT NULL,
+    name        TEXT NOT NULL,
+    is_default  INTEGER NOT NULL DEFAULT 0,  -- SQLite no tiene BOOLEAN: 0=false, 1=true
+    synced      INTEGER NOT NULL DEFAULT 0   -- 0=pendiente sync, 1=sincronizado con Supabase
+);
+
+CREATE INDEX idx_pantry_location_user ON PantryLocation(user_id);
+
+-- Queries
+insertLocation:
+INSERT INTO PantryLocation(id, user_id, name, is_default, synced)
+VALUES (:id, :userId, :name, :isDefault, 0);
+
+getLocationsByUser:
+SELECT * FROM PantryLocation WHERE user_id = :userId;
+
+getDefaultLocation:
+SELECT * FROM PantryLocation WHERE user_id = :userId AND is_default = 1 LIMIT 1;
+
+markSynced:
+UPDATE PantryLocation SET synced = 1 WHERE id = :id;
+
+deleteLocation:
+DELETE FROM PantryLocation WHERE id = :id;
