@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>dev.tohure.tanayenai.morning-advice</string>
+	</array>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>GEMINI_API_KEY</key>
@@ -15,15 +19,5 @@
 	<string>$(SUPABASE_ANON_KEY)</string>
 	<key>SUPABASE_URL</key>
 	<string>$(SUPABASE_URL)</string>
-    <key>NSHealthShareUsageDescription</key>
-    <string>TanayenAI lee tus métricas de salud para personalizar tus recomendaciones nutricionales.</string>
-    <key>NSCameraUsageDescription</key>
-    <string>Necesitamos acceso a tu cámara para que puedas tomar fotos de tus alimentos, menús o alacena y evaluarlos con AI.</string>
-    <key>NSPhotoLibraryUsageDescription</key>
-    <string>Necesitamos acceso a tu galería para poder enviarle a Tanayen fotos de tus alimentos o alacena.</string>
-    <key>BGTaskSchedulerPermittedIdentifiers</key>
-    <array>
-        <string>dev.tohure.tanayenai.morning-advice</string>
-    </array>
 </dict>
 </plist>

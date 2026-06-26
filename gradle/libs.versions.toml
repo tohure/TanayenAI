@@ -1,19 +1,19 @@
 [versions]
 #Version App
-android-compileSdk = "36"
+android-compileSdk = "37"
 android-minSdk = "28"
-android-targetSdk = "36"
+android-targetSdk = "37"
 
 # Core
 agp = "9.2.1"
-composeMultiplatform = "1.10.3"
+composeMultiplatform = "1.11.1"
 junit = "4.13.2"
-kotlin = "2.3.21"
-kmp-nativecoroutines = "1.0.2"
+kotlin = "2.4.0"
+kmp-nativecoroutines = "1.0.4"
 
 # Android X
 androidx-activity = "1.13.0"
-androidx-core = "1.18.0"
+androidx-core = "1.19.0"
 androidx-espresso = "3.7.0"
 androidx-lifecycle = "2.10.0"
 androidx-navigation = "2.9.8"
@@ -22,11 +22,11 @@ androidx-testExt = "1.3.0"
 material3 = "1.10.0-alpha05"
 
 # KMP / Coroutines
-coroutines = "1.10.2"
+coroutines = "1.11.0"
 serialization = "1.11.0"
 
 # Networking
-ktor = "3.4.3"
+ktor = "3.5.1"
 
 # AI
 generativeai-kmp = "0.9.0-1.1.0"
@@ -39,15 +39,15 @@ sqldelight = "2.3.2"
 supabase = "3.6.0"
 
 # DI
-koin = "4.2.1"
+koin = "4.2.2"
 
 # Logging / Utils
 kermit = "2.1.0"
-kotlinx-datetime = "0.7.1"
-kotlinx-collections-immutable = "0.4.0"
+kotlinx-datetime = "0.8.0"
+kotlinx-collections-immutable = "0.5.0"
 
 #Firebase/Google
-google-services = "4.4.4"
+google-services = "4.5.0"
 
 [libraries]
 # Kotlin

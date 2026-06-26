@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		DDBF51C52F5D0094007CD4EB /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = DDBF51C42F5D0094007CD4EB /* libsqlite3.tbd */; };
-		DDF566EE2F63C1EF00F49917 /* KMPNativeCoroutinesAsync in Frameworks */ = {isa = PBXBuildFile; productRef = DDF566ED2F63C1EF00F49917 /* KMPNativeCoroutinesAsync */; };
 		DDF566F12F63C2E300F49917 /* KMPNativeCoroutinesAsync in Frameworks */ = {isa = PBXBuildFile; productRef = DDF566F02F63C2E300F49917 /* KMPNativeCoroutinesAsync */; };
 /* End PBXBuildFile section */
 
@@ -48,7 +47,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				DDF566EE2F63C1EF00F49917 /* KMPNativeCoroutinesAsync in Frameworks */,
 				DDBF51C52F5D0094007CD4EB /* libsqlite3.tbd in Frameworks */,
 				DDF566F12F63C2E300F49917 /* KMPNativeCoroutinesAsync in Frameworks */,
 			);
@@ -104,7 +102,6 @@
 			);
 			name = iosApp;
 			packageProductDependencies = (
-				DDF566ED2F63C1EF00F49917 /* KMPNativeCoroutinesAsync */,
 				DDF566F02F63C2E300F49917 /* KMPNativeCoroutinesAsync */,
 			);
 			productName = iosApp;
@@ -264,12 +261,17 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iosApp/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Tanayen AI";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Necesitamos acceso a tu cámara para que puedas tomar fotos de tus alimentos, menús o alacena y evaluarlos con AI.";
 				INFOPLIST_KEY_NSHealthClinicalHealthRecordsShareUsageDescription = "TanayenAI requiere permisos para poder afinar las recomendaciones saludables de comida en base a tu estado de sueño, sistema nervioso u oxigenación interna.";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "TanayenAI lee tus métricas de salud para personalizar tus recomendaciones nutricionales.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Necesitamos acceso a tu galería para poder enviarle a Tanayen fotos de tus alimentos o alacena.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -361,12 +363,17 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iosApp/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Tanayen AI";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Necesitamos acceso a tu cámara para que puedas tomar fotos de tus alimentos, menús o alacena y evaluarlos con AI.";
 				INFOPLIST_KEY_NSHealthClinicalHealthRecordsShareUsageDescription = "TanayenAI requiere permisos para poder afinar las recomendaciones saludables de comida en base a tu estado de sueño, sistema nervioso u oxigenación interna.";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "TanayenAI lee tus métricas de salud para personalizar tus recomendaciones nutricionales.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Necesitamos acceso a tu galería para poder enviarle a Tanayen fotos de tus alimentos o alacena.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -407,16 +414,12 @@
 			repositoryURL = "https://github.com/rickclephas/KMP-NativeCoroutines.git";
 			requirement = {
 				kind = exactVersion;
-				version = 1.0.2;
+				version = 1.0.4;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		DDF566ED2F63C1EF00F49917 /* KMPNativeCoroutinesAsync */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = KMPNativeCoroutinesAsync;
-		};
 		DDF566F02F63C2E300F49917 /* KMPNativeCoroutinesAsync */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = DDF566EF2F63C2E300F49917 /* XCRemoteSwiftPackageReference "KMP-NativeCoroutines" */;

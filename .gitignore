@@ -42,8 +42,14 @@ DerivedData/
 !default.mode2v3
 *.perspectivev3
 !default.perspectivev3
-*.xcworkspace/
+*.xcworkspace/*
 !*.xcworkspace/contents.xcworkspacedata
+# Versionar Package.resolved para fijar las mismas versiones de SPM en Xcode, Android Studio y CI
+!*.xcworkspace/xcshareddata
+*.xcworkspace/xcshareddata/*
+!*.xcworkspace/xcshareddata/swiftpm
+*.xcworkspace/xcshareddata/swiftpm/*
+!*.xcworkspace/xcshareddata/swiftpm/Package.resolved
 xcuserdata/
 *.xccheckout
 *.xcscmblueprint

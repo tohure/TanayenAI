@@ -5,7 +5,7 @@ _Tus datos de salud, tus metas, tus recomendaciones — todo en un solo lugar._
 
 [![Android Build](https://img.shields.io/github/actions/workflow/status/tohure/TanayenAI/ci.yml?branch=develop&label=Android%20Build&logo=android&color=3DDC84)](https://github.com/tohure/TanayenAI/actions/workflows/ci.yml)
 [![iOS Build](https://img.shields.io/github/actions/workflow/status/tohure/TanayenAI/ci.yml?branch=develop&label=iOS%20Build&logo=apple&color=007AFF)](https://github.com/tohure/TanayenAI/actions/workflows/ci.yml)
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.3.10-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.4.0-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/)
 [![KMP](https://img.shields.io/badge/Kotlin%20Multiplatform-iOS%20%7C%20Android-orange?logo=kotlin)](https://www.jetbrains.com/kotlin-multiplatform/)
 [![Gemini](https://img.shields.io/badge/Gemini%202.5%20Flash-AI%20Powered-blue?logo=google&logoColor=white)](https://ai.google.dev/)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
@@ -50,6 +50,7 @@ Tanayen AI es una aplicación **Kotlin Multiplatform (KMP)** para Android e iOS 
 | **Inyección de dependencias** | Koin |
 | **Coroutines iOS** | KMP-NativeCoroutines |
 | **Build System** | Gradle 9, AGP 9 |
+| **CI/CD** | GitHub Actions + Firebase App Distribution |
 
 ---
 
@@ -130,7 +131,7 @@ shared/src/androidHostTest/
 
 - Android Studio Meerkat o superior
 - Xcode 16+
-- JDK 17+
+- JDK 21+ (el CI usa Zulu 21)
 
 ### Configuración
 
@@ -158,7 +159,21 @@ shared/src/androidHostTest/
 ./gradlew :shared:build
 ```
 
-Para iOS: abre `iosApp/iosApp.xcworkspace` en Xcode y ejecuta en simulador o dispositivo.
+Para iOS: abre `iosApp/iosApp.xcodeproj` en Xcode y ejecuta en simulador o dispositivo.
+
+---
+
+## 🔄 CI/CD
+
+GitHub Actions (`.github/workflows/ci.yml`) automatiza lint, tests, builds y distribución:
+
+| Evento | Qué corre |
+|---|---|
+| **PR a `main`/`develop`** | ktlint + tests, build APK Android, build de simulador iOS (solo compila) |
+| **Push a `develop`** | APK debug → **Firebase App Distribution** (grupo `testers`) |
+| **Push a `main`** | AAB release firmado → **Firebase App Distribution** (grupo `release-testers`) |
+
+> 📦 **La distribución es solo Android** (vía Firebase App Distribution). El build de iOS en CI únicamente compila el simulador para detectar errores; no hay publicación en TestFlight/App Store.
 
 ---
 
