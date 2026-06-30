@@ -3,7 +3,6 @@ import java.util.Properties
 
 plugins {
     alias(libs.plugins.androidApplication)
-    alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.google.services)
 }
@@ -27,12 +26,12 @@ kotlin {
         implementation(libs.koin.android)
         implementation(libs.koin.compose)
 
+        implementation(platform(libs.compose.bom))
         implementation(libs.compose.runtime)
         implementation(libs.compose.foundation)
         implementation(libs.compose.ui)
         implementation(libs.compose.material3)
         implementation(libs.compose.navigation)
-        implementation(libs.compose.components.resources)
         implementation(libs.compose.uiToolingPreview)
         implementation(libs.androidx.activity.compose)
         implementation(libs.androidx.lifecycle.viewmodelCompose)
@@ -41,6 +40,7 @@ kotlin {
         implementation(libs.kotlinx.collections.immutable)
         implementation(libs.androidx.work.runtime)
 
+        debugImplementation(platform(libs.compose.bom))
         debugImplementation(libs.compose.uiTooling)
     }
 }
@@ -107,6 +107,7 @@ android {
     }
     buildFeatures {
         buildConfig = true
+        compose = true
     }
 
     packaging {
