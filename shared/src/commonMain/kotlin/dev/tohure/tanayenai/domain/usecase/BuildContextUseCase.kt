@@ -117,7 +117,18 @@ class BuildContextUseCase {
             }
             appendLine()
 
-            // ── Capa 5: Memoria de sesiones anteriores ─────────────────────────
+            // ── Capa 5: Resumen rodante de conversaciones previas ──────────────
+            params.conversationSummary?.takeIf { it.isNotBlank() }?.let { summary ->
+                appendLine("── RESUMEN DE CONVERSACIONES PREVIAS ──")
+                appendLine(
+                    "Contexto acumulado de sesiones pasadas. " +
+                        "Úsalo para dar continuidad; no lo repitas literalmente.",
+                )
+                appendLine(summary)
+                appendLine()
+            }
+
+            // ── Capa 5b: Memoria de sesiones anteriores (recomendaciones) ──────
             val memorySection = formatRecommendationsAsMemory(params.recentRecommendations, params.today)
             if (memorySection.isNotEmpty()) {
                 append(memorySection)
@@ -325,4 +336,5 @@ data class ContextParams(
     val today: String, // ISO-8601: "2026-02-27"
     val workContext: String, // "Oficina", "Remoto", "Sin especificar"
     val mealTypeHint: MealType? = null, // Para filtrar alacena si se detecta
+    val conversationSummary: String? = null, // Resumen rodante de conversaciones previas
 )

@@ -40,6 +40,8 @@ val viewModelModule =
                 estimateFoodNutritionUseCase = get { parametersOf(userId) },
                 foodLogRepository = get(),
                 userRepository = get(),
+                chatMessageRepository = get(),
+                summarizeConversationUseCase = get { parametersOf(userId) },
                 userId = userId,
             )
         }

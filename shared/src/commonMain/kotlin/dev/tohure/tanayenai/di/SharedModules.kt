@@ -8,7 +8,6 @@ fun sharedModules(): List<Module> =
         repositoryModule,
         useCaseModule,
         viewModelModule,
-        networkModule,
         geminiModule,
         notificationModule,
     )

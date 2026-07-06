@@ -42,7 +42,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -58,6 +57,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.tohure.tanayenai.R
 import dev.tohure.tanayenai.domain.model.IngredientCategory
 import dev.tohure.tanayenai.domain.model.PROTOTYPE_USER_ID
@@ -73,6 +73,7 @@ import dev.tohure.tanayenai.ui.theme.SecondaryMint
 import dev.tohure.tanayenai.ui.theme.SurfaceColor
 import dev.tohure.tanayenai.ui.theme.TextDark
 import dev.tohure.tanayenai.ui.theme.TextMutedColor
+import kotlinx.collections.immutable.ImmutableList
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -80,7 +81,7 @@ import org.koin.core.parameter.parametersOf
 @Composable
 fun PantryScreen() {
     val viewModel: PantryViewModel = koinViewModel { parametersOf(PROTOTYPE_USER_ID) }
-    val state by viewModel.uiState.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     var showAddSheet by remember { mutableStateOf(false) }
     var searchFocused by remember { mutableStateOf(false) }
@@ -222,7 +223,7 @@ fun PantryScreen() {
 @Composable
 private fun CategorySection(
     category: IngredientCategory,
-    items: List<CategorizedItem>,
+    items: ImmutableList<CategorizedItem>,
     onEdit: (PantryItem) -> Unit,
     onDelete: (PantryItem) -> Unit,
 ) {

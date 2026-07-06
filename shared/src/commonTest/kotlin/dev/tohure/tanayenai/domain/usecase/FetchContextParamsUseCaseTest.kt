@@ -5,12 +5,18 @@ import dev.tohure.tanayenai.domain.model.ClinicalProfile
 import dev.tohure.tanayenai.domain.model.HealthMetrics
 import dev.tohure.tanayenai.domain.model.MetricsSource
 import dev.tohure.tanayenai.domain.model.NutritionGoal
+import dev.tohure.tanayenai.domain.model.PantryItem
+import dev.tohure.tanayenai.domain.model.PantryLocation
+import dev.tohure.tanayenai.domain.model.PantryUnit
 import dev.tohure.tanayenai.domain.model.Recommendation
 import dev.tohure.tanayenai.domain.model.RecommendationType
 import dev.tohure.tanayenai.domain.model.Sex
 import dev.tohure.tanayenai.domain.model.User
 import dev.tohure.tanayenai.domain.repository.ClinicalProfileRepository
+import dev.tohure.tanayenai.domain.repository.ConversationMemoryRepository
+import dev.tohure.tanayenai.domain.repository.DisplayNameProvider
 import dev.tohure.tanayenai.domain.repository.HealthMetricsRepository
+import dev.tohure.tanayenai.domain.repository.PantryRepository
 import dev.tohure.tanayenai.domain.repository.RecommendationRepository
 import dev.tohure.tanayenai.domain.repository.UserRepository
 import kotlinx.coroutines.flow.Flow
@@ -20,6 +26,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class FetchContextParamsUseCaseTest {
     private val userId = "user_1"
@@ -95,16 +102,59 @@ class FetchContextParamsUseCaseTest {
         override suspend fun updateUser(user: User) {}
     }
 
+    private class FakeConversationMemoryRepository(
+        private val summary: String? = null,
+    ) : ConversationMemoryRepository {
+        override suspend fun getSummary(userId: String) = summary
+
+        override suspend fun saveSummary(
+            userId: String,
+            summary: String,
+        ) {}
+    }
+
+    private class FakePantryRepository(
+        private val items: List<PantryItem> = emptyList(),
+        private val locations: List<PantryLocation> = emptyList(),
+    ) : PantryRepository {
+        override suspend fun getPantryItems(userId: String) = items
+
+        override fun observeItems(
+            userId: String,
+            locationId: String,
+        ): Flow<List<PantryItem>> = flowOf(items)
+
+        override suspend fun getLocations(userId: String) = locations
+
+        override suspend fun upsertItem(item: PantryItem) {}
+
+        override suspend fun deleteItem(itemId: String) {}
+
+        override suspend fun decrementQuantity(
+            itemId: String,
+            amount: Float,
+        ) {}
+
+        override suspend fun updateItem(item: PantryItem) {}
+    }
+
     private fun makeUseCase(
         metrics: List<HealthMetrics> = emptyList(),
         recommendations: List<Recommendation> = emptyList(),
         clinicalProfile: ClinicalProfile? = null,
         user: User? = null,
+        conversationSummary: String? = null,
+        pantryItems: List<PantryItem> = emptyList(),
+        pantryLocations: List<PantryLocation> = emptyList(),
+        displayName: String? = null,
     ) = FetchContextParamsUseCase(
         healthMetricsRepository = FakeHealthMetricsRepository(metrics),
         recommendationRepository = FakeRecommendationRepository(recommendations),
         clinicalProfileRepository = FakeClinicalProfileRepository(clinicalProfile),
         userRepository = FakeUserRepository(user),
+        conversationMemoryRepository = FakeConversationMemoryRepository(conversationSummary),
+        pantryRepository = FakePantryRepository(pantryItems, pantryLocations),
+        displayNameProvider = DisplayNameProvider { displayName },
     )
 
     // ── Tests ─────────────────────────────────────────────────────────────────
@@ -208,5 +258,72 @@ class FetchContextParamsUseCaseTest {
             val params = useCase.fetch(userId, today = "2026-03-21")
 
             assertEquals("Sin especificar", params.workContext)
+        }
+
+    @Test
+    fun fetchIncludesConversationSummaryFromRepository() =
+        runTest {
+            val useCase = makeUseCase(user = testUser, conversationSummary = "resumen previo de Carlo")
+
+            val params = useCase.fetch(userId, today = "2026-03-21")
+
+            assertEquals("resumen previo de Carlo", params.conversationSummary)
+        }
+
+    @Test
+    fun fetchDisplayNameOverridesUserName() =
+        runTest {
+            // El usuario existe con nombre "Carlo", pero eligió mostrarse como "TOHURE".
+            val useCase = makeUseCase(user = testUser, displayName = "TOHURE")
+
+            val params = useCase.fetch(userId, today = "2026-03-21")
+
+            assertEquals("TOHURE", params.user.name)
+        }
+
+    @Test
+    fun fetchDisplayNameAppliesToPlaceholderWhenNoUser() =
+        runTest {
+            // No hay User guardado → placeholder, pero el nombre elegido prevalece.
+            val useCase = makeUseCase(user = null, displayName = "TOHURE")
+
+            val params = useCase.fetch(userId, today = "2026-03-21")
+
+            assertEquals("TOHURE", params.user.name)
+            assertEquals(userId, params.user.id)
+        }
+
+    @Test
+    fun fetchBlankDisplayNameKeepsUserName() =
+        runTest {
+            val useCase = makeUseCase(user = testUser, displayName = "   ")
+
+            val params = useCase.fetch(userId, today = "2026-03-21")
+
+            assertEquals("Carlo", params.user.name)
+        }
+
+    @Test
+    fun fetchIncludesPantryItemsAndLocationNames() =
+        runTest {
+            val item =
+                PantryItem(
+                    id = "item_1",
+                    userId = userId,
+                    locationId = "loc_home",
+                    ingredient = "Avena",
+                    quantity = 500f,
+                    unit = PantryUnit.GRAMS,
+                    updatedAt = "2026-03-21T08:00:00Z",
+                )
+            val location = PantryLocation(id = "loc_home", userId = userId, name = "Casa", isDefault = true)
+            val useCase = makeUseCase(user = testUser, pantryItems = listOf(item), pantryLocations = listOf(location))
+
+            val params = useCase.fetch(userId, today = "2026-03-21")
+
+            assertEquals(1, params.pantryItems.size)
+            assertEquals("Avena", params.pantryItems.first().ingredient)
+            assertEquals("Casa", params.locationNames["loc_home"])
+            assertTrue(params.pantryItems.isNotEmpty())
         }
 }

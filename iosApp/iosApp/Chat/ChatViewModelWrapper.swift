@@ -38,7 +38,7 @@ struct CheckInSuggestionData: Equatable {
     }
 }
 
-struct ChatMessage: Identifiable {
+struct ChatMessage: Identifiable, Equatable {
     let id: String
     let content: String
     let isUser: Bool
@@ -98,7 +98,8 @@ class ChatViewModelWrapper: ObservableObject {
     }
 
     private func observeState(_ state: ChatUiState) {
-        self.messages = state.messages.map { msg in
+        // Solo reasignar cuando cambia — evita re-render de SwiftUI en cada emisión del flow.
+        let newMessages = state.messages.map { msg in
             ChatMessage(
                 id: msg.id,
                 content: msg.content,
@@ -110,10 +111,11 @@ class ChatViewModelWrapper: ObservableObject {
                 checkInSuggestion: msg.checkInSuggestion.map { CheckInSuggestionData(from: $0) }
             )
         }
-        self.isLoading = state.isLoading
-        self.contextReady = state.contextReady
-        self.error = state.error
-        self.pendingImageBase64 = state.pendingImage?.base64Data
+        if newMessages != self.messages { self.messages = newMessages }
+        if isLoading != state.isLoading { isLoading = state.isLoading }
+        if contextReady != state.contextReady { contextReady = state.contextReady }
+        if error != state.error { error = state.error }
+        if pendingImageBase64 != state.pendingImage?.base64Data { pendingImageBase64 = state.pendingImage?.base64Data }
     }
 
     func attachImage(base64: String, mimeType: String = "image/jpeg") {

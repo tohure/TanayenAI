@@ -18,7 +18,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import org.koin.core.context.startKoin
 import org.koin.core.parameter.parametersOf
-import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import org.koin.mp.KoinPlatform
 import kotlin.experimental.ExperimentalObjCName
@@ -27,18 +26,12 @@ import kotlin.experimental.ExperimentalObjCName
 // SupervisorJob garantiza que un fallo en una coroutine no cancela las demás.
 private val iosSupportScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
-fun initKoin(
-    supabaseUrl: String,
-    supabaseAnonKey: String,
-    geminiApiKey: String,
-) {
+fun initKoin(geminiApiKey: String) {
     startKoin {
         modules(
             sharedModules() +
                 module {
                     single { DatabaseDriverFactory() }
-                    single(named("SUPABASE_URL")) { supabaseUrl }
-                    single(named("SUPABASE_ANON_KEY")) { supabaseAnonKey }
                     single { GeminiConfig(geminiApiKey) }
                     single { HealthDataReader() }
                     single { PdfPicker() }
@@ -47,24 +40,6 @@ fun initKoin(
         )
     }
 }
-
-// TODO: re-habilitar sync cuando Auth esté activo (offline-first por ahora)
-// @OptIn(ExperimentalObjCName::class)
-// @ObjCName(name = "triggerSyncFromIos")
-// @Suppress("unused") // Called from Swift
-// fun triggerSyncFromIos() {
-//     iosSupportScope.launch {
-//         try {
-//             KoinPlatform
-//                 .getKoin()
-//                 .get<SyncManager>()
-//                 .pullRemoteData(PROTOTYPE_USER_ID)
-//         } catch (e: Exception) {
-//             println("=== IOS SYNC ERROR: ${e.message}")
-//             e.printStackTrace()
-//         }
-//     }
-// }
 
 @Suppress("unused") // Called from Swift
 fun getDashboardViewModel(userId: String): DashboardViewModel =

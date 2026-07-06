@@ -26,7 +26,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -38,6 +37,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.tohure.tanayenai.domain.model.ClinicalProfile
 import dev.tohure.tanayenai.domain.model.PROTOTYPE_USER_ID
 import dev.tohure.tanayenai.domain.usecase.ClinicalField
@@ -55,7 +55,7 @@ import org.koin.core.parameter.parametersOf
 @Composable
 fun ClinicalProfileScreen(onOpenGeminiToken: () -> Unit = {}) {
     val viewModel: ClinicalProfileViewModel = koinViewModel { parametersOf(PROTOTYPE_USER_ID) }
-    val state by viewModel.uiState.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     var selectedField by remember { mutableStateOf<ClinicalField?>(null) }
 
     LazyColumn(
@@ -87,7 +87,7 @@ fun ClinicalProfileScreen(onOpenGeminiToken: () -> Unit = {}) {
                 ) {
                     Text("📄 Subir análisis (PDF)", style = MaterialTheme.typography.titleMedium)
                     Text(
-                        "Gemini extrae todos los valores automáticamente.",
+                        "Tanayen extrae todos los valores automáticamente.",
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     if (state.isExtracting) {

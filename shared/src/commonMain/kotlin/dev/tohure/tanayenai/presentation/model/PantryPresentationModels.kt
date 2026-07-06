@@ -2,6 +2,7 @@ package dev.tohure.tanayenai.presentation.model
 
 import dev.tohure.tanayenai.domain.model.IngredientCategory
 import dev.tohure.tanayenai.domain.model.PantryItem
+import kotlinx.collections.immutable.ImmutableList
 
 /** A pantry item paired with its auto-classified category. */
 data class CategorizedItem(
@@ -18,5 +19,5 @@ data class CategorizedItem(
  */
 data class CategoryGroup(
     val category: IngredientCategory,
-    val items: List<CategorizedItem>,
+    val items: ImmutableList<CategorizedItem>,
 )

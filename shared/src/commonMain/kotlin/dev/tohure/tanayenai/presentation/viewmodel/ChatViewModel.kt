@@ -8,6 +8,8 @@ import com.rickclephas.kmp.nativecoroutines.NativeCoroutinesState
 import dev.shreyaspatil.ai.client.generativeai.GenerativeModel
 import dev.shreyaspatil.ai.client.generativeai.type.content
 import dev.tohure.tanayenai.data.remote.dto.buildClinicalSummaryFromJson
+import dev.tohure.tanayenai.domain.model.ChatMessage
+import dev.tohure.tanayenai.domain.model.ChatRole
 import dev.tohure.tanayenai.domain.model.DEFAULT_LOCATION_ID
 import dev.tohure.tanayenai.domain.model.FoodLogSource
 import dev.tohure.tanayenai.domain.model.MealType
@@ -18,6 +20,7 @@ import dev.tohure.tanayenai.domain.model.currentIsoDate
 import dev.tohure.tanayenai.domain.model.currentIsoDateTime
 import dev.tohure.tanayenai.domain.model.generateId
 import dev.tohure.tanayenai.domain.parser.ChatTagParser
+import dev.tohure.tanayenai.domain.repository.ChatMessageRepository
 import dev.tohure.tanayenai.domain.repository.FoodLogRepository
 import dev.tohure.tanayenai.domain.repository.RecommendationRepository
 import dev.tohure.tanayenai.domain.repository.UserRepository
@@ -27,7 +30,9 @@ import dev.tohure.tanayenai.domain.usecase.EstimateFoodNutritionUseCase
 import dev.tohure.tanayenai.domain.usecase.ExtractClinicalProfileUseCase
 import dev.tohure.tanayenai.domain.usecase.FetchContextParamsUseCase
 import dev.tohure.tanayenai.domain.usecase.SavePantryIngredientsUseCase
+import dev.tohure.tanayenai.domain.usecase.SummarizeConversationUseCase
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -35,6 +40,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
@@ -99,9 +105,10 @@ data class PendingImage(
     val mimeType: String = "image/jpeg",
 )
 
+@Immutable
 data class ChatUiState(
-    val messages: List<UiChatMessage> =
-        listOf(
+    val messages: ImmutableList<UiChatMessage> =
+        persistentListOf(
             UiChatMessage(
                 id = "welcome",
                 content =
@@ -126,6 +133,8 @@ class ChatViewModel(
     private val estimateFoodNutritionUseCase: EstimateFoodNutritionUseCase,
     private val foodLogRepository: FoodLogRepository,
     private val userRepository: UserRepository,
+    private val chatMessageRepository: ChatMessageRepository,
+    private val summarizeConversationUseCase: SummarizeConversationUseCase,
     private val userId: String,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -141,10 +150,56 @@ class ChatViewModel(
     companion object {
         val FOODLOG_TAG_REGEX = Regex("""\[FOODLOG:(\{[^\]]+\})\]""", RegexOption.IGNORE_CASE)
         val CHECKIN_TAG_REGEX = Regex("""\[CHECKIN:(\{[^\]]+\})\]""", RegexOption.IGNORE_CASE)
+
+        /** Efecto typewriter: caracteres revelados por tick y pausa entre ticks. */
+        private const val TYPEWRITER_STEP = 3
+        private const val TYPEWRITER_DELAY_MS = 12L
+
+        /** Mensajes recientes que se recargan al reabrir el chat (≈15 turnos). */
+        private const val PERSISTED_WINDOW = 30
+
+        /** Máximo de mensajes crudos que se envían a Gemini como historial vivo (10 turnos). */
+        private const val GEMINI_HISTORY_LIMIT = 20
     }
 
     init {
+        loadPersistedConversation()
         buildContext()
+    }
+
+    /**
+     * Recarga la ventana reciente de mensajes desde la BD al abrir el chat, para que el
+     * asistente retome donde se quedó. El resumen rodante de sesiones más antiguas se
+     * inyecta aparte vía [buildContext] → [ContextParams.conversationSummary].
+     */
+    private fun loadPersistedConversation() {
+        viewModelScope.launch {
+            val recent =
+                runCatching { chatMessageRepository.getRecentMessages(userId, PERSISTED_WINDOW) }
+                    .getOrElse {
+                        log.e(it) { "Failed to load persisted conversation" }
+                        return@launch
+                    }
+            if (recent.isEmpty()) return@launch
+
+            // Historial vivo para Gemini (crudo, con tags), acotado a los últimos N.
+            conversationHistory.clear()
+            recent.takeLast(GEMINI_HISTORY_LIMIT).forEach { msg ->
+                conversationHistory.add(msg.role.geminiRole to msg.content)
+            }
+
+            // Mensajes visibles en la UI (tags ocultos en los del asistente).
+            val uiMessages =
+                recent.map { msg ->
+                    UiChatMessage(
+                        id = msg.id,
+                        content =
+                            if (msg.role == ChatRole.USER) msg.content else buildVisibleContent(msg.content),
+                        isUser = msg.role == ChatRole.USER,
+                    )
+                }
+            _uiState.update { state -> state.copy(messages = uiMessages.toImmutableList()) }
+        }
     }
 
     private fun buildContext() {
@@ -159,7 +214,7 @@ class ChatViewModel(
                     val enrichedParams = contextParams.copy(todayFoodLogs = todayFoodLogs)
                     cachedContextParams = enrichedParams
                     cachedContext = buildContextUseCase.build(enrichedParams)
-                    _uiState.value = _uiState.value.copy(contextReady = true)
+                    _uiState.update { it.copy(contextReady = true) }
                 } catch (e: Exception) {
                     log.e(e) { "Failed to build context" }
                 }
@@ -171,11 +226,11 @@ class ChatViewModel(
         base64: String,
         mimeType: String = "image/jpeg",
     ) {
-        _uiState.value = _uiState.value.copy(pendingImage = PendingImage(base64, mimeType))
+        _uiState.update { it.copy(pendingImage = PendingImage(base64, mimeType)) }
     }
 
     fun clearPendingImage() {
-        _uiState.value = _uiState.value.copy(pendingImage = null)
+        _uiState.update { it.copy(pendingImage = null) }
     }
 
     // ── Envío Inteligente ─────────────────────────────────────────────────────
@@ -186,6 +241,7 @@ class ChatViewModel(
         if (_uiState.value.isLoading) return
 
         val safeText = userText.trim()
+        val sentAt = currentIsoDateTime()
 
         val userMessage =
             UiChatMessage(
@@ -197,17 +253,19 @@ class ChatViewModel(
         val loadingId = generateId()
         val loadingMessage = UiChatMessage(id = loadingId, content = "", isUser = false, isLoading = true)
 
-        _uiState.value =
-            _uiState.value.copy(
-                messages = _uiState.value.messages + userMessage + loadingMessage,
+        _uiState.update { state ->
+            state.copy(
+                messages = (state.messages + userMessage + loadingMessage).toImmutableList(),
                 isLoading = true,
                 pendingImage = null,
                 error = null,
             )
+        }
 
         viewModelScope.launch {
             var fullResponse = ""
             var firstChunk = true
+            var shownLength = 0 // caracteres del contenido visible ya revelados (typewriter)
             val assistantMessageId = generateId()
 
             try {
@@ -240,58 +298,67 @@ class ChatViewModel(
                     .generateContentStream(*contents.toTypedArray())
                     .catch { e ->
                         log.e(e) { "Streaming error" }
-                        _uiState.value =
-                            _uiState.value.copy(
+                        _uiState.update { state ->
+                            state.copy(
                                 messages =
-                                    _uiState.value.messages.filter { it.id != assistantMessageId } +
-                                        UiChatMessage(
-                                            id = assistantMessageId,
-                                            content =
-                                                "Hubo un error al conectar con el asistente. " +
-                                                    "Intenta de nuevo. (${e.message})",
-                                            isUser = false,
-                                        ),
+                                    (
+                                        state.messages.filter { it.id != assistantMessageId } +
+                                            UiChatMessage(
+                                                id = assistantMessageId,
+                                                content =
+                                                    "Hubo un error al conectar con el asistente. " +
+                                                        "Intenta de nuevo. (${e.message})",
+                                                isUser = false,
+                                            )
+                                    ).toImmutableList(),
                                 isLoading = false,
                                 error = e.message,
                             )
+                        }
                     }.collect { chunk ->
                         val text = chunk.text ?: return@collect
 
                         if (firstChunk) {
                             firstChunk = false
-                            _uiState.value =
-                                _uiState.value.copy(
+                            _uiState.update { state ->
+                                state.copy(
                                     messages =
-                                        _uiState.value.messages.filter { it.id != loadingId } +
-                                            UiChatMessage(id = assistantMessageId, content = "", isUser = false),
+                                        (
+                                            state.messages.filter { it.id != loadingId } +
+                                                UiChatMessage(id = assistantMessageId, content = "", isUser = false)
+                                        ).toImmutableList(),
                                 )
+                            }
                         }
 
-                        for (char in text) {
-                            fullResponse += char
-                            val visibleContent = buildVisibleContent(fullResponse)
-                            _uiState.value =
-                                _uiState.value.copy(
-                                    messages =
-                                        _uiState.value.messages.map { msg ->
-                                            if (msg.id == assistantMessageId) {
-                                                msg.copy(content = visibleContent)
-                                            } else {
-                                                msg
-                                            }
-                                        },
-                                )
-                            delay(8)
+                        // Efecto typewriter: acumula el texto crudo y revela el contenido visible
+                        // en pasos pequeños a cadencia fija (no todo el chunk de golpe, ni por
+                        // carácter-emisión). buildVisibleContent corre una vez por chunk, no por tick.
+                        fullResponse += text
+                        val targetVisible = buildVisibleContent(fullResponse)
+
+                        // Un tag que se completa puede acortar el visible; no dejar que lo mostrado lo supere.
+                        if (shownLength > targetVisible.length) {
+                            shownLength = targetVisible.length
+                            updateMessage(assistantMessageId) { it.copy(content = targetVisible) }
+                        }
+
+                        while (shownLength < targetVisible.length) {
+                            shownLength = minOf(shownLength + TYPEWRITER_STEP, targetVisible.length)
+                            val revealed = targetVisible.take(shownLength)
+                            updateMessage(assistantMessageId) { it.copy(content = revealed) }
+                            delay(TYPEWRITER_DELAY_MS)
                         }
                     }
 
                 if (fullResponse.isNotEmpty()) {
                     conversationHistory.add("user" to safeText)
                     conversationHistory.add("model" to fullResponse)
-                    if (conversationHistory.size > 20) {
+                    if (conversationHistory.size > GEMINI_HISTORY_LIMIT) {
                         conversationHistory.removeAt(0)
                         conversationHistory.removeAt(0)
                     }
+                    persistTurn(userMessage.id, safeText, sentAt, assistantMessageId, fullResponse)
                     extractAndSaveRecommendation(fullResponse)
                     extractPantrySuggestion(fullResponse, assistantMessageId)
                     extractClinicalSuggestion(fullResponse, assistantMessageId)
@@ -299,12 +366,13 @@ class ChatViewModel(
                     extractCheckInSuggestion(fullResponse, assistantMessageId)
                     extractGoalSet(fullResponse)
                     extractGoalChange(fullResponse)
+                    summarizeConversationUseCase.compactIfNeeded()
                     buildContext()
                 }
             } catch (e: Exception) {
                 log.e(e) { "Unhandled Gemini Exception" }
             } finally {
-                _uiState.value = _uiState.value.copy(isLoading = false)
+                _uiState.update { it.copy(isLoading = false) }
             }
         }
     }
@@ -318,37 +386,65 @@ class ChatViewModel(
             .replace(ChatTagParser.GOAL_CHANGE_TAG_REGEX, "")
             .trim()
 
+    /**
+     * Actualiza (por id) un único mensaje del estado, preservando la inmutabilidad de la lista.
+     * Punto único que garantiza que [ChatUiState.messages] siga siendo una [ImmutableList].
+     */
+    private fun updateMessage(
+        messageId: String,
+        transform: (UiChatMessage) -> UiChatMessage,
+    ) {
+        _uiState.update { state ->
+            state.copy(
+                messages =
+                    state.messages
+                        .map { if (it.id == messageId) transform(it) else it }
+                        .toImmutableList(),
+            )
+        }
+    }
+
+    /**
+     * Persiste el turno (mensaje del usuario + respuesta cruda del modelo) en la BD local.
+     * Se guarda el texto crudo del modelo (con tags) para que el historial vivo y el resumen
+     * rodante reflejen exactamente lo que se le envió a Gemini. Silencioso ante fallos.
+     */
+    private suspend fun persistTurn(
+        userMessageId: String,
+        userText: String,
+        userSentAt: String,
+        assistantMessageId: String,
+        assistantResponse: String,
+    ) {
+        try {
+            if (userText.isNotBlank()) {
+                chatMessageRepository.saveMessage(
+                    ChatMessage(userMessageId, userId, ChatRole.USER, userText, userSentAt),
+                )
+            }
+            chatMessageRepository.saveMessage(
+                ChatMessage(assistantMessageId, userId, ChatRole.MODEL, assistantResponse, currentIsoDateTime()),
+            )
+        } catch (e: Exception) {
+            log.e(e) { "Failed to persist chat turn" }
+        }
+    }
+
     // ── Alacena Sugerencias ───────────────────────────────────────────────────
     private fun extractPantrySuggestion(
         response: String,
         messageId: String,
     ) {
         val ingredients = ChatTagParser.extractPantryIngredients(response) ?: return
-        _uiState.value =
-            _uiState.value.copy(
-                messages =
-                    _uiState.value.messages.map { msg ->
-                        if (msg.id == messageId) {
-                            msg.copy(pantrySuggestion = PantrySuggestion(ingredients = ingredients.toImmutableList()))
-                        } else {
-                            msg
-                        }
-                    },
-            )
+        updateMessage(messageId) { msg ->
+            msg.copy(pantrySuggestion = PantrySuggestion(ingredients = ingredients.toImmutableList()))
+        }
     }
 
     fun confirmPantrySuggestion(messageId: String) {
-        _uiState.value =
-            _uiState.value.copy(
-                messages =
-                    _uiState.value.messages.map { msg ->
-                        if (msg.id == messageId) {
-                            msg.copy(pantrySuggestion = msg.pantrySuggestion?.copy(isLoading = true))
-                        } else {
-                            msg
-                        }
-                    },
-            )
+        updateMessage(messageId) { msg ->
+            msg.copy(pantrySuggestion = msg.pantrySuggestion?.copy(isLoading = true))
+        }
         viewModelScope.launch {
             val message = _uiState.value.messages.find { it.id == messageId } ?: return@launch
             val suggestion = message.pantrySuggestion ?: return@launch
@@ -359,17 +455,9 @@ class ChatViewModel(
                     locationId = defaultLocationId,
                     userId = userId,
                 )
-                _uiState.value =
-                    _uiState.value.copy(
-                        messages =
-                            _uiState.value.messages.map { msg ->
-                                if (msg.id == messageId) {
-                                    msg.copy(pantrySuggestion = suggestion.copy(confirmed = true))
-                                } else {
-                                    msg
-                                }
-                            },
-                    )
+                updateMessage(messageId) { msg ->
+                    msg.copy(pantrySuggestion = suggestion.copy(confirmed = true))
+                }
             } catch (e: Exception) {
                 log.e(e) { "Failed to save pantry suggestion" }
             }
@@ -377,17 +465,9 @@ class ChatViewModel(
     }
 
     fun dismissPantrySuggestion(messageId: String) {
-        _uiState.value =
-            _uiState.value.copy(
-                messages =
-                    _uiState.value.messages.map { msg ->
-                        if (msg.id == messageId) {
-                            msg.copy(pantrySuggestion = null)
-                        } else {
-                            msg
-                        }
-                    },
-            )
+        updateMessage(messageId) { msg ->
+            msg.copy(pantrySuggestion = null)
+        }
     }
 
     // ── Perfil Clínico Sugerencias ────────────────────────────────────────────
@@ -398,47 +478,21 @@ class ChatViewModel(
         val rawJson = ChatTagParser.extractClinicalJson(response) ?: return
         val summary = buildClinicalSummaryFromJson(rawJson).ifEmpty { return }
 
-        _uiState.value =
-            _uiState.value.copy(
-                messages =
-                    _uiState.value.messages.map { msg ->
-                        if (msg.id == messageId) {
-                            msg.copy(clinicalSuggestion = ClinicalSuggestion(rawJson, summary))
-                        } else {
-                            msg
-                        }
-                    },
-            )
+        updateMessage(messageId) { msg ->
+            msg.copy(clinicalSuggestion = ClinicalSuggestion(rawJson, summary))
+        }
     }
 
     fun confirmClinicalSuggestion(messageId: String) {
-        _uiState.value =
-            _uiState.value.copy(
-                messages =
-                    _uiState.value.messages.map { msg ->
-                        if (msg.id == messageId) {
-                            msg.copy(clinicalSuggestion = msg.clinicalSuggestion?.copy(isLoading = true))
-                        } else {
-                            msg
-                        }
-                    },
-            )
+        updateMessage(messageId) { msg ->
+            msg.copy(clinicalSuggestion = msg.clinicalSuggestion?.copy(isLoading = true))
+        }
         viewModelScope.launch {
             val msg = _uiState.value.messages.find { it.id == messageId } ?: return@launch
             val suggestion = msg.clinicalSuggestion ?: return@launch
             try {
                 extractClinicalProfileUseCase.saveFromJson(suggestion.rawJson)
-                _uiState.value =
-                    _uiState.value.copy(
-                        messages =
-                            _uiState.value.messages.map {
-                                if (it.id == messageId) {
-                                    it.copy(clinicalSuggestion = suggestion.copy(confirmed = true))
-                                } else {
-                                    it
-                                }
-                            },
-                    )
+                updateMessage(messageId) { it.copy(clinicalSuggestion = suggestion.copy(confirmed = true)) }
                 buildContext()
             } catch (e: Exception) {
                 log.e(e) { "Failed to save clinical suggestion" }
@@ -447,13 +501,7 @@ class ChatViewModel(
     }
 
     fun dismissClinicalSuggestion(messageId: String) {
-        _uiState.value =
-            _uiState.value.copy(
-                messages =
-                    _uiState.value.messages.map {
-                        if (it.id == messageId) it.copy(clinicalSuggestion = null) else it
-                    },
-            )
+        updateMessage(messageId) { it.copy(clinicalSuggestion = null) }
     }
 
     // ── Food Log detectado del chat ───────────────────────────────────────────
@@ -472,31 +520,15 @@ class ChatViewModel(
                     ?.trim('"')
             }.getOrNull() ?: return
 
-        _uiState.value =
-            _uiState.value.copy(
-                messages =
-                    _uiState.value.messages.map { msg ->
-                        if (msg.id == messageId) {
-                            msg.copy(foodLogSuggestion = FoodLogSuggestion(description))
-                        } else {
-                            msg
-                        }
-                    },
-            )
+        updateMessage(messageId) { msg ->
+            msg.copy(foodLogSuggestion = FoodLogSuggestion(description))
+        }
     }
 
     fun confirmFoodLogSuggestion(messageId: String) {
-        _uiState.value =
-            _uiState.value.copy(
-                messages =
-                    _uiState.value.messages.map { msg ->
-                        if (msg.id == messageId) {
-                            msg.copy(foodLogSuggestion = msg.foodLogSuggestion?.copy(isLoading = true))
-                        } else {
-                            msg
-                        }
-                    },
-            )
+        updateMessage(messageId) { msg ->
+            msg.copy(foodLogSuggestion = msg.foodLogSuggestion?.copy(isLoading = true))
+        }
         viewModelScope.launch {
             val msg = _uiState.value.messages.find { it.id == messageId } ?: return@launch
             val suggestion = msg.foodLogSuggestion ?: return@launch
@@ -505,17 +537,7 @@ class ChatViewModel(
                     foodDescription = suggestion.description,
                     source = FoodLogSource.CHAT_DETECTED,
                 )
-                _uiState.value =
-                    _uiState.value.copy(
-                        messages =
-                            _uiState.value.messages.map {
-                                if (it.id == messageId) {
-                                    it.copy(foodLogSuggestion = suggestion.copy(confirmed = true))
-                                } else {
-                                    it
-                                }
-                            },
-                    )
+                updateMessage(messageId) { it.copy(foodLogSuggestion = suggestion.copy(confirmed = true)) }
                 buildContext()
             } catch (e: Exception) {
                 log.e(e) { "Failed to save food log" }
@@ -524,13 +546,7 @@ class ChatViewModel(
     }
 
     fun dismissFoodLogSuggestion(messageId: String) {
-        _uiState.value =
-            _uiState.value.copy(
-                messages =
-                    _uiState.value.messages.map {
-                        if (it.id == messageId) it.copy(foodLogSuggestion = null) else it
-                    },
-            )
+        updateMessage(messageId) { it.copy(foodLogSuggestion = null) }
     }
 
     // ── Check-in proactivo ────────────────────────────────────────────────────
@@ -545,32 +561,16 @@ class ChatViewModel(
             val mealType = obj["meal_type"]?.toString()?.trim('"') ?: return
             val recommendedFood = obj["recommended_food"]?.toString()?.trim('"') ?: return
 
-            _uiState.value =
-                _uiState.value.copy(
-                    messages =
-                        _uiState.value.messages.map { msg ->
-                            if (msg.id == messageId) {
-                                msg.copy(checkInSuggestion = CheckInSuggestion(mealType, recommendedFood))
-                            } else {
-                                msg
-                            }
-                        },
-                )
+            updateMessage(messageId) { msg ->
+                msg.copy(checkInSuggestion = CheckInSuggestion(mealType, recommendedFood))
+            }
         }
     }
 
     fun confirmCheckInYes(messageId: String) {
-        _uiState.value =
-            _uiState.value.copy(
-                messages =
-                    _uiState.value.messages.map { msg ->
-                        if (msg.id == messageId) {
-                            msg.copy(checkInSuggestion = msg.checkInSuggestion?.copy(isLoading = true))
-                        } else {
-                            msg
-                        }
-                    },
-            )
+        updateMessage(messageId) { msg ->
+            msg.copy(checkInSuggestion = msg.checkInSuggestion?.copy(isLoading = true))
+        }
         viewModelScope.launch {
             val msg = _uiState.value.messages.find { it.id == messageId } ?: return@launch
             val checkIn = msg.checkInSuggestion ?: return@launch
@@ -583,38 +583,18 @@ class ChatViewModel(
                 mealTypeHint = mealType,
             )
 
-            _uiState.value =
-                _uiState.value.copy(
-                    messages =
-                        _uiState.value.messages.map {
-                            if (it.id == messageId) {
-                                it.copy(checkInSuggestion = checkIn.copy(userResponse = CheckInResponse.YES))
-                            } else {
-                                it
-                            }
-                        },
-                )
+            updateMessage(messageId) {
+                it.copy(checkInSuggestion = checkIn.copy(userResponse = CheckInResponse.YES))
+            }
             buildContext()
             sendMessage("Registrado, gracias")
         }
     }
 
     fun confirmCheckInNo(messageId: String) {
-        _uiState.value =
-            _uiState.value.copy(
-                messages =
-                    _uiState.value.messages.map {
-                        if (it.id == messageId) {
-                            it.copy(
-                                checkInSuggestion =
-                                    it.checkInSuggestion
-                                        ?.copy(userResponse = CheckInResponse.NO),
-                            )
-                        } else {
-                            it
-                        }
-                    },
-            )
+        updateMessage(messageId) {
+            it.copy(checkInSuggestion = it.checkInSuggestion?.copy(userResponse = CheckInResponse.NO))
+        }
         viewModelScope.launch {
             val followUp =
                 UiChatMessage(
@@ -622,10 +602,9 @@ class ChatViewModel(
                     content = "Está bien, ¿qué comiste en su lugar?",
                     isUser = false,
                 )
-            _uiState.value =
-                _uiState.value.copy(
-                    messages = _uiState.value.messages + followUp,
-                )
+            _uiState.update { state ->
+                state.copy(messages = (state.messages + followUp).toImmutableList())
+            }
         }
     }
 
@@ -687,6 +666,6 @@ class ChatViewModel(
     }
 
     fun clearError() {
-        _uiState.value = _uiState.value.copy(error = null)
+        _uiState.update { it.copy(error = null) }
     }
 }

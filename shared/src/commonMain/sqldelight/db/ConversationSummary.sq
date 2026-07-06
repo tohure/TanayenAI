@@ -1,0 +1,17 @@
+CREATE TABLE ConversationSummary (
+    user_id     TEXT NOT NULL PRIMARY KEY,
+    summary     TEXT NOT NULL,      -- resumen rodante (texto plano, ~200-400 tokens)
+    updated_at  TEXT NOT NULL       -- ISO-8601 datetime
+);
+
+-- Queries
+
+getSummary:
+SELECT * FROM ConversationSummary WHERE user_id = :userId;
+
+upsertSummary:
+INSERT INTO ConversationSummary(user_id, summary, updated_at)
+VALUES (:userId, :summary, :updatedAt)
+ON CONFLICT(user_id) DO UPDATE SET
+    summary = excluded.summary,
+    updated_at = excluded.updated_at;
