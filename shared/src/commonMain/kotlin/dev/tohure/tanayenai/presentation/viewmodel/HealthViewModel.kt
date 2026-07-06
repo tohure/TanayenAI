@@ -1,5 +1,6 @@
 package dev.tohure.tanayenai.presentation.viewmodel
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
@@ -11,6 +12,9 @@ import dev.tohure.tanayenai.domain.model.daysAgo
 import dev.tohure.tanayenai.domain.repository.HealthMetricsRepository
 import dev.tohure.tanayenai.domain.usecase.SyncHealthMetricsUseCase
 import dev.tohure.tanayenai.domain.usecase.SyncResult
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,9 +22,10 @@ import kotlinx.coroutines.launch
 
 private val log = Logger.withTag("HealthViewModel")
 
+@Immutable
 data class HealthUiState(
     val latestMetrics: HealthMetrics? = null,
-    val recentMetrics: List<HealthMetrics> = emptyList(),
+    val recentMetrics: ImmutableList<HealthMetrics> = persistentListOf(),
     val permissionStatus: HealthPermissionResult? = null,
     val isSyncing: Boolean = false,
     val lastSyncMessage: String? = null,
@@ -46,7 +51,10 @@ class HealthViewModel(
         viewModelScope.launch {
             try {
                 val latest = healthMetricsRepository.getLatestMetrics(userId)
-                val recent = healthMetricsRepository.getMetricsForDateRange(userId, daysAgo(7), currentIsoDate())
+                val recent =
+                    healthMetricsRepository
+                        .getMetricsForDateRange(userId, daysAgo(7), currentIsoDate())
+                        .toImmutableList()
                 _uiState.value =
                     _uiState.value.copy(
                         latestMetrics = latest,

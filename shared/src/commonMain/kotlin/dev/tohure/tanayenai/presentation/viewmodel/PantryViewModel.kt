@@ -1,5 +1,6 @@
 package dev.tohure.tanayenai.presentation.viewmodel
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rickclephas.kmp.nativecoroutines.NativeCoroutinesState
@@ -12,11 +13,15 @@ import dev.tohure.tanayenai.domain.model.generateId
 import dev.tohure.tanayenai.domain.repository.PantryRepository
 import dev.tohure.tanayenai.presentation.model.CategorizedItem
 import dev.tohure.tanayenai.presentation.model.CategoryGroup
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+@Immutable
 data class PantryUiState(
     /**
      * Items grouped and sorted by category.
@@ -24,7 +29,7 @@ data class PantryUiState(
      * Exposed as [List]<[CategoryGroup]> instead of Map to bridge cleanly through the
      * Kotlin/Native ObjC layer to Swift without runtime casts.
      */
-    val categoryGroups: List<CategoryGroup> = emptyList(),
+    val categoryGroups: ImmutableList<CategoryGroup> = persistentListOf(),
     val isLoading: Boolean = true,
     val searchQuery: String = "",
     val error: String? = null,
@@ -189,7 +194,7 @@ class PantryViewModel(
     private fun buildGroups(
         items: List<PantryItem>,
         query: String,
-    ): List<CategoryGroup> {
+    ): ImmutableList<CategoryGroup> {
         val filtered =
             if (query.isBlank()) {
                 items
@@ -202,6 +207,7 @@ class PantryViewModel(
             .groupBy { it.category }
             .entries
             .sortedBy { it.key.displayName }
-            .map { (category, categorized) -> CategoryGroup(category, categorized) }
+            .map { (category, categorized) -> CategoryGroup(category, categorized.toImmutableList()) }
+            .toImmutableList()
     }
 }

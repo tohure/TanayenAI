@@ -1,5 +1,6 @@
 package dev.tohure.tanayenai.presentation.viewmodel
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
@@ -18,6 +19,7 @@ import kotlinx.coroutines.launch
 
 private val log = Logger.withTag("ClinicalProfileViewModel")
 
+@Immutable
 data class ClinicalProfileUiState(
     val profile: ClinicalProfile? = null,
     val isLoading: Boolean = true,

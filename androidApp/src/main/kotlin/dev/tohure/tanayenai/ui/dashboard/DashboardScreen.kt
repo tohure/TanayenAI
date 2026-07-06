@@ -20,7 +20,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -31,6 +30,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.health.connect.client.PermissionController
 import androidx.lifecycle.compose.LifecycleResumeEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.tohure.tanayenai.domain.model.PROTOTYPE_USER_ID
 import dev.tohure.tanayenai.presentation.viewmodel.DashboardViewModel
 import dev.tohure.tanayenai.ui.theme.AccentTerra
@@ -50,7 +50,7 @@ fun DashboardScreen(
         koinViewModel {
             parametersOf(PROTOTYPE_USER_ID)
         }
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scrollState = rememberScrollState()
     var nameInput by remember { mutableStateOf("") }
 
