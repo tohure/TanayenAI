@@ -1,5 +1,6 @@
 package dev.tohure.tanayenai.presentation.viewmodel
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rickclephas.kmp.nativecoroutines.NativeCoroutinesState
@@ -12,6 +13,7 @@ import kotlinx.coroutines.launch
 import kotlin.experimental.ExperimentalObjCName
 import kotlin.native.ObjCName
 
+@Immutable
 data class NotificationSettingsUiState(
     val morningEnabled: Boolean = false,
     val morningHour: Int = 7,

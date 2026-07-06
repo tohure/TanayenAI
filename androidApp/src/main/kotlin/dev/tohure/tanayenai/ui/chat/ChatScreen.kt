@@ -17,7 +17,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -25,6 +24,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.tohure.tanayenai.domain.model.PROTOTYPE_USER_ID
 import dev.tohure.tanayenai.presentation.viewmodel.ChatViewModel
 import dev.tohure.tanayenai.ui.ScreenHeader
@@ -34,7 +34,7 @@ import org.koin.core.parameter.parametersOf
 @Composable
 fun ChatScreen() {
     val viewModel: ChatViewModel = koinViewModel { parametersOf(PROTOTYPE_USER_ID) }
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var inputText by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
     val context = LocalContext.current
@@ -70,11 +70,17 @@ fun ChatScreen() {
             },
         )
 
-    // Auto-scroll al último mensaje al cambiar el contenido textual (ideal para el stream)
-    val lastMessageContent = uiState.messages.lastOrNull()?.content
-    LaunchedEffect(lastMessageContent) {
-        if (uiState.messages.isNotEmpty()) {
-            listState.scrollToItem(uiState.messages.size - 1)
+    // Auto-scroll al último mensaje. Se re-dispara al añadirse un mensaje (size) y mientras
+    // crece el texto en streaming (length) — usando claves Int baratas, no el string completo.
+    val messageCount = uiState.messages.size
+    val lastMessageLength =
+        uiState.messages
+            .lastOrNull()
+            ?.content
+            ?.length ?: 0
+    LaunchedEffect(messageCount, lastMessageLength) {
+        if (messageCount > 0) {
+            listState.scrollToItem(messageCount - 1)
         }
     }
 

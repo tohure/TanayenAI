@@ -1,5 +1,6 @@
 package dev.tohure.tanayenai.presentation.viewmodel
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
@@ -15,19 +16,23 @@ import dev.tohure.tanayenai.domain.usecase.BuildContextUseCase
 import dev.tohure.tanayenai.domain.usecase.FetchContextParamsUseCase
 import dev.tohure.tanayenai.domain.usecase.GetLatestMetricsUseCase
 import dev.tohure.tanayenai.domain.usecase.SyncHealthMetricsUseCase
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+@Immutable
 data class DashboardUiState(
     val userName: String = "",
     val rawDisplayName: String = "",
     val showNameDialog: Boolean = false,
     val latestMetrics: HealthMetrics? = null,
-    val todayFoodLogs: List<FoodLog> = emptyList(),
+    val todayFoodLogs: ImmutableList<FoodLog> = persistentListOf(),
     val todayNutrition: DailyNutritionSummary? = null,
-    val activeAlerts: List<String> = emptyList(),
+    val activeAlerts: ImmutableList<String> = persistentListOf(),
     val isLoading: Boolean = true,
     val error: String? = null,
     val geminiContext: String = "",
@@ -84,7 +89,8 @@ class DashboardViewModel(
                 val alerts = buildAlerts(latestMetrics)
                 val today = currentIsoDate()
                 val todayNutrition = foodLogRepository.getDailySummary(userId, today)
-                val todayFoodLogs = foodLogRepository.getLatestTodayFoodLogs(userId, today, limit = 4)
+                val todayFoodLogs =
+                    foodLogRepository.getLatestTodayFoodLogs(userId, today, limit = 4).toImmutableList()
 
                 _uiState.value =
                     _uiState.value.copy(
@@ -134,8 +140,8 @@ class DashboardViewModel(
         }
     }
 
-    private fun buildAlerts(metrics: HealthMetrics?): List<String> {
-        if (metrics == null) return emptyList()
+    private fun buildAlerts(metrics: HealthMetrics?): ImmutableList<String> {
+        if (metrics == null) return persistentListOf()
         val alerts = mutableListOf<String>()
         metrics.sleepHours?.let {
             if (it < 6f) alerts.add("Dormiste ${it}h — evita cafeína después de las 14:00")
@@ -143,7 +149,7 @@ class DashboardViewModel(
         metrics.hrv?.let {
             if (it < 45f) alerts.add("VFC baja (${it}ms) — sistema nervioso bajo estrés")
         }
-        return alerts
+        return alerts.toImmutableList()
     }
 
     fun clearError() {
