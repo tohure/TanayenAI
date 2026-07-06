@@ -1,5 +1,6 @@
 package dev.tohure.tanayenai.di
 
+import dev.tohure.tanayenai.data.prefs.NotificationPrefs
 import dev.tohure.tanayenai.data.repository.ChatMessageRepositoryImpl
 import dev.tohure.tanayenai.data.repository.ClinicalProfileRepositoryImpl
 import dev.tohure.tanayenai.data.repository.ConversationMemoryRepositoryImpl
@@ -11,6 +12,7 @@ import dev.tohure.tanayenai.data.repository.UserRepositoryImpl
 import dev.tohure.tanayenai.domain.repository.ChatMessageRepository
 import dev.tohure.tanayenai.domain.repository.ClinicalProfileRepository
 import dev.tohure.tanayenai.domain.repository.ConversationMemoryRepository
+import dev.tohure.tanayenai.domain.repository.DisplayNameProvider
 import dev.tohure.tanayenai.domain.repository.FoodLogRepository
 import dev.tohure.tanayenai.domain.repository.HealthMetricsRepository
 import dev.tohure.tanayenai.domain.repository.PantryRepository
@@ -28,4 +30,6 @@ val repositoryModule =
         single<FoodLogRepository> { FoodLogRepositoryImpl(get()) }
         single<ChatMessageRepository> { ChatMessageRepositoryImpl(get()) }
         single<ConversationMemoryRepository> { ConversationMemoryRepositoryImpl(get()) }
+        // Nombre visible: abstrae NotificationPrefs para que el dominio no dependa del prefs concreto.
+        single<DisplayNameProvider> { DisplayNameProvider { get<NotificationPrefs>().loadDisplayName() } }
     }

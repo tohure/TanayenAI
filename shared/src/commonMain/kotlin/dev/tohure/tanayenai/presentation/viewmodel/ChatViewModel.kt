@@ -35,6 +35,7 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -150,6 +151,10 @@ class ChatViewModel(
         val FOODLOG_TAG_REGEX = Regex("""\[FOODLOG:(\{[^\]]+\})\]""", RegexOption.IGNORE_CASE)
         val CHECKIN_TAG_REGEX = Regex("""\[CHECKIN:(\{[^\]]+\})\]""", RegexOption.IGNORE_CASE)
 
+        /** Efecto typewriter: caracteres revelados por tick y pausa entre ticks. */
+        private const val TYPEWRITER_STEP = 3
+        private const val TYPEWRITER_DELAY_MS = 12L
+
         /** Mensajes recientes que se recargan al reabrir el chat (≈15 turnos). */
         private const val PERSISTED_WINDOW = 30
 
@@ -260,6 +265,7 @@ class ChatViewModel(
         viewModelScope.launch {
             var fullResponse = ""
             var firstChunk = true
+            var shownLength = 0 // caracteres del contenido visible ya revelados (typewriter)
             val assistantMessageId = generateId()
 
             try {
@@ -325,11 +331,24 @@ class ChatViewModel(
                             }
                         }
 
-                        // Actualiza una vez por chunk (no por carácter): la escritura en vivo la
-                        // marca el propio stream de Gemini, sin retardo artificial ni regex O(n²).
+                        // Efecto typewriter: acumula el texto crudo y revela el contenido visible
+                        // en pasos pequeños a cadencia fija (no todo el chunk de golpe, ni por
+                        // carácter-emisión). buildVisibleContent corre una vez por chunk, no por tick.
                         fullResponse += text
-                        val visibleContent = buildVisibleContent(fullResponse)
-                        updateMessage(assistantMessageId) { it.copy(content = visibleContent) }
+                        val targetVisible = buildVisibleContent(fullResponse)
+
+                        // Un tag que se completa puede acortar el visible; no dejar que lo mostrado lo supere.
+                        if (shownLength > targetVisible.length) {
+                            shownLength = targetVisible.length
+                            updateMessage(assistantMessageId) { it.copy(content = targetVisible) }
+                        }
+
+                        while (shownLength < targetVisible.length) {
+                            shownLength = minOf(shownLength + TYPEWRITER_STEP, targetVisible.length)
+                            val revealed = targetVisible.take(shownLength)
+                            updateMessage(assistantMessageId) { it.copy(content = revealed) }
+                            delay(TYPEWRITER_DELAY_MS)
+                        }
                     }
 
                 if (fullResponse.isNotEmpty()) {

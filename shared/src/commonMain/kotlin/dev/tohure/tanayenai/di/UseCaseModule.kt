@@ -14,7 +14,7 @@ val useCaseModule =
     module {
         factory { BuildContextUseCase() }
         factory { SavePantryIngredientsUseCase(get()) }
-        factory { FetchContextParamsUseCase(get(), get(), get(), get(), get()) }
+        factory { FetchContextParamsUseCase(get(), get(), get(), get(), get(), get(), get()) }
         factory { GetLatestMetricsUseCase(get()) }
         factory { (userId: String) ->
             SummarizeConversationUseCase(

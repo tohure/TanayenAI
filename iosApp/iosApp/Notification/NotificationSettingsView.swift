@@ -25,7 +25,7 @@ struct NotificationSettingsView: View {
                             Spacer()
                             Toggle("", isOn: $wrapper.morningEnabled)
                                 .tint(TanayenTheme.primaryGreen)
-                                .onChange(of: wrapper.morningEnabled) { _, newValue in
+                                .onChangeCompat(of: wrapper.morningEnabled) { newValue in
                                     if newValue { requestPermission() }
                                 }
                         }

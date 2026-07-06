@@ -53,7 +53,7 @@ struct GeminiTokenView: View {
                         }
                         .font(.system(.body, design: .monospaced))
                         .foregroundColor(TanayenTheme.textDark)
-                        .onChange(of: tokenText) { _, _ in saved = false }
+                        .onChangeCompat(of: tokenText) { _ in saved = false }
 
                         Button(action: { showToken.toggle() }) {
                             Text(showToken ? "🙈" : "👁️")

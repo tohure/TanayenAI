@@ -38,7 +38,7 @@ struct ClinicalProfileView: View {
                         Text("📄 Subir análisis (PDF)")
                             .font(.system(.headline, design: .rounded, weight: .semibold))
                             .foregroundColor(TanayenTheme.textDark)
-                        Text("Gemini extrae todos los valores automáticamente.")
+                        Text("Tanayen extrae todos los valores automáticamente.")
                             .font(.system(.subheadline, design: .rounded))
                             .foregroundColor(TanayenTheme.textMuted)
 
