@@ -9,15 +9,9 @@ struct IOSApp: App {
         // Register BGTask before app finishes launching
         MorningAdviceTask.register()
 
-        let rawHost = Bundle.main.infoDictionary?["SUPABASE_URL"] as? String ?? ""
-        let url = "https://\(rawHost)"
-        let key = Bundle.main.infoDictionary?["SUPABASE_ANON_KEY"] as? String ?? ""
         let bundleGeminiKey = Bundle.main.infoDictionary?["GEMINI_API_KEY"] as? String ?? ""
         let effectiveGeminiKey = KeychainHelper.load() ?? bundleGeminiKey
-        print("=== iOS Supabase URL: \(url)")
         KoinInitializerKt.doInitKoin(
-            supabaseUrl: url,
-            supabaseAnonKey: key,
             geminiApiKey: effectiveGeminiKey
         )
 

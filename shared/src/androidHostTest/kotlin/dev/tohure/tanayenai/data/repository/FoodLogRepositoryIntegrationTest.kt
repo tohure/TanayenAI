@@ -10,8 +10,8 @@ import kotlin.test.assertTrue
 
 /**
  * Integration tests for FoodLog SQL queries.
- * Inserts data via SQLDelight directly (bypassing Supabase sync) to test
- * the read path in isolation on a real in-memory SQLite database.
+ * Inserts data via SQLDelight directly to test the read path in isolation
+ * on a real in-memory SQLite database.
  *
  * Run with: ./gradlew :shared:testAndroidHostTest
  */

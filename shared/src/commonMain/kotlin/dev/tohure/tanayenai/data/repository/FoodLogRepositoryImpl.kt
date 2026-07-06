@@ -1,24 +1,17 @@
 package dev.tohure.tanayenai.data.repository
 
-import co.touchlab.kermit.Logger
-import dev.tohure.tanayenai.data.remote.dto.FoodLogDto
 import dev.tohure.tanayenai.db.TanayenDatabase
 import dev.tohure.tanayenai.domain.model.DailyNutritionSummary
 import dev.tohure.tanayenai.domain.model.FoodLog
 import dev.tohure.tanayenai.domain.model.FoodLogSource
 import dev.tohure.tanayenai.domain.model.MealType
 import dev.tohure.tanayenai.domain.repository.FoodLogRepository
-import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import db.FoodLog as DbFoodLog
 
-private val log = Logger.withTag("FoodLogRepository")
-
 class FoodLogRepositoryImpl(
     private val database: TanayenDatabase,
-    private val supabase: SupabaseClient,
 ) : FoodLogRepository {
     private val queries = database.foodLogQueries
 
@@ -39,7 +32,6 @@ class FoodLogRepositoryImpl(
                 source = foodLog.source.name,
                 loggedAt = foodLog.loggedAt,
             )
-            syncToSupabase(foodLog)
         }
 
     override suspend fun getTodayFoodLogs(
@@ -90,30 +82,6 @@ class FoodLogRepositoryImpl(
                 mealCount = mealCount,
             )
         }
-
-    private suspend fun syncToSupabase(foodLog: FoodLog) {
-        try {
-            supabase.from("food_logs").upsert(
-                FoodLogDto(
-                    id = foodLog.id,
-                    userId = foodLog.userId,
-                    foodName = foodLog.foodName,
-                    mealType = foodLog.mealType.name,
-                    calories = foodLog.calories,
-                    proteinG = foodLog.proteinG,
-                    carbsG = foodLog.carbsG,
-                    fatG = foodLog.fatG,
-                    fiberG = foodLog.fiberG,
-                    sodiumMg = foodLog.sodiumMg,
-                    sugarG = foodLog.sugarG,
-                    source = foodLog.source.name,
-                    loggedAt = foodLog.loggedAt,
-                ),
-            )
-        } catch (e: Exception) {
-            log.e(e) { "Failed to sync food log ${foodLog.id} to Supabase" }
-        }
-    }
 
     // ── Mapper ─────────────────────────────────────────────────────────────
     private fun DbFoodLog.toDomain() =
