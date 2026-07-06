@@ -10,6 +10,7 @@ import dev.tohure.tanayenai.domain.model.RecommendationType
 import dev.tohure.tanayenai.domain.model.Sex
 import dev.tohure.tanayenai.domain.model.User
 import dev.tohure.tanayenai.domain.repository.ClinicalProfileRepository
+import dev.tohure.tanayenai.domain.repository.ConversationMemoryRepository
 import dev.tohure.tanayenai.domain.repository.HealthMetricsRepository
 import dev.tohure.tanayenai.domain.repository.RecommendationRepository
 import dev.tohure.tanayenai.domain.repository.UserRepository
@@ -95,16 +96,29 @@ class FetchContextParamsUseCaseTest {
         override suspend fun updateUser(user: User) {}
     }
 
+    private class FakeConversationMemoryRepository(
+        private val summary: String? = null,
+    ) : ConversationMemoryRepository {
+        override suspend fun getSummary(userId: String) = summary
+
+        override suspend fun saveSummary(
+            userId: String,
+            summary: String,
+        ) {}
+    }
+
     private fun makeUseCase(
         metrics: List<HealthMetrics> = emptyList(),
         recommendations: List<Recommendation> = emptyList(),
         clinicalProfile: ClinicalProfile? = null,
         user: User? = null,
+        conversationSummary: String? = null,
     ) = FetchContextParamsUseCase(
         healthMetricsRepository = FakeHealthMetricsRepository(metrics),
         recommendationRepository = FakeRecommendationRepository(recommendations),
         clinicalProfileRepository = FakeClinicalProfileRepository(clinicalProfile),
         userRepository = FakeUserRepository(user),
+        conversationMemoryRepository = FakeConversationMemoryRepository(conversationSummary),
     )
 
     // ── Tests ─────────────────────────────────────────────────────────────────
@@ -208,5 +222,15 @@ class FetchContextParamsUseCaseTest {
             val params = useCase.fetch(userId, today = "2026-03-21")
 
             assertEquals("Sin especificar", params.workContext)
+        }
+
+    @Test
+    fun fetchIncludesConversationSummaryFromRepository() =
+        runTest {
+            val useCase = makeUseCase(user = testUser, conversationSummary = "resumen previo de Carlo")
+
+            val params = useCase.fetch(userId, today = "2026-03-21")
+
+            assertEquals("resumen previo de Carlo", params.conversationSummary)
         }
 }

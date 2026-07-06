@@ -341,6 +341,51 @@ class BuildContextUseCaseTest {
         assertFalse(context.contains("MEMORIA DE SESIONES ANTERIORES"))
     }
 
+    // ── Resumen rodante de conversaciones previas ───────────────────────────────
+
+    @Test
+    fun `context includes rolling conversation summary when present`() {
+        val params =
+            ContextParams(
+                user = testUser,
+                clinicalProfile = null,
+                recentMetrics = emptyList(),
+                pantryItems = emptyList(),
+                locationNames = emptyMap(),
+                recentRecommendations = emptyList(),
+                todayFoodLogs = emptyList(),
+                today = "2026-02-27",
+                workContext = "Remoto",
+                conversationSummary = "Carlo busca bajar grasa y evita los lácteos. Le gustó el bowl de quinoa.",
+            )
+
+        val context = useCase.build(params)
+
+        assertContains(context, "RESUMEN DE CONVERSACIONES PREVIAS")
+        assertContains(context, "evita los lácteos")
+    }
+
+    @Test
+    fun `conversation summary section is absent when summary is null or blank`() {
+        val paramsNull =
+            ContextParams(
+                user = testUser,
+                clinicalProfile = null,
+                recentMetrics = emptyList(),
+                pantryItems = emptyList(),
+                locationNames = emptyMap(),
+                recentRecommendations = emptyList(),
+                todayFoodLogs = emptyList(),
+                today = "2026-02-27",
+                workContext = "Remoto",
+                conversationSummary = null,
+            )
+        val paramsBlank = paramsNull.copy(conversationSummary = "   ")
+
+        assertFalse(useCase.build(paramsNull).contains("RESUMEN DE CONVERSACIONES PREVIAS"))
+        assertFalse(useCase.build(paramsBlank).contains("RESUMEN DE CONVERSACIONES PREVIAS"))
+    }
+
     // ── Meta del usuario ──────────────────────────────────────────────────────
 
     @Test

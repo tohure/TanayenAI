@@ -8,6 +8,8 @@ import com.rickclephas.kmp.nativecoroutines.NativeCoroutinesState
 import dev.shreyaspatil.ai.client.generativeai.GenerativeModel
 import dev.shreyaspatil.ai.client.generativeai.type.content
 import dev.tohure.tanayenai.data.remote.dto.buildClinicalSummaryFromJson
+import dev.tohure.tanayenai.domain.model.ChatMessage
+import dev.tohure.tanayenai.domain.model.ChatRole
 import dev.tohure.tanayenai.domain.model.DEFAULT_LOCATION_ID
 import dev.tohure.tanayenai.domain.model.FoodLogSource
 import dev.tohure.tanayenai.domain.model.MealType
@@ -18,6 +20,7 @@ import dev.tohure.tanayenai.domain.model.currentIsoDate
 import dev.tohure.tanayenai.domain.model.currentIsoDateTime
 import dev.tohure.tanayenai.domain.model.generateId
 import dev.tohure.tanayenai.domain.parser.ChatTagParser
+import dev.tohure.tanayenai.domain.repository.ChatMessageRepository
 import dev.tohure.tanayenai.domain.repository.FoodLogRepository
 import dev.tohure.tanayenai.domain.repository.RecommendationRepository
 import dev.tohure.tanayenai.domain.repository.UserRepository
@@ -27,6 +30,7 @@ import dev.tohure.tanayenai.domain.usecase.EstimateFoodNutritionUseCase
 import dev.tohure.tanayenai.domain.usecase.ExtractClinicalProfileUseCase
 import dev.tohure.tanayenai.domain.usecase.FetchContextParamsUseCase
 import dev.tohure.tanayenai.domain.usecase.SavePantryIngredientsUseCase
+import dev.tohure.tanayenai.domain.usecase.SummarizeConversationUseCase
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.Job
@@ -126,6 +130,8 @@ class ChatViewModel(
     private val estimateFoodNutritionUseCase: EstimateFoodNutritionUseCase,
     private val foodLogRepository: FoodLogRepository,
     private val userRepository: UserRepository,
+    private val chatMessageRepository: ChatMessageRepository,
+    private val summarizeConversationUseCase: SummarizeConversationUseCase,
     private val userId: String,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -141,10 +147,52 @@ class ChatViewModel(
     companion object {
         val FOODLOG_TAG_REGEX = Regex("""\[FOODLOG:(\{[^\]]+\})\]""", RegexOption.IGNORE_CASE)
         val CHECKIN_TAG_REGEX = Regex("""\[CHECKIN:(\{[^\]]+\})\]""", RegexOption.IGNORE_CASE)
+
+        /** Mensajes recientes que se recargan al reabrir el chat (≈15 turnos). */
+        private const val PERSISTED_WINDOW = 30
+
+        /** Máximo de mensajes crudos que se envían a Gemini como historial vivo (10 turnos). */
+        private const val GEMINI_HISTORY_LIMIT = 20
     }
 
     init {
+        loadPersistedConversation()
         buildContext()
+    }
+
+    /**
+     * Recarga la ventana reciente de mensajes desde la BD al abrir el chat, para que el
+     * asistente retome donde se quedó. El resumen rodante de sesiones más antiguas se
+     * inyecta aparte vía [buildContext] → [ContextParams.conversationSummary].
+     */
+    private fun loadPersistedConversation() {
+        viewModelScope.launch {
+            val recent =
+                runCatching { chatMessageRepository.getRecentMessages(userId, PERSISTED_WINDOW) }
+                    .getOrElse {
+                        log.e(it) { "Failed to load persisted conversation" }
+                        return@launch
+                    }
+            if (recent.isEmpty()) return@launch
+
+            // Historial vivo para Gemini (crudo, con tags), acotado a los últimos N.
+            conversationHistory.clear()
+            recent.takeLast(GEMINI_HISTORY_LIMIT).forEach { msg ->
+                conversationHistory.add(msg.role.geminiRole to msg.content)
+            }
+
+            // Mensajes visibles en la UI (tags ocultos en los del asistente).
+            val uiMessages =
+                recent.map { msg ->
+                    UiChatMessage(
+                        id = msg.id,
+                        content =
+                            if (msg.role == ChatRole.USER) msg.content else buildVisibleContent(msg.content),
+                        isUser = msg.role == ChatRole.USER,
+                    )
+                }
+            _uiState.value = _uiState.value.copy(messages = uiMessages)
+        }
     }
 
     private fun buildContext() {
@@ -186,6 +234,7 @@ class ChatViewModel(
         if (_uiState.value.isLoading) return
 
         val safeText = userText.trim()
+        val sentAt = currentIsoDateTime()
 
         val userMessage =
             UiChatMessage(
@@ -288,10 +337,11 @@ class ChatViewModel(
                 if (fullResponse.isNotEmpty()) {
                     conversationHistory.add("user" to safeText)
                     conversationHistory.add("model" to fullResponse)
-                    if (conversationHistory.size > 20) {
+                    if (conversationHistory.size > GEMINI_HISTORY_LIMIT) {
                         conversationHistory.removeAt(0)
                         conversationHistory.removeAt(0)
                     }
+                    persistTurn(userMessage.id, safeText, sentAt, assistantMessageId, fullResponse)
                     extractAndSaveRecommendation(fullResponse)
                     extractPantrySuggestion(fullResponse, assistantMessageId)
                     extractClinicalSuggestion(fullResponse, assistantMessageId)
@@ -299,6 +349,7 @@ class ChatViewModel(
                     extractCheckInSuggestion(fullResponse, assistantMessageId)
                     extractGoalSet(fullResponse)
                     extractGoalChange(fullResponse)
+                    summarizeConversationUseCase.compactIfNeeded()
                     buildContext()
                 }
             } catch (e: Exception) {
@@ -317,6 +368,32 @@ class ChatViewModel(
             .replace(ChatTagParser.GOAL_SET_TAG_REGEX, "")
             .replace(ChatTagParser.GOAL_CHANGE_TAG_REGEX, "")
             .trim()
+
+    /**
+     * Persiste el turno (mensaje del usuario + respuesta cruda del modelo) en la BD local.
+     * Se guarda el texto crudo del modelo (con tags) para que el historial vivo y el resumen
+     * rodante reflejen exactamente lo que se le envió a Gemini. Silencioso ante fallos.
+     */
+    private suspend fun persistTurn(
+        userMessageId: String,
+        userText: String,
+        userSentAt: String,
+        assistantMessageId: String,
+        assistantResponse: String,
+    ) {
+        try {
+            if (userText.isNotBlank()) {
+                chatMessageRepository.saveMessage(
+                    ChatMessage(userMessageId, userId, ChatRole.USER, userText, userSentAt),
+                )
+            }
+            chatMessageRepository.saveMessage(
+                ChatMessage(assistantMessageId, userId, ChatRole.MODEL, assistantResponse, currentIsoDateTime()),
+            )
+        } catch (e: Exception) {
+            log.e(e) { "Failed to persist chat turn" }
+        }
+    }
 
     // ── Alacena Sugerencias ───────────────────────────────────────────────────
     private fun extractPantrySuggestion(
