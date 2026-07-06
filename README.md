@@ -7,7 +7,7 @@ _Tus datos de salud, tus metas, tus recomendaciones — todo en un solo lugar._
 [![iOS Build](https://img.shields.io/github/actions/workflow/status/tohure/TanayenAI/ci.yml?branch=develop&label=iOS%20Build&logo=apple&color=007AFF)](https://github.com/tohure/TanayenAI/actions/workflows/ci.yml)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.0-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/)
 [![KMP](https://img.shields.io/badge/Kotlin%20Multiplatform-iOS%20%7C%20Android-orange?logo=kotlin)](https://www.jetbrains.com/kotlin-multiplatform/)
-[![Gemini](https://img.shields.io/badge/Gemini%202.5%20Flash-AI%20Powered-blue?logo=google&logoColor=white)](https://ai.google.dev/)
+[![Gemini](https://img.shields.io/badge/Gemini%203.1%20Flash%20Lite-AI%20Powered-blue?logo=google&logoColor=white)](https://ai.google.dev/)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
 ---
@@ -28,6 +28,9 @@ Tanayen AI es una aplicación **Kotlin Multiplatform (KMP)** para Android e iOS 
   - 🍽️ Recomendaciones de platos en menús de restaurante
   - 🏠 Detección de ingredientes domésticos para guardar en la alacena
 - **Alacena inteligente** — Gemini sugiere ingredientes detectados en imágenes; el usuario confirma antes de guardar
+- **Memoria de sesión persistente** — el asistente retoma dónde se quedó entre reinicios: conserva los últimos turnos y un *resumen rodante* comprimido de sesiones anteriores (texto plano en la BD local, sin inflar el contexto)
+- **Registro automático de comidas** — detecta lo que comiste en el chat, estima macros con Gemini y lo guarda en tu diario nutricional
+- **Notificaciones proactivas** — recordatorio matutino con consejo personalizado (WorkManager / BGTaskScheduler)
 - **Sincronización de salud** — métricas reales desde Health Connect (Android) y HealthKit (iOS)
 - **Perfil clínico** — restricciones dietéticas basadas en colesterol, glucosa, presión arterial y más
 - **Historial de recomendaciones** — Gemini evita repetir sugerencias recientes
@@ -41,11 +44,10 @@ Tanayen AI es una aplicación **Kotlin Multiplatform (KMP)** para Android e iOS 
 | **Multiplataforma** | Kotlin Multiplatform (KMP) |
 | **Android UI** | Jetpack Compose |
 | **iOS UI** | SwiftUI |
-| **AI** | Google Gemini 2.5 Flash (SDK KMP) |
+| **AI** | Google Gemini 3.1 Flash Lite (SDK KMP) |
 | **Salud Android** | Health Connect |
 | **Salud iOS** | HealthKit |
-| **Backend / Auth** | Supabase (PostgreSQL + Auth + Realtime) |
-| **Base de datos local** | SQLDelight |
+| **Base de datos local** | SQLDelight (offline-first, todo en el dispositivo) |
 | **Networking** | Ktor Client |
 | **Inyección de dependencias** | Koin |
 | **Coroutines iOS** | KMP-NativeCoroutines |
@@ -61,7 +63,7 @@ El proyecto sigue una arquitectura **Clean Architecture + MVVM** con código com
 ```
 shared/
 ├── commonMain/
-│   ├── data/          # Repositorios, datasources remotos/locales, sync
+│   ├── data/          # Repositorios + datasources locales (SQLDelight) y Gemini
 │   ├── domain/
 │   │   ├── model/     # Entidades de dominio
 │   │   ├── repository/# Interfaces de repositorio
@@ -96,8 +98,12 @@ Usuario confirma → SavePantryIngredientsUseCase guarda sin duplicados
 El sistema usa un protocolo de tags al final de cada respuesta, invisible para el usuario:
 
 ```
-[PANTRY:ingrediente1|ingrediente2|...]     ← ingredientes para guardar en alacena
-[REC:TIPO:título:ingrediente1|ingrediente2|...]  ← recomendación para guardar en historial
+[PANTRY:ingrediente1|ingrediente2|...]              ← ingredientes para guardar en alacena
+[REC:TIPO:título:ingrediente1|ingrediente2|...]     ← recomendación para guardar en historial
+[CLINICAL:{"key":valor}]                            ← valores clínicos extraídos (PDF/foto/texto)
+[FOODLOG:{"description":"..."}]                      ← comida consumida → registro nutricional
+[CHECKIN:{"meal_type":"...","recommended_food":"..."}] ← seguimiento proactivo de una recomendación
+[GOAL_SET:{"goal":"..."}] / [GOAL_CHANGE:{"goal":"..."}] ← define o cambia la meta nutricional
 ```
 
 El separador `|` (pipe) evita ambigüedad con nombres compuestos como `sal, pimienta`.
@@ -115,7 +121,9 @@ shared/src/commonTest/
 │   └── SavePantryIngredientsUseCaseTest  # Deduplicación de ingredientes
 shared/src/androidHostTest/
 └── data/repository/
-    └── PantryRepositoryIntegrationTest  # CRUD con SQLDelight real
+    ├── PantryRepositoryIntegrationTest        # CRUD con SQLDelight real
+    ├── FoodLogRepositoryIntegrationTest       # Registro nutricional con SQLite real
+    └── ChatMessageRepositoryIntegrationTest   # Ventana reciente + resumen rodante
 ```
 
 ```bash
@@ -136,18 +144,16 @@ shared/src/androidHostTest/
 ### Configuración
 
 1. Clona el repo
-2. Copia tus credenciales en `local.properties`:
+2. Copia tu credencial en `local.properties`:
    ```properties
-   SUPABASE_URL=https://tu-proyecto.supabase.co
-   SUPABASE_ANON_KEY=tu_anon_key
    GEMINI_API_KEY=tu_api_key
    ```
-3. Para iOS, agrega las mismas variables en `iosApp/Configuration/Secrets.xcconfig`:
+3. Para iOS, agrega la misma variable en `iosApp/Configuration/Secrets.xcconfig`:
    ```
-   SUPABASE_URL = https://tu-proyecto.supabase.co
-   SUPABASE_ANON_KEY = tu_anon_key
    GEMINI_API_KEY = tu_api_key
    ```
+
+> ℹ️ Supabase quedó **dormido** (offline-first, todo en la BD local); ya **no** se necesitan `SUPABASE_URL`/`SUPABASE_ANON_KEY` para ejecutar la app. El código se conserva en `reference/supabase/` para la Fase 6 (Auth + multi-usuario).
 
 ### Ejecutar
 
@@ -170,8 +176,10 @@ GitHub Actions (`.github/workflows/ci.yml`) automatiza lint, tests, builds y dis
 | Evento | Qué corre |
 |---|---|
 | **PR a `main`/`develop`** | ktlint + tests, build APK Android, build de simulador iOS (solo compila) |
-| **Push a `develop`** | APK debug → **Firebase App Distribution** (grupo `testers`) |
+| **Push a `develop`** | solo ktlint + tests (sin distribución) |
 | **Push a `main`** | AAB release firmado → **Firebase App Distribution** (grupo `release-testers`) |
+
+> 🚀 El despliegue a Firebase ocurre **únicamente al hacer push a `main`** (tras mergear un PR verificado). `develop` ya no distribuye.
 
 > 📦 **La distribución es solo Android** (vía Firebase App Distribution). El build de iOS en CI únicamente compila el simulador para detectar errores; no hay publicación en TestFlight/App Store.
 

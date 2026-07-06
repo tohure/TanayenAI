@@ -73,7 +73,7 @@ struct ChatView: View {
                     .padding(.vertical, 8)
                 }
                 .scrollDismissesKeyboard(.interactively)
-                .onChange(of: chatVM.messages.last?.content) { _, _ in
+                .onChangeCompat(of: chatVM.messages.last?.content) { _ in
                     if let last = chatVM.messages.last {
                         withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
                     }

@@ -87,7 +87,7 @@ fun ClinicalProfileScreen(onOpenGeminiToken: () -> Unit = {}) {
                 ) {
                     Text("📄 Subir análisis (PDF)", style = MaterialTheme.typography.titleMedium)
                     Text(
-                        "Gemini extrae todos los valores automáticamente.",
+                        "Tanayen extrae todos los valores automáticamente.",
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     if (state.isExtracting) {
