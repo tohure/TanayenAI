@@ -1,0 +1,38 @@
+CREATE TABLE ChatMessage (
+    id          TEXT NOT NULL PRIMARY KEY,
+    user_id     TEXT NOT NULL,
+    role        TEXT NOT NULL,      -- "user" | "model"
+    content     TEXT NOT NULL,      -- texto crudo del turno (con tags si es del modelo)
+    created_at  TEXT NOT NULL       -- ISO-8601 datetime
+);
+
+CREATE INDEX idx_chatmessage_user_date ON ChatMessage(user_id, created_at);
+
+-- Queries
+
+insertMessage:
+INSERT INTO ChatMessage(id, user_id, role, content, created_at)
+VALUES (:id, :userId, :role, :content, :createdAt);
+
+-- Últimos N mensajes (más recientes primero). El repositorio los invierte a orden cronológico.
+getRecentMessages:
+SELECT * FROM ChatMessage
+WHERE user_id = :userId
+ORDER BY created_at DESC, id DESC
+LIMIT :limit;
+
+-- Mensajes más antiguos (para compactar en el resumen rodante).
+getOldestMessages:
+SELECT * FROM ChatMessage
+WHERE user_id = :userId
+ORDER BY created_at ASC, id ASC
+LIMIT :limit;
+
+countMessages:
+SELECT COUNT(*) FROM ChatMessage WHERE user_id = :userId;
+
+deleteMessages:
+DELETE FROM ChatMessage WHERE id IN :ids;
+
+clearMessages:
+DELETE FROM ChatMessage WHERE user_id = :userId;

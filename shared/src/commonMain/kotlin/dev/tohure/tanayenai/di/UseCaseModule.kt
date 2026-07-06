@@ -6,6 +6,7 @@ import dev.tohure.tanayenai.domain.usecase.ExtractClinicalProfileUseCase
 import dev.tohure.tanayenai.domain.usecase.FetchContextParamsUseCase
 import dev.tohure.tanayenai.domain.usecase.GetLatestMetricsUseCase
 import dev.tohure.tanayenai.domain.usecase.SavePantryIngredientsUseCase
+import dev.tohure.tanayenai.domain.usecase.SummarizeConversationUseCase
 import dev.tohure.tanayenai.domain.usecase.SyncHealthMetricsUseCase
 import org.koin.dsl.module
 
@@ -13,8 +14,16 @@ val useCaseModule =
     module {
         factory { BuildContextUseCase() }
         factory { SavePantryIngredientsUseCase(get()) }
-        factory { FetchContextParamsUseCase(get(), get(), get(), get()) }
+        factory { FetchContextParamsUseCase(get(), get(), get(), get(), get()) }
         factory { GetLatestMetricsUseCase(get()) }
+        factory { (userId: String) ->
+            SummarizeConversationUseCase(
+                generativeModel = get(GEMINI_SUMMARY),
+                chatMessageRepository = get(),
+                conversationMemoryRepository = get(),
+                userId = userId,
+            )
+        }
         factory { (userId: String) ->
             SyncHealthMetricsUseCase(
                 healthDataReader = get(),

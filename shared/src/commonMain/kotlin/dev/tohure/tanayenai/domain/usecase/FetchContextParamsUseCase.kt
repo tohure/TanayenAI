@@ -7,6 +7,7 @@ import dev.tohure.tanayenai.domain.model.User
 import dev.tohure.tanayenai.domain.model.currentIsoDate
 import dev.tohure.tanayenai.domain.model.daysAgo
 import dev.tohure.tanayenai.domain.repository.ClinicalProfileRepository
+import dev.tohure.tanayenai.domain.repository.ConversationMemoryRepository
 import dev.tohure.tanayenai.domain.repository.HealthMetricsRepository
 import dev.tohure.tanayenai.domain.repository.RecommendationRepository
 import dev.tohure.tanayenai.domain.repository.UserRepository
@@ -21,6 +22,7 @@ class FetchContextParamsUseCase(
     private val recommendationRepository: RecommendationRepository,
     private val clinicalProfileRepository: ClinicalProfileRepository,
     private val userRepository: UserRepository,
+    private val conversationMemoryRepository: ConversationMemoryRepository,
 ) {
     suspend fun fetch(
         userId: String,
@@ -43,6 +45,7 @@ class FetchContextParamsUseCase(
                 userId,
                 days = 7,
             )
+        val conversationSummary = conversationMemoryRepository.getSummary(userId)
         return ContextParams(
             user = user,
             userExistsInDb = userExistsInDb,
@@ -54,6 +57,7 @@ class FetchContextParamsUseCase(
             todayFoodLogs = emptyList(),
             today = today,
             workContext = workContext,
+            conversationSummary = conversationSummary,
         )
     }
 
