@@ -35,7 +35,6 @@ health-connect = "1.1.0"
 
 # DB Local
 sqldelight = "2.3.2"
-supabase = "3.6.0"
 
 # DI
 koin = "4.2.2"
@@ -104,12 +103,6 @@ compose-uiTooling = { module = "androidx.compose.ui:ui-tooling" }
 
 # Logging
 kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
-
-#Supabase
-supabase-bom = { group = "io.github.jan-tennert.supabase", name = "bom", version.ref = "supabase" }
-supabase-auth = { module = "io.github.jan-tennert.supabase:auth-kt" }
-supabase-realtime = { module = "io.github.jan-tennert.supabase:realtime-kt" }
-supabase-postgrest = { module = "io.github.jan-tennert.supabase:postgrest-kt" }
 
 # AI
 generativeai-google = { module = "dev.shreyaspatil.generativeai:generativeai-google", version.ref = "generativeai-kmp" }

@@ -25,7 +25,7 @@ val repositoryModule =
         single<RecommendationRepository> { RecommendationRepositoryImpl(get()) }
         single<ClinicalProfileRepository> { ClinicalProfileRepositoryImpl(get()) }
         single<UserRepository> { UserRepositoryImpl(get()) }
-        single<FoodLogRepository> { FoodLogRepositoryImpl(get(), get()) }
+        single<FoodLogRepository> { FoodLogRepositoryImpl(get()) }
         single<ChatMessageRepository> { ChatMessageRepositoryImpl(get()) }
         single<ConversationMemoryRepository> { ConversationMemoryRepositoryImpl(get()) }
     }

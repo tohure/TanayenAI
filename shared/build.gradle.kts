@@ -55,11 +55,7 @@ kotlin {
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.serialization.json)
 
-            // Supabase
-            implementation(project.dependencies.platform(libs.supabase.bom))
-            implementation(libs.supabase.postgrest)
-            implementation(libs.supabase.auth)
-            implementation(libs.supabase.realtime)
+            // Supabase: desconectado (Fase B). Código de referencia en reference/supabase/.
 
             // AI (Gemini)
             implementation(libs.generativeai.google)
