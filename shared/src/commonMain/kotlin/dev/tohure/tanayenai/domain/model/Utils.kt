@@ -13,13 +13,26 @@ fun generateId(): String {
     return "${timestamp}_$random"
 }
 
-fun currentIsoDateTime() = Clock.System.now().toString()
-
-fun currentIsoDate() =
-    Clock.System
+// Fecha y hora en la zona horaria local del dispositivo. Es clave que ambas usen
+// la misma zona: loggedAt (currentIsoDateTime) y el prefijo "hoy" (currentIsoDate)
+// se comparan con LIKE 'YYYY-MM-DD%', así que si difieren (p. ej. una en UTC y otra
+// local) el registro del día "desaparece" al cruzar la medianoche UTC en zonas UTC-5.
+fun currentIsoDateTime(): String {
+    val tz = TimeZone.currentSystemDefault()
+    return Clock.System
         .now()
+        .toLocalDateTime(tz)
         .toString()
-        .take(10)
+}
+
+fun currentIsoDate(): String {
+    val tz = TimeZone.currentSystemDefault()
+    return Clock.System
+        .now()
+        .toLocalDateTime(tz)
+        .date
+        .toString()
+}
 
 fun daysAgo(n: Int): String {
     val tz = TimeZone.currentSystemDefault()
