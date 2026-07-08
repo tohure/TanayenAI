@@ -1,5 +1,64 @@
 import SwiftUI
 import UIKit
+import PhotosUI
+
+/// Selección múltiple desde la galería (hasta `selectionLimit` fotos en un solo envío).
+/// La cámara sigue usando `ImagePicker` (una toma a la vez, acumulativa).
+struct MultiImagePicker: UIViewControllerRepresentable {
+    @Environment(\.presentationMode) var presentationMode
+    var selectionLimit: Int
+    var onImagesPicked: ([UIImage]) -> Void
+
+    func makeUIViewController(context: Context) -> PHPickerViewController {
+        var config = PHPickerConfiguration()
+        config.filter = .images
+        config.selectionLimit = selectionLimit
+        let picker = PHPickerViewController(configuration: config)
+        picker.delegate = context.coordinator
+        return picker
+    }
+
+    func updateUIViewController(_ uiViewController: PHPickerViewController, context: Context) {}
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+
+    class Coordinator: NSObject, PHPickerViewControllerDelegate {
+        let parent: MultiImagePicker
+
+        init(_ parent: MultiImagePicker) {
+            self.parent = parent
+        }
+
+        func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+            parent.presentationMode.wrappedValue.dismiss()
+            guard !results.isEmpty else {
+                parent.onImagesPicked([])
+                return
+            }
+
+            var images: [UIImage] = []
+            let group = DispatchGroup()
+
+            for result in results {
+                let provider = result.itemProvider
+                guard provider.canLoadObject(ofClass: UIImage.self) else { continue }
+                group.enter()
+                provider.loadObject(ofClass: UIImage.self) { object, _ in
+                    if let image = object as? UIImage {
+                        images.append(image)
+                    }
+                    group.leave()
+                }
+            }
+
+            group.notify(queue: .main) {
+                self.parent.onImagesPicked(images)
+            }
+        }
+    }
+}
 
 struct ImagePicker: UIViewControllerRepresentable {
     @Environment(\.presentationMode) var presentationMode

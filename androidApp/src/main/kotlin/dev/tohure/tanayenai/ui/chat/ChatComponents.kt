@@ -27,6 +27,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -72,7 +74,9 @@ import dev.tohure.tanayenai.ui.theme.SurfaceColor
 import dev.tohure.tanayenai.ui.theme.TanayenTheme
 import dev.tohure.tanayenai.ui.theme.TextDark
 import dev.tohure.tanayenai.ui.theme.TextMutedColor
+import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
 import java.io.ByteArrayOutputStream
 
 @Composable
@@ -189,7 +193,31 @@ fun TypingIndicator() {
 }
 
 @Composable
-fun PendingImagePreview(
+fun PendingImagesPreview(
+    pendingImages: ImmutableList<PendingImage>,
+    maxImages: Int,
+    onRemove: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+        Text(
+            text = "${pendingImages.size}/$maxImages fotos",
+            style = MaterialTheme.typography.labelSmall.copy(color = TextMutedColor),
+            modifier = Modifier.padding(start = 2.dp, bottom = 4.dp),
+        )
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            itemsIndexed(pendingImages, key = { _, img -> img.base64Data.take(32) }) { index, pending ->
+                PendingImageThumbnail(
+                    pendingImage = pending,
+                    onRemove = { onRemove(index) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PendingImageThumbnail(
     pendingImage: PendingImage,
     onRemove: () -> Unit,
     modifier: Modifier = Modifier,
@@ -203,7 +231,7 @@ fun PendingImagePreview(
     Box(
         modifier =
             modifier
-                .padding(horizontal = 16.dp, vertical = 4.dp)
+                .padding(top = 4.dp, end = 4.dp)
                 .height(72.dp),
     ) {
         bitmap?.let {
@@ -605,20 +633,23 @@ fun CheckInChip(
 
 @Preview(showBackground = true, backgroundColor = 0xFFF5F5F5)
 @Composable
-private fun PendingImagePreviewPreview() {
+private fun PendingImagesPreviewPreview() {
     TanayenTheme {
-        // Genera un bitmap celeste de 72×72 para visualizar el tamaño real del thumbnail
-        val base64 =
+        // Genera bitmaps de colores de 72×72 para visualizar la fila de thumbnails
+        val images =
             remember {
-                val bmp =
-                    createBitmap(72, 72, android.graphics.Bitmap.Config.ARGB_8888)
-                bmp.eraseColor(0xFF4FC3F7.toInt())
-                val out = ByteArrayOutputStream()
-                bmp.compress(Bitmap.CompressFormat.JPEG, 90, out)
-                Base64.encodeToString(out.toByteArray(), android.util.Base64.DEFAULT)
+                listOf(0xFF4FC3F7, 0xFFAED581, 0xFFFFB74D)
+                    .map { color ->
+                        val bmp = createBitmap(72, 72, android.graphics.Bitmap.Config.ARGB_8888)
+                        bmp.eraseColor(color.toInt())
+                        val out = ByteArrayOutputStream()
+                        bmp.compress(Bitmap.CompressFormat.JPEG, 90, out)
+                        PendingImage(base64Data = Base64.encodeToString(out.toByteArray(), android.util.Base64.DEFAULT))
+                    }.toImmutableList()
             }
-        PendingImagePreview(
-            pendingImage = PendingImage(base64Data = base64),
+        PendingImagesPreview(
+            pendingImages = images,
+            maxImages = 6,
             onRemove = {},
         )
     }

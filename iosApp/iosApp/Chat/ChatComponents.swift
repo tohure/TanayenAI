@@ -116,6 +116,32 @@ struct PantrySuggestionChipView: View {
     }
 }
 
+/// Fila de miniaturas de las fotos por enviar, con contador y borrar por foto.
+struct PendingImagesPreviewView: View {
+    let imagesBase64: [String]
+    let maxImages: Int
+    let onRemove: (Int) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("\(imagesBase64.count)/\(maxImages) fotos")
+                .font(.system(.caption2, design: .rounded))
+                .foregroundColor(TanayenTheme.textMuted)
+                .padding(.leading, 18)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(Array(imagesBase64.enumerated()), id: \.offset) { index, base64 in
+                        PendingImagePreviewView(base64: base64) { onRemove(index) }
+                    }
+                }
+                .padding(.horizontal, 16)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}
+
 struct PendingImagePreviewView: View {
     let base64: String
     let onRemove: () -> Void
@@ -126,30 +152,27 @@ struct PendingImagePreviewView: View {
     }
 
     var body: some View {
-        HStack {
-            if let image = decodedImage {
-                ZStack(alignment: .topTrailing) {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: 72, height: 72)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+        if let image = decodedImage {
+            ZStack(alignment: .topTrailing) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 72, height: 72)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
 
-                    Button(action: onRemove) {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundColor(.white)
-                            .frame(width: 20, height: 20)
-                            .background(Color(hex: "#E63946"))
-                            .clipShape(Circle())
-                    }
-                    .offset(x: 6, y: -6)
+                Button(action: onRemove) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(width: 20, height: 20)
+                        .background(Color(hex: "#E63946"))
+                        .clipShape(Circle())
                 }
+                .offset(x: 6, y: -6)
             }
-            Spacer()
+            .padding(.top, 6)
+            .padding(.trailing, 6)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 4)
     }
 }
 

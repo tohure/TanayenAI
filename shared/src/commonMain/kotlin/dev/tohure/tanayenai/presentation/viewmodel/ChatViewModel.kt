@@ -54,6 +54,9 @@ private val jsonParser =
         isLenient = true
     }
 
+// Tope de fotos por envío: evita reventar el tamaño del request a Gemini y la memoria.
+const val MAX_PENDING_IMAGES = 6
+
 @Immutable
 data class PantrySuggestion(
     val ingredients: ImmutableList<String>,
@@ -120,7 +123,7 @@ data class ChatUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val contextReady: Boolean = false,
-    val pendingImage: PendingImage? = null,
+    val pendingImages: ImmutableList<PendingImage> = persistentListOf(),
 )
 
 class ChatViewModel(
@@ -221,23 +224,46 @@ class ChatViewModel(
             }
     }
 
-    // ── Preselección de Imagen ────────────────────────────────────────────────
+    // ── Preselección de Imágenes ──────────────────────────────────────────────
     fun attachImage(
         base64: String,
         mimeType: String = "image/jpeg",
     ) {
-        _uiState.update { it.copy(pendingImage = PendingImage(base64, mimeType)) }
+        _uiState.update { state ->
+            if (state.pendingImages.size >= MAX_PENDING_IMAGES) {
+                state
+            } else {
+                state.copy(
+                    pendingImages = (state.pendingImages + PendingImage(base64, mimeType)).toImmutableList(),
+                )
+            }
+        }
+    }
+
+    fun removePendingImage(index: Int) {
+        _uiState.update { state ->
+            if (index !in state.pendingImages.indices) {
+                state
+            } else {
+                state.copy(
+                    pendingImages =
+                        state.pendingImages
+                            .filterIndexed { i, _ -> i != index }
+                            .toImmutableList(),
+                )
+            }
+        }
     }
 
     fun clearPendingImage() {
-        _uiState.update { it.copy(pendingImage = null) }
+        _uiState.update { it.copy(pendingImages = persistentListOf()) }
     }
 
     // ── Envío Inteligente ─────────────────────────────────────────────────────
     @OptIn(ExperimentalEncodingApi::class)
     fun sendMessage(userText: String) {
-        val pendingImage = _uiState.value.pendingImage
-        if (userText.isBlank() && pendingImage == null) return
+        val pendingImages = _uiState.value.pendingImages
+        if (userText.isBlank() && pendingImages.isEmpty()) return
         if (_uiState.value.isLoading) return
 
         val safeText = userText.trim()
@@ -248,7 +274,7 @@ class ChatViewModel(
                 id = generateId(),
                 content = safeText,
                 isUser = true,
-                hasAttachedImage = pendingImage != null,
+                hasAttachedImage = pendingImages.isNotEmpty(),
             )
         val loadingId = generateId()
         val loadingMessage = UiChatMessage(id = loadingId, content = "", isUser = false, isLoading = true)
@@ -257,7 +283,7 @@ class ChatViewModel(
             state.copy(
                 messages = (state.messages + userMessage + loadingMessage).toImmutableList(),
                 isLoading = true,
-                pendingImage = null,
+                pendingImages = persistentListOf(),
                 error = null,
             )
         }
@@ -276,13 +302,17 @@ class ChatViewModel(
                         }
                         add(
                             content("user") {
-                                if (pendingImage != null) {
-                                    val decoded = Base64.decode(pendingImage.base64Data.replace("\\s".toRegex(), ""))
+                                pendingImages.forEach { pending ->
+                                    val decoded = Base64.decode(pending.base64Data.replace("\\s".toRegex(), ""))
                                     image(decoded)
                                 }
                                 val finalPrompt =
-                                    if (safeText.isBlank() && pendingImage != null) {
-                                        "El usuario te acaba de enviar solo esta imagen, sin texto."
+                                    if (safeText.isBlank() && pendingImages.isNotEmpty()) {
+                                        if (pendingImages.size == 1) {
+                                            "El usuario te acaba de enviar solo esta imagen, sin texto."
+                                        } else {
+                                            "El usuario te acaba de enviar ${pendingImages.size} imágenes, sin texto."
+                                        }
                                     } else {
                                         safeText
                                     }
