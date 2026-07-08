@@ -72,7 +72,7 @@ class ChatViewModelWrapper: ObservableObject {
     @Published var isLoading = false
     @Published var contextReady = false
     @Published var error: String?
-    @Published var pendingImageBase64: String?
+    @Published var pendingImagesBase64: [String] = []
 
     // ViewModel compartido de KMP
     private let chatVM: ChatViewModel
@@ -115,11 +115,16 @@ class ChatViewModelWrapper: ObservableObject {
         if isLoading != state.isLoading { isLoading = state.isLoading }
         if contextReady != state.contextReady { contextReady = state.contextReady }
         if error != state.error { error = state.error }
-        if pendingImageBase64 != state.pendingImage?.base64Data { pendingImageBase64 = state.pendingImage?.base64Data }
+        let newImages = state.pendingImages.map { $0.base64Data }
+        if pendingImagesBase64 != newImages { pendingImagesBase64 = newImages }
     }
 
     func attachImage(base64: String, mimeType: String = "image/jpeg") {
         chatVM.attachImage(base64: base64, mimeType: mimeType)
+    }
+
+    func removePendingImage(index: Int) {
+        chatVM.removePendingImage(index: Int32(index))
     }
 
     func clearPendingImage() {
