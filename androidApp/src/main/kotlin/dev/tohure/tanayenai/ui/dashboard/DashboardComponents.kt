@@ -42,6 +42,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -372,16 +373,21 @@ fun TodayFoodCard(
                         modifier =
                             Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                                .padding(vertical = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.Top,
                     ) {
                         Text(
                             text = item.mealType,
                             style = MaterialTheme.typography.labelSmall,
+                            color = TextMutedColor,
+                            modifier = Modifier.padding(top = 2.dp),
                         )
                         Text(
                             text = item.foodName,
                             style = MaterialTheme.typography.bodyMedium.copy(color = TextDark),
+                            textAlign = TextAlign.End,
+                            modifier = Modifier.weight(1f),
                         )
                     }
                 }
@@ -700,7 +706,7 @@ private fun TodayFoodCardWithDataPreview() {
         TodayFoodCard(
             foodLogs =
                 persistentListOf(
-                    FoodLogItem("Desayuno", "Avena con frutas"),
+                    FoodLogItem("Desayuno", "Mousse de chocolate saludable y ensalada de frutas"),
                     FoodLogItem("Almuerzo", "Ensalada de pollo"),
                     FoodLogItem("Cena", "Salmón con verduras"),
                 ),
