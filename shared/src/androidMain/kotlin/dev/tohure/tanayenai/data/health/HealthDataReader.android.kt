@@ -8,7 +8,6 @@ import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.records.TotalCaloriesBurnedRecord
 import androidx.health.connect.client.records.WeightRecord
-import androidx.health.connect.client.request.AggregateRequest
 import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import co.touchlab.kermit.Logger
@@ -193,22 +192,25 @@ actual class HealthDataReader(
         timeRange: TimeRangeFilter,
     ): Int? =
         try {
-            // aggregate() deduplica los registros solapados de varias fuentes (Fitbit, teléfono,
-            // Google Fit) según la prioridad de Health Connect. Sumar readRecords crudo inflaba
-            // el total al contar el mismo tramo horario más de una vez.
+            // Sumamos los registros reales de la fuente principal (Fitbit/Google Health).
+            // NO usar aggregate(ENERGY_TOTAL): Health Connect le suma un metabolismo basal
+            // DERIVADO en los tramos sin datos, inflando el total (p. ej. 869 reales → 1792).
+            // Y agrupamos por fuente tomando la de mayor aporte, para no sumar entre fuentes
+            // distintas (evita doble conteo si reaparece más de un origen).
             val response =
-                client.aggregate(
-                    AggregateRequest(
-                        metrics = setOf(TotalCaloriesBurnedRecord.ENERGY_TOTAL),
-                        timeRangeFilter = timeRange,
-                    ),
+                client.readRecords(
+                    ReadRecordsRequest(TotalCaloriesBurnedRecord::class, timeRange),
                 )
-            val result = response[TotalCaloriesBurnedRecord.ENERGY_TOTAL]?.inKilocalories?.toInt()
+            val byOrigin =
+                response.records
+                    .groupBy { it.metadata.dataOrigin.packageName }
+                    .mapValues { (_, recs) -> recs.sumOf { it.energy.inKilocalories }.toInt() }
+            val result = byOrigin.values.maxOrNull()
             val total = if (result != null && result > 0) result else null
-            log.d { "HealthConnect Calories (aggregate): $total kcal" }
+            log.d { "HealthConnect Calories: $total kcal (fuentes=${byOrigin.size})" }
             total
         } catch (e: Exception) {
-            log.e(e) { "Failed to aggregate TotalCaloriesBurnedRecord: ${e.message}" }
+            log.e(e) { "Failed to read TotalCaloriesBurnedRecord: ${e.message}" }
             null
         }
 
