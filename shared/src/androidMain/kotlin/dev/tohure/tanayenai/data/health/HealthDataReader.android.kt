@@ -8,6 +8,7 @@ import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.records.TotalCaloriesBurnedRecord
 import androidx.health.connect.client.records.WeightRecord
+import androidx.health.connect.client.request.AggregateRequest
 import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import co.touchlab.kermit.Logger
@@ -192,16 +193,22 @@ actual class HealthDataReader(
         timeRange: TimeRangeFilter,
     ): Int? =
         try {
+            // aggregate() deduplica los registros solapados de varias fuentes (Fitbit, teléfono,
+            // Google Fit) según la prioridad de Health Connect. Sumar readRecords crudo inflaba
+            // el total al contar el mismo tramo horario más de una vez.
             val response =
-                client.readRecords(
-                    ReadRecordsRequest(TotalCaloriesBurnedRecord::class, timeRange),
+                client.aggregate(
+                    AggregateRequest(
+                        metrics = setOf(TotalCaloriesBurnedRecord.ENERGY_TOTAL),
+                        timeRangeFilter = timeRange,
+                    ),
                 )
-            val result = response.records.sumOf { it.energy.inKilocalories }.toInt()
-            val total = if (result > 0) result else null
-            log.d { "HealthConnect Calories: $total kcal" }
+            val result = response[TotalCaloriesBurnedRecord.ENERGY_TOTAL]?.inKilocalories?.toInt()
+            val total = if (result != null && result > 0) result else null
+            log.d { "HealthConnect Calories (aggregate): $total kcal" }
             total
         } catch (e: Exception) {
-            log.e(e) { "Failed to read TotalCaloriesBurnedRecord: ${e.message}" }
+            log.e(e) { "Failed to aggregate TotalCaloriesBurnedRecord: ${e.message}" }
             null
         }
 

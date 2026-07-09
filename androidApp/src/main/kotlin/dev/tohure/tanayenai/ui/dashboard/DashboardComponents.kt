@@ -687,7 +687,7 @@ private fun MetricsRowPreview() {
             metrics =
                 persistentListOf(
                     MetricItem("Peso", "74.2", "kg", "⚖️", SecondaryMint),
-                    MetricItem("Calorías activas", "320", "kcal", "🔥", Color(0xFFE63946)),
+                    MetricItem("Calorías quemadas", "320", "kcal", "🔥", Color(0xFFE63946)),
                 ),
         )
     }

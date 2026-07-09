@@ -81,7 +81,7 @@ struct DashboardView: View {
                     MetricCardView(emoji: "⚖️", value: viewmodel.weightKg, unit: "kg",
                                    label: "Peso", tint: TanayenTheme.secondaryMint)
                     MetricCardView(emoji: "🔥", value: viewmodel.caloriesBurned, unit: "kcal",
-                                   label: "Calorías activas", tint: Color(hex: "#E63946"))
+                                   label: "Calorías quemadas", tint: Color(hex: "#E63946"))
                 }
                 .padding(.horizontal, 24)
 
