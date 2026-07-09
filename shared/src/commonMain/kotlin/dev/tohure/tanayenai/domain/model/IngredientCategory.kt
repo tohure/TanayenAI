@@ -163,4 +163,23 @@ fun classifyIngredient(name: String): IngredientCategory {
     }
 }
 
-private fun String.containsAny(vararg keywords: String) = keywords.any { this.contains(it, ignoreCase = true) }
+private val wordSplit = Regex("[^\\p{L}]+")
+
+/**
+ * Matchea por PALABRA COMPLETA (con tolerancia a plural -s/-es), no por subcadena.
+ * Evita falsos positivos clásicos: "fresa" contiene "res" (carne), "chocolate" contiene
+ * "col", "ajonjolí" contiene "ajo". Los keywords multipalabra ("proteína en polvo") caen
+ * a búsqueda por subcadena porque no son un token único.
+ */
+private fun String.containsAny(vararg keywords: String): Boolean {
+    val lower = lowercase()
+    val words = lower.split(wordSplit).filter { it.isNotBlank() }
+    return keywords.any { keyword ->
+        val k = keyword.lowercase()
+        if (k.contains(' ')) {
+            lower.contains(k)
+        } else {
+            words.any { w -> w == k || w == "${k}s" || w == "${k}es" }
+        }
+    }
+}
