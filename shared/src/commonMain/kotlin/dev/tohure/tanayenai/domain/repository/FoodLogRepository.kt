@@ -21,4 +21,6 @@ interface FoodLogRepository {
         userId: String,
         datePrefix: String,
     ): DailyNutritionSummary?
+
+    suspend fun deleteFoodLog(id: String)
 }

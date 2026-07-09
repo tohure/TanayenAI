@@ -331,8 +331,9 @@ fun AlertBanner(
 @Composable
 fun TodayFoodCard(
     foodLogs: ImmutableList<FoodLogItem>,
-    onAddManuallyClick: () -> Unit, // Botón dummy por ahora
+    onAddManuallyClick: () -> Unit,
     modifier: Modifier = Modifier,
+    onViewAllClick: (() -> Unit)? = null,
 ) {
     Card(
         modifier =
@@ -388,6 +389,18 @@ fun TodayFoodCard(
                             style = MaterialTheme.typography.bodyMedium.copy(color = TextDark),
                             textAlign = TextAlign.End,
                             modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+                if (onViewAllClick != null) {
+                    Spacer(Modifier.height(4.dp))
+                    TextButton(
+                        onClick = onViewAllClick,
+                        modifier = Modifier.align(Alignment.End),
+                    ) {
+                        Text(
+                            text = "Ver todo →",
+                            style = MaterialTheme.typography.labelSmall.copy(color = PrimaryGreen),
                         )
                     }
                 }

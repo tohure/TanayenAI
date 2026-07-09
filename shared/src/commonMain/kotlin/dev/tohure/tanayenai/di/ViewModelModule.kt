@@ -3,6 +3,7 @@ package dev.tohure.tanayenai.di
 import dev.tohure.tanayenai.presentation.viewmodel.ChatViewModel
 import dev.tohure.tanayenai.presentation.viewmodel.ClinicalProfileViewModel
 import dev.tohure.tanayenai.presentation.viewmodel.DashboardViewModel
+import dev.tohure.tanayenai.presentation.viewmodel.FoodDiaryViewModel
 import dev.tohure.tanayenai.presentation.viewmodel.HealthViewModel
 import dev.tohure.tanayenai.presentation.viewmodel.PantryViewModel
 import org.koin.core.module.dsl.viewModel
@@ -25,6 +26,12 @@ val viewModelModule =
         viewModel { params ->
             PantryViewModel(
                 pantryRepository = get(),
+                userId = params.get(),
+            )
+        }
+        viewModel { params ->
+            FoodDiaryViewModel(
+                foodLogRepository = get(),
                 userId = params.get(),
             )
         }

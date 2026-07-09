@@ -34,6 +34,14 @@ fun currentIsoDate(): String {
         .toString()
 }
 
+// Extrae "HH:mm" de un timestamp ISO local ("2026-07-07T22:00:00.000" → "22:00").
+// Si el formato no es el esperado, devuelve cadena vacía en lugar de fallar.
+fun timeFromIso(iso: String): String {
+    val tIndex = iso.indexOf('T')
+    if (tIndex < 0 || iso.length < tIndex + 6) return ""
+    return iso.substring(tIndex + 1, tIndex + 6)
+}
+
 fun daysAgo(n: Int): String {
     val tz = TimeZone.currentSystemDefault()
     val today =

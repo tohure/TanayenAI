@@ -83,6 +83,11 @@ class FoodLogRepositoryImpl(
             )
         }
 
+    override suspend fun deleteFoodLog(id: String): Unit =
+        withContext(Dispatchers.Default) {
+            queries.deleteLog(id = id)
+        }
+
     // ── Mapper ─────────────────────────────────────────────────────────────
     private fun DbFoodLog.toDomain() =
         FoodLog(
