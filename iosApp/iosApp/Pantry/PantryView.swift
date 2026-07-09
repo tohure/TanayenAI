@@ -107,6 +107,10 @@ struct PantryView: View {
                 )
             }
         )
+        .onAppear {
+            // Refleja ingredientes agregados desde el chat sin reiniciar la app.
+            viewModel.reload()
+        }
     }
 }
 
