@@ -47,13 +47,17 @@ struct ChatView: View {
                                     )
                                 }
 
-                                if let foodLog = message.foodLogSuggestion {
+                                ForEach(message.foodLogSuggestions) { foodLog in
                                     FoodLogSuggestionChipView(
                                         description: foodLog.description,
                                         confirmed: foodLog.confirmed,
                                         isLoading: foodLog.isLoading,
-                                        onConfirm: { chatVM.confirmFoodLogSuggestion(messageId: message.id) },
-                                        onDismiss: { chatVM.dismissFoodLogSuggestion(messageId: message.id) }
+                                        onConfirm: {
+                                            chatVM.confirmFoodLogSuggestion(messageId: message.id, suggestionId: foodLog.id)
+                                        },
+                                        onDismiss: {
+                                            chatVM.dismissFoodLogSuggestion(messageId: message.id, suggestionId: foodLog.id)
+                                        }
                                     )
                                 }
 

@@ -77,6 +77,7 @@ data class FoodLogSuggestion(
     val description: String,
     val confirmed: Boolean = false,
     val isLoading: Boolean = false,
+    val id: String = generateId(),
 )
 
 @Immutable
@@ -98,7 +99,7 @@ data class UiChatMessage(
     val hasAttachedImage: Boolean = false,
     val pantrySuggestion: PantrySuggestion? = null,
     val clinicalSuggestion: ClinicalSuggestion? = null,
-    val foodLogSuggestion: FoodLogSuggestion? = null,
+    val foodLogSuggestions: ImmutableList<FoodLogSuggestion> = persistentListOf(),
     val checkInSuggestion: CheckInSuggestion? = null,
 )
 
@@ -395,7 +396,7 @@ class ChatViewModel(
                     extractAndSaveRecommendation(fullResponse)
                     extractPantrySuggestion(fullResponse, assistantMessageId)
                     extractClinicalSuggestion(fullResponse, assistantMessageId)
-                    extractFoodLogSuggestion(fullResponse, assistantMessageId)
+                    extractFoodLogSuggestions(fullResponse, assistantMessageId)
                     extractCheckInSuggestion(fullResponse, assistantMessageId)
                     extractGoalSet(fullResponse)
                     extractGoalChange(fullResponse)
@@ -537,49 +538,78 @@ class ChatViewModel(
         updateMessage(messageId) { it.copy(clinicalSuggestion = null) }
     }
 
-    // ── Food Log detectado del chat ───────────────────────────────────────────
-    private fun extractFoodLogSuggestion(
+    // ── Food Logs detectados del chat ─────────────────────────────────────────
+    // Gemini emite un [FOODLOG:] por cada plato distinto → una sugerencia (chip) por plato,
+    // confirmable/descartable de forma independiente.
+    private fun extractFoodLogSuggestions(
         response: String,
         messageId: String,
     ) {
-        val match = FOODLOG_TAG_REGEX.find(response) ?: return
-        val rawJson = match.groupValues[1]
-        val description =
-            runCatching {
-                jsonParser
-                    .parseToJsonElement(rawJson)
-                    .jsonObject["description"]
-                    ?.toString()
-                    ?.trim('"')
-            }.getOrNull() ?: return
+        val suggestions =
+            FOODLOG_TAG_REGEX
+                .findAll(response)
+                .mapNotNull { match ->
+                    val rawJson = match.groupValues[1]
+                    val description =
+                        runCatching {
+                            jsonParser
+                                .parseToJsonElement(rawJson)
+                                .jsonObject["description"]
+                                ?.toString()
+                                ?.trim('"')
+                        }.getOrNull()
+                    description?.takeIf { it.isNotBlank() }?.let { FoodLogSuggestion(description = it) }
+                }.toList()
+                .toImmutableList()
 
+        if (suggestions.isEmpty()) return
+        updateMessage(messageId) { msg -> msg.copy(foodLogSuggestions = suggestions) }
+    }
+
+    private fun updateFoodLog(
+        messageId: String,
+        suggestionId: String,
+        transform: (FoodLogSuggestion) -> FoodLogSuggestion,
+    ) {
         updateMessage(messageId) { msg ->
-            msg.copy(foodLogSuggestion = FoodLogSuggestion(description))
+            msg.copy(
+                foodLogSuggestions =
+                    msg.foodLogSuggestions
+                        .map { if (it.id == suggestionId) transform(it) else it }
+                        .toImmutableList(),
+            )
         }
     }
 
-    fun confirmFoodLogSuggestion(messageId: String) {
-        updateMessage(messageId) { msg ->
-            msg.copy(foodLogSuggestion = msg.foodLogSuggestion?.copy(isLoading = true))
-        }
+    fun confirmFoodLogSuggestion(
+        messageId: String,
+        suggestionId: String,
+    ) {
+        updateFoodLog(messageId, suggestionId) { it.copy(isLoading = true) }
         viewModelScope.launch {
             val msg = _uiState.value.messages.find { it.id == messageId } ?: return@launch
-            val suggestion = msg.foodLogSuggestion ?: return@launch
+            val suggestion = msg.foodLogSuggestions.find { it.id == suggestionId } ?: return@launch
             try {
                 estimateFoodNutritionUseCase.estimateAndSave(
                     foodDescription = suggestion.description,
                     source = FoodLogSource.CHAT_DETECTED,
                 )
-                updateMessage(messageId) { it.copy(foodLogSuggestion = suggestion.copy(confirmed = true)) }
+                updateFoodLog(messageId, suggestionId) { it.copy(confirmed = true, isLoading = false) }
                 buildContext()
             } catch (e: Exception) {
                 log.e(e) { "Failed to save food log" }
+                updateFoodLog(messageId, suggestionId) { it.copy(isLoading = false) }
             }
         }
     }
 
-    fun dismissFoodLogSuggestion(messageId: String) {
-        updateMessage(messageId) { it.copy(foodLogSuggestion = null) }
+    fun dismissFoodLogSuggestion(
+        messageId: String,
+        suggestionId: String,
+    ) {
+        updateMessage(messageId) { msg ->
+            msg.copy(foodLogSuggestions = msg.foodLogSuggestions.filterNot { it.id == suggestionId }.toImmutableList())
+        }
     }
 
     // ── Check-in proactivo ────────────────────────────────────────────────────

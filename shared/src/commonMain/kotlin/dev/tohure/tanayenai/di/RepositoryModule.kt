@@ -30,6 +30,5 @@ val repositoryModule =
         single<FoodLogRepository> { FoodLogRepositoryImpl(get()) }
         single<ChatMessageRepository> { ChatMessageRepositoryImpl(get()) }
         single<ConversationMemoryRepository> { ConversationMemoryRepositoryImpl(get()) }
-        // Nombre visible: abstrae NotificationPrefs para que el dominio no dependa del prefs concreto.
         single<DisplayNameProvider> { DisplayNameProvider { get<NotificationPrefs>().loadDisplayName() } }
     }
