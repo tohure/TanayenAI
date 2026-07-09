@@ -5,12 +5,14 @@
 import Shared
 import KMPNativeCoroutinesAsync
 
-struct FoodLogSuggestionData: Equatable {
+struct FoodLogSuggestionData: Equatable, Identifiable {
+    let id: String
     let description: String
     let confirmed: Bool
     let isLoading: Bool
 
     init(from shared: Shared.FoodLogSuggestion) {
+        self.id = shared.id
         self.description = shared.description_
         self.confirmed = shared.confirmed
         self.isLoading = shared.isLoading
@@ -45,7 +47,7 @@ struct ChatMessage: Identifiable, Equatable {
     var isLoading: Bool = false
     var hasAttachedImage: Bool = false
     var pantrySuggestion: PantrySuggestionWrapper?
-    var foodLogSuggestion: FoodLogSuggestionData?
+    var foodLogSuggestions: [FoodLogSuggestionData] = []
     var checkInSuggestion: CheckInSuggestionData?
 }
 
@@ -107,7 +109,7 @@ class ChatViewModelWrapper: ObservableObject {
                 isLoading: msg.isLoading,
                 hasAttachedImage: msg.hasAttachedImage,
                 pantrySuggestion: msg.pantrySuggestion.map { PantrySuggestionWrapper(from: $0) },
-                foodLogSuggestion: msg.foodLogSuggestion.map { FoodLogSuggestionData(from: $0) },
+                foodLogSuggestions: msg.foodLogSuggestions.map { FoodLogSuggestionData(from: $0) },
                 checkInSuggestion: msg.checkInSuggestion.map { CheckInSuggestionData(from: $0) }
             )
         }
@@ -139,12 +141,12 @@ class ChatViewModelWrapper: ObservableObject {
         chatVM.dismissPantrySuggestion(messageId: messageId)
     }
 
-    func confirmFoodLogSuggestion(messageId: String) {
-        chatVM.confirmFoodLogSuggestion(messageId: messageId)
+    func confirmFoodLogSuggestion(messageId: String, suggestionId: String) {
+        chatVM.confirmFoodLogSuggestion(messageId: messageId, suggestionId: suggestionId)
     }
 
-    func dismissFoodLogSuggestion(messageId: String) {
-        chatVM.dismissFoodLogSuggestion(messageId: messageId)
+    func dismissFoodLogSuggestion(messageId: String, suggestionId: String) {
+        chatVM.dismissFoodLogSuggestion(messageId: messageId, suggestionId: suggestionId)
     }
 
     func confirmCheckInYes(messageId: String) {

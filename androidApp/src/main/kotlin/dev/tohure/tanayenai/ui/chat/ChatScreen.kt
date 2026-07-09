@@ -126,12 +126,12 @@ fun ChatScreen() {
                     )
                 }
 
-                // Chip food log detectado (naranja)
-                message.foodLogSuggestion?.let { suggestion ->
+                // Chips food log detectados (naranja) — uno por plato distinto
+                message.foodLogSuggestions.forEach { suggestion ->
                     FoodLogSuggestionChip(
                         suggestion = suggestion,
-                        onConfirm = { viewModel.confirmFoodLogSuggestion(message.id) },
-                        onDismiss = { viewModel.dismissFoodLogSuggestion(message.id) },
+                        onConfirm = { viewModel.confirmFoodLogSuggestion(message.id, suggestion.id) },
+                        onDismiss = { viewModel.dismissFoodLogSuggestion(message.id, suggestion.id) },
                     )
                 }
 
