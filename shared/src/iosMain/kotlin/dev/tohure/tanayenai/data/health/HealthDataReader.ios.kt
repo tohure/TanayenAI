@@ -217,6 +217,9 @@ actual class HealthDataReader {
             store.executeQuery(query)
         }
 
+    // TODO(iOS): el card se llama "Calorías quemadas" (total). Aquí solo se lee la energía
+    // ACTIVA (HKActiveEnergyBurned); falta sumar la basal (HKBasalEnergyBurned) y pedir su
+    // permiso para que coincida con el total. Pendiente para cuando iOS se distribuya.
     private suspend fun readCalories(
         start: NSDate,
         end: NSDate,

@@ -203,7 +203,7 @@ fun DashboardScreen(
                             SecondaryMint,
                         ),
                         MetricItem(
-                            "Calorías activas",
+                            "Calorías quemadas",
                             metrics?.caloriesBurned?.toString() ?: "--",
                             "kcal",
                             "🔥",
