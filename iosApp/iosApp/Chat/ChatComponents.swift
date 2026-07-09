@@ -34,7 +34,8 @@ struct ChatBubbleView: View {
                             .padding(.bottom, 2)
                     }
                     if !message.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        Text(message.content)
+                        // El asistente emite markdown básico (**negrita**, etc.); el usuario, plano.
+                        Text(message.isUser ? AttributedString(message.content) : markdownAttributed(message.content))
                             .font(.system(.body, design: .rounded))
                             .foregroundColor(message.isUser ? .white : TanayenTheme.textDark)
                     }
@@ -289,4 +290,26 @@ struct RoundedCorner: Shape {
         )
         return Path(path.cgPath)
     }
+}
+
+/// Parsea el markdown básico de Gemini (**negrita**, *cursiva*) preservando los saltos de
+/// línea, y normaliza las viñetas "- "/"* " a "• ". Ante contenido a medio streamear cae a
+/// texto plano sin romperse.
+func markdownAttributed(_ text: String) -> AttributedString {
+    let normalized = normalizeBullets(text)
+    let options = AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
+    return (try? AttributedString(markdown: normalized, options: options)) ?? AttributedString(normalized)
+}
+
+private func normalizeBullets(_ text: String) -> String {
+    text
+        .split(separator: "\n", omittingEmptySubsequences: false)
+        .map { line -> String in
+            let trimmed = line.drop(while: { $0 == " " || $0 == "\t" })
+            if trimmed.hasPrefix("- ") || trimmed.hasPrefix("* ") {
+                return "• " + trimmed.dropFirst(2)
+            }
+            return String(line)
+        }
+        .joined(separator: "\n")
 }

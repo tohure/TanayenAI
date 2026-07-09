@@ -54,6 +54,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.LineHeightStyle
@@ -139,7 +140,14 @@ fun MessageBubble(
                     }
                     if (message.content.isNotBlank()) {
                         Text(
-                            text = message.content,
+                            // El asistente emite markdown básico (**negrita**, viñetas); los
+                            // mensajes del usuario van planos.
+                            text =
+                                if (isUser) {
+                                    AnnotatedString(message.content)
+                                } else {
+                                    markdownToAnnotatedString(message.content)
+                                },
                             style =
                                 MaterialTheme.typography.bodyLarge.copy(
                                     color = if (isUser) SurfaceColor else TextDark,
