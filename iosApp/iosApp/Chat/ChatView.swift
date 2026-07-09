@@ -47,13 +47,17 @@ struct ChatView: View {
                                     )
                                 }
 
-                                if let foodLog = message.foodLogSuggestion {
+                                ForEach(message.foodLogSuggestions) { foodLog in
                                     FoodLogSuggestionChipView(
                                         description: foodLog.description,
                                         confirmed: foodLog.confirmed,
                                         isLoading: foodLog.isLoading,
-                                        onConfirm: { chatVM.confirmFoodLogSuggestion(messageId: message.id) },
-                                        onDismiss: { chatVM.dismissFoodLogSuggestion(messageId: message.id) }
+                                        onConfirm: {
+                                            chatVM.confirmFoodLogSuggestion(messageId: message.id, suggestionId: foodLog.id)
+                                        },
+                                        onDismiss: {
+                                            chatVM.dismissFoodLogSuggestion(messageId: message.id, suggestionId: foodLog.id)
+                                        }
                                     )
                                 }
 
@@ -87,23 +91,25 @@ struct ChatView: View {
                     .padding(.horizontal)
             }
 
-            // Preview de Imagen antes de enviar
-            if let pendingBase64 = chatVM.pendingImageBase64 {
-                PendingImagePreviewView(base64: pendingBase64) {
-                    chatVM.clearPendingImage()
-                }
+            // Preview de las imágenes antes de enviar
+            if !chatVM.pendingImagesBase64.isEmpty {
+                PendingImagesPreviewView(
+                    imagesBase64: chatVM.pendingImagesBase64,
+                    maxImages: Int(ChatViewModelKt.MAX_PENDING_IMAGES),
+                    onRemove: { index in chatVM.removePendingImage(index: index) }
+                )
             }
 
             // Input
             ChatInputBarView(
                 text: $inputText,
                 isLoading: chatVM.isLoading,
-                hasPendingImage: chatVM.pendingImageBase64 != nil,
+                hasPendingImage: !chatVM.pendingImagesBase64.isEmpty,
                 onCameraClick: { imageSource = .camera },
                 onGalleryClick: { imageSource = .gallery },
                 onSend: {
                     let text = inputText.trimmingCharacters(in: .whitespaces)
-                    guard !text.isEmpty || chatVM.pendingImageBase64 != nil else { return }
+                    guard !text.isEmpty || !chatVM.pendingImagesBase64.isEmpty else { return }
                     guard !chatVM.isLoading else { return }
                     chatVM.sendMessage(text)
                     inputText = ""
@@ -125,9 +131,21 @@ struct ChatView: View {
             }
         }
         .sheet(item: $imageSource) { source in
-            ImagePicker(sourceType: source == .camera ? .camera : .photoLibrary) { image in
-                if let image = image, let base64 = image.resizeAndEncode(maxSize: 800) {
-                    chatVM.attachImage(base64: base64)
+            switch source {
+            case .camera:
+                // Una toma a la vez; se acumula al adjuntar (attachImage agrega a la lista).
+                ImagePicker(sourceType: .camera) { image in
+                    if let image = image, let base64 = image.resizeAndEncode(maxSize: 800) {
+                        chatVM.attachImage(base64: base64)
+                    }
+                }
+            case .gallery:
+                MultiImagePicker(selectionLimit: Int(ChatViewModelKt.MAX_PENDING_IMAGES)) { images in
+                    for image in images {
+                        if let base64 = image.resizeAndEncode(maxSize: 800) {
+                            chatVM.attachImage(base64: base64)
+                        }
+                    }
                 }
             }
         }

@@ -23,13 +23,14 @@ Tanayen AI es una aplicación **Kotlin Multiplatform (KMP)** para Android e iOS 
 ## ✨ Funcionalidades
 
 - **Chat inteligente con Gemini** — conversación en lenguaje natural con contexto clínico inyectado en cada turno
-- **Imágenes en el chat** — toma o adjunta fotos directamente desde el chat; Gemini determina el contexto automáticamente:
+- **Imágenes en el chat** — toma o adjunta **varias fotos** en un mismo envío (hasta 6, cámara acumulativa + galería multi-selección); ideal para cargar varios ingredientes de la alacena de una sola vez. Gemini determina el contexto automáticamente:
   - 🛒 Comparación de productos en el supermercado
   - 🍽️ Recomendaciones de platos en menús de restaurante
   - 🏠 Detección de ingredientes domésticos para guardar en la alacena
 - **Alacena inteligente** — Gemini sugiere ingredientes detectados en imágenes; el usuario confirma antes de guardar
 - **Memoria de sesión persistente** — el asistente retoma dónde se quedó entre reinicios: conserva los últimos turnos y un *resumen rodante* comprimido de sesiones anteriores (texto plano en la BD local, sin inflar el contexto)
 - **Registro automático de comidas** — detecta lo que comiste en el chat, estima macros con Gemini y lo guarda en tu diario nutricional
+- **Diario de comidas** — pantalla con lo que comiste hoy y ayer (hora, tipo, comida, kcal) agrupado por día con subtotal; desliza para borrar un registro y las calorías del día se recalculan al instante
 - **Notificaciones proactivas** — recordatorio matutino con consejo personalizado (WorkManager / BGTaskScheduler)
 - **Sincronización de salud** — métricas reales desde Health Connect (Android) y HealthKit (iOS)
 - **Perfil clínico** — restricciones dietéticas basadas en colesterol, glucosa, presión arterial y más

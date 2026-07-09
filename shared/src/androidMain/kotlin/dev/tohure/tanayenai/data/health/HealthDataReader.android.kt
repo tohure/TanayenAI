@@ -192,13 +192,22 @@ actual class HealthDataReader(
         timeRange: TimeRangeFilter,
     ): Int? =
         try {
+            // Sumamos los registros reales de la fuente principal (Fitbit/Google Health).
+            // NO usar aggregate(ENERGY_TOTAL): Health Connect le suma un metabolismo basal
+            // DERIVADO en los tramos sin datos, inflando el total (p. ej. 869 reales → 1792).
+            // Y agrupamos por fuente tomando la de mayor aporte, para no sumar entre fuentes
+            // distintas (evita doble conteo si reaparece más de un origen).
             val response =
                 client.readRecords(
                     ReadRecordsRequest(TotalCaloriesBurnedRecord::class, timeRange),
                 )
-            val result = response.records.sumOf { it.energy.inKilocalories }.toInt()
-            val total = if (result > 0) result else null
-            log.d { "HealthConnect Calories: $total kcal" }
+            val byOrigin =
+                response.records
+                    .groupBy { it.metadata.dataOrigin.packageName }
+                    .mapValues { (_, recs) -> recs.sumOf { it.energy.inKilocalories }.toInt() }
+            val result = byOrigin.values.maxOrNull()
+            val total = if (result != null && result > 0) result else null
+            log.d { "HealthConnect Calories: $total kcal (fuentes=${byOrigin.size})" }
             total
         } catch (e: Exception) {
             log.e(e) { "Failed to read TotalCaloriesBurnedRecord: ${e.message}" }

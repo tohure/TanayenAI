@@ -40,6 +40,12 @@ class PantryViewModelWrapper: ObservableObject {
 
     // MARK: - Actions
 
+    /// Recarga desde la BD. Se llama en onAppear para reflejar ingredientes agregados
+    /// desde el chat (otro ViewModel) sin reiniciar la app.
+    func reload() {
+        pantryVM.loadItems()
+    }
+
     func search(_ query: String) {
         pantryVM.search(query: query)
     }

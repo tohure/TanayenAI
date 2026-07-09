@@ -34,7 +34,8 @@ struct ChatBubbleView: View {
                             .padding(.bottom, 2)
                     }
                     if !message.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        Text(message.content)
+                        // El asistente emite markdown básico (**negrita**, etc.); el usuario, plano.
+                        Text(message.isUser ? AttributedString(message.content) : markdownAttributed(message.content))
                             .font(.system(.body, design: .rounded))
                             .foregroundColor(message.isUser ? .white : TanayenTheme.textDark)
                     }
@@ -116,6 +117,32 @@ struct PantrySuggestionChipView: View {
     }
 }
 
+/// Fila de miniaturas de las fotos por enviar, con contador y borrar por foto.
+struct PendingImagesPreviewView: View {
+    let imagesBase64: [String]
+    let maxImages: Int
+    let onRemove: (Int) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("\(imagesBase64.count)/\(maxImages) fotos")
+                .font(.system(.caption2, design: .rounded))
+                .foregroundColor(TanayenTheme.textMuted)
+                .padding(.leading, 18)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(Array(imagesBase64.enumerated()), id: \.offset) { index, base64 in
+                        PendingImagePreviewView(base64: base64) { onRemove(index) }
+                    }
+                }
+                .padding(.horizontal, 16)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}
+
 struct PendingImagePreviewView: View {
     let base64: String
     let onRemove: () -> Void
@@ -126,30 +153,27 @@ struct PendingImagePreviewView: View {
     }
 
     var body: some View {
-        HStack {
-            if let image = decodedImage {
-                ZStack(alignment: .topTrailing) {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: 72, height: 72)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+        if let image = decodedImage {
+            ZStack(alignment: .topTrailing) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 72, height: 72)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
 
-                    Button(action: onRemove) {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundColor(.white)
-                            .frame(width: 20, height: 20)
-                            .background(Color(hex: "#E63946"))
-                            .clipShape(Circle())
-                    }
-                    .offset(x: 6, y: -6)
+                Button(action: onRemove) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(width: 20, height: 20)
+                        .background(Color(hex: "#E63946"))
+                        .clipShape(Circle())
                 }
+                .offset(x: 6, y: -6)
             }
-            Spacer()
+            .padding(.top, 6)
+            .padding(.trailing, 6)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 4)
     }
 }
 
@@ -266,4 +290,26 @@ struct RoundedCorner: Shape {
         )
         return Path(path.cgPath)
     }
+}
+
+/// Parsea el markdown básico de Gemini (**negrita**, *cursiva*) preservando los saltos de
+/// línea, y normaliza las viñetas "- "/"* " a "• ". Ante contenido a medio streamear cae a
+/// texto plano sin romperse.
+func markdownAttributed(_ text: String) -> AttributedString {
+    let normalized = normalizeBullets(text)
+    let options = AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
+    return (try? AttributedString(markdown: normalized, options: options)) ?? AttributedString(normalized)
+}
+
+private func normalizeBullets(_ text: String) -> String {
+    text
+        .split(separator: "\n", omittingEmptySubsequences: false)
+        .map { line -> String in
+            let trimmed = line.drop(while: { $0 == " " || $0 == "\t" })
+            if trimmed.hasPrefix("- ") || trimmed.hasPrefix("* ") {
+                return "• " + trimmed.dropFirst(2)
+            }
+            return String(line)
+        }
+        .joined(separator: "\n")
 }

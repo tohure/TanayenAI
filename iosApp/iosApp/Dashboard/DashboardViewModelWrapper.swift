@@ -73,6 +73,11 @@ class DashboardViewModelWrapper: ObservableObject {
         dashboardVM.loadDashboard()
     }
 
+    // Recarga solo la nutrición del día (tras borrar un registro en el Diario).
+    func refreshNutrition() {
+        dashboardVM.refreshNutrition()
+    }
+
     func saveDisplayName(_ name: String) {
         dashboardVM.saveDisplayName(rawName: name)
     }
@@ -107,8 +112,7 @@ class DashboardViewModelWrapper: ObservableObject {
         self.alerts = state.activeAlerts
 
         self.foodLogs = state.todayFoodLogs.compactMap { log in
-            let mealName = log.mealType.name.capitalized
-            return (mealName, log.foodName)
+            (log.mealType.displayName, log.foodName)
         }
 
         if let nutrition = state.todayNutrition {

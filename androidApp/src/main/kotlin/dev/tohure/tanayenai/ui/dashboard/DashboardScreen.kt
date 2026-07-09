@@ -45,6 +45,7 @@ import java.util.Calendar
 fun DashboardScreen(
     onNavigateToChat: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
+    onViewFoodDiary: () -> Unit = {},
 ) {
     val viewModel: DashboardViewModel =
         koinViewModel {
@@ -173,43 +174,61 @@ fun DashboardScreen(
             }
         } else {
             val metrics = uiState.latestMetrics
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                MetricCard(
-                    label = "Sueño",
-                    value = metrics?.sleepHours?.let { "%.1f".format(it) } ?: "--",
-                    unit = "h",
-                    emoji = "🌙",
-                    tint = AccentTerra,
-                    modifier = Modifier.weight(1f),
-                )
+            // Solo se muestran las métricas con dato real. Si no hay ninguna (usuario sin
+            // Fitbit/reloj o sin datos aún), no se renderiza nada — evita cards vacías con "--".
+            val cards =
+                buildList<@Composable (Modifier) -> Unit> {
+                    metrics?.sleepHours?.let { sleep ->
+                        add { m ->
+                            MetricCard(
+                                label = "Sueño",
+                                value = "%.1f".format(sleep),
+                                unit = "h",
+                                emoji = "🌙",
+                                tint = AccentTerra,
+                                modifier = m,
+                            )
+                        }
+                    }
+                    metrics?.hrv?.let { hrv ->
+                        add { m -> StressLevelCard(hrvValue = hrv.toInt().toString(), modifier = m) }
+                    }
+                    metrics?.weightKg?.let { weight ->
+                        add { m ->
+                            MetricCard(
+                                label = "Peso",
+                                value = "%.1f".format(weight),
+                                unit = "kg",
+                                emoji = "⚖️",
+                                tint = SecondaryMint,
+                                modifier = m,
+                            )
+                        }
+                    }
+                    metrics?.caloriesBurned?.let { kcal ->
+                        add { m ->
+                            MetricCard(
+                                label = "Calorías quemadas",
+                                value = kcal.toString(),
+                                unit = "kcal",
+                                emoji = "🔥",
+                                tint = Color(0xFFE63946),
+                                modifier = m,
+                            )
+                        }
+                    }
+                }
 
-                StressLevelCard(
-                    hrvValue = metrics?.hrv?.toInt()?.toString() ?: "--",
-                    modifier = Modifier.weight(1f),
-                )
+            cards.chunked(2).forEach { rowCards ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    rowCards.forEach { card -> card(Modifier.weight(1f)) }
+                    // Si la fila quedó con una sola card, un spacer la mantiene a media anchura.
+                    if (rowCards.size == 1) Spacer(Modifier.weight(1f))
+                }
             }
-            MetricsRow(
-                metrics =
-                    persistentListOf(
-                        MetricItem(
-                            "Peso",
-                            metrics?.weightKg?.let { "%.1f".format(it) } ?: "--",
-                            "kg",
-                            "⚖️",
-                            SecondaryMint,
-                        ),
-                        MetricItem(
-                            "Calorías activas",
-                            metrics?.caloriesBurned?.toString() ?: "--",
-                            "kcal",
-                            "🔥",
-                            Color(0xFFE63946),
-                        ),
-                    ),
-            )
         }
 
         TodayFoodCard(
@@ -217,14 +236,12 @@ fun DashboardScreen(
                 uiState.todayFoodLogs
                     .map {
                         FoodLogItem(
-                            mealType =
-                                it.mealType.name
-                                    .lowercase()
-                                    .replaceFirstChar { c -> c.uppercase() },
+                            mealType = it.mealType.displayName,
                             foodName = it.foodName,
                         )
                     }.toImmutableList(),
             onAddManuallyClick = onNavigateToChat,
+            onViewAllClick = onViewFoodDiary,
         )
 
         uiState.todayNutrition?.let { nutrition ->

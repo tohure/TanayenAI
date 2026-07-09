@@ -10,6 +10,7 @@ import dev.tohure.tanayenai.domain.usecase.SyncHealthMetricsUseCase
 import dev.tohure.tanayenai.presentation.viewmodel.ChatViewModel
 import dev.tohure.tanayenai.presentation.viewmodel.ClinicalProfileViewModel
 import dev.tohure.tanayenai.presentation.viewmodel.DashboardViewModel
+import dev.tohure.tanayenai.presentation.viewmodel.FoodDiaryViewModel
 import dev.tohure.tanayenai.presentation.viewmodel.NotificationSettingsViewModel
 import dev.tohure.tanayenai.presentation.viewmodel.PantryViewModel
 import kotlinx.coroutines.CoroutineScope
@@ -55,6 +56,10 @@ fun getClinicalProfileViewModel(userId: String): ClinicalProfileViewModel =
 @Suppress("unused") // Called from Swift
 fun getPantryViewModel(userId: String): PantryViewModel =
     KoinPlatform.getKoin().get<PantryViewModel> { parametersOf(userId) }
+
+@Suppress("unused") // Called from Swift
+fun getFoodDiaryViewModel(userId: String): FoodDiaryViewModel =
+    KoinPlatform.getKoin().get<FoodDiaryViewModel> { parametersOf(userId) }
 
 @Suppress("unused") // Called from Swift
 fun getPdfPicker(): PdfPicker = KoinPlatform.getKoin().get()

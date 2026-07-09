@@ -55,7 +55,7 @@ kotlin {
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.serialization.json)
 
-            // Supabase: desconectado (Fase B). Código de referencia en reference/supabase/.
+            // Supabase: desconectado. Código de referencia en reference/supabase/.
 
             // AI (Gemini)
             implementation(libs.generativeai.google)

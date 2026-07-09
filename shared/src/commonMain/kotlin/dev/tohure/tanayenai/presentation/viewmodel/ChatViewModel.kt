@@ -54,6 +54,9 @@ private val jsonParser =
         isLenient = true
     }
 
+// Tope de fotos por envío: evita reventar el tamaño del request a Gemini y la memoria.
+const val MAX_PENDING_IMAGES = 6
+
 @Immutable
 data class PantrySuggestion(
     val ingredients: ImmutableList<String>,
@@ -74,6 +77,7 @@ data class FoodLogSuggestion(
     val description: String,
     val confirmed: Boolean = false,
     val isLoading: Boolean = false,
+    val id: String = generateId(),
 )
 
 @Immutable
@@ -95,7 +99,7 @@ data class UiChatMessage(
     val hasAttachedImage: Boolean = false,
     val pantrySuggestion: PantrySuggestion? = null,
     val clinicalSuggestion: ClinicalSuggestion? = null,
-    val foodLogSuggestion: FoodLogSuggestion? = null,
+    val foodLogSuggestions: ImmutableList<FoodLogSuggestion> = persistentListOf(),
     val checkInSuggestion: CheckInSuggestion? = null,
 )
 
@@ -103,6 +107,9 @@ data class UiChatMessage(
 data class PendingImage(
     val base64Data: String,
     val mimeType: String = "image/jpeg",
+    // Id único por instancia: dos fotos distintas (o la misma tomada dos veces) comparten
+    // el header base64 del JPEG, así que el contenido no sirve como key estable en la UI.
+    val id: String = generateId(),
 )
 
 @Immutable
@@ -120,7 +127,7 @@ data class ChatUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val contextReady: Boolean = false,
-    val pendingImage: PendingImage? = null,
+    val pendingImages: ImmutableList<PendingImage> = persistentListOf(),
 )
 
 class ChatViewModel(
@@ -221,23 +228,46 @@ class ChatViewModel(
             }
     }
 
-    // ── Preselección de Imagen ────────────────────────────────────────────────
+    // ── Preselección de Imágenes ──────────────────────────────────────────────
     fun attachImage(
         base64: String,
         mimeType: String = "image/jpeg",
     ) {
-        _uiState.update { it.copy(pendingImage = PendingImage(base64, mimeType)) }
+        _uiState.update { state ->
+            if (state.pendingImages.size >= MAX_PENDING_IMAGES) {
+                state
+            } else {
+                state.copy(
+                    pendingImages = (state.pendingImages + PendingImage(base64, mimeType)).toImmutableList(),
+                )
+            }
+        }
+    }
+
+    fun removePendingImage(index: Int) {
+        _uiState.update { state ->
+            if (index !in state.pendingImages.indices) {
+                state
+            } else {
+                state.copy(
+                    pendingImages =
+                        state.pendingImages
+                            .filterIndexed { i, _ -> i != index }
+                            .toImmutableList(),
+                )
+            }
+        }
     }
 
     fun clearPendingImage() {
-        _uiState.update { it.copy(pendingImage = null) }
+        _uiState.update { it.copy(pendingImages = persistentListOf()) }
     }
 
     // ── Envío Inteligente ─────────────────────────────────────────────────────
     @OptIn(ExperimentalEncodingApi::class)
     fun sendMessage(userText: String) {
-        val pendingImage = _uiState.value.pendingImage
-        if (userText.isBlank() && pendingImage == null) return
+        val pendingImages = _uiState.value.pendingImages
+        if (userText.isBlank() && pendingImages.isEmpty()) return
         if (_uiState.value.isLoading) return
 
         val safeText = userText.trim()
@@ -248,7 +278,7 @@ class ChatViewModel(
                 id = generateId(),
                 content = safeText,
                 isUser = true,
-                hasAttachedImage = pendingImage != null,
+                hasAttachedImage = pendingImages.isNotEmpty(),
             )
         val loadingId = generateId()
         val loadingMessage = UiChatMessage(id = loadingId, content = "", isUser = false, isLoading = true)
@@ -257,7 +287,7 @@ class ChatViewModel(
             state.copy(
                 messages = (state.messages + userMessage + loadingMessage).toImmutableList(),
                 isLoading = true,
-                pendingImage = null,
+                pendingImages = persistentListOf(),
                 error = null,
             )
         }
@@ -276,13 +306,17 @@ class ChatViewModel(
                         }
                         add(
                             content("user") {
-                                if (pendingImage != null) {
-                                    val decoded = Base64.decode(pendingImage.base64Data.replace("\\s".toRegex(), ""))
+                                pendingImages.forEach { pending ->
+                                    val decoded = Base64.decode(pending.base64Data.replace("\\s".toRegex(), ""))
                                     image(decoded)
                                 }
                                 val finalPrompt =
-                                    if (safeText.isBlank() && pendingImage != null) {
-                                        "El usuario te acaba de enviar solo esta imagen, sin texto."
+                                    if (safeText.isBlank() && pendingImages.isNotEmpty()) {
+                                        if (pendingImages.size == 1) {
+                                            "El usuario te acaba de enviar solo esta imagen, sin texto."
+                                        } else {
+                                            "El usuario te acaba de enviar ${pendingImages.size} imágenes, sin texto."
+                                        }
                                     } else {
                                         safeText
                                     }
@@ -362,7 +396,7 @@ class ChatViewModel(
                     extractAndSaveRecommendation(fullResponse)
                     extractPantrySuggestion(fullResponse, assistantMessageId)
                     extractClinicalSuggestion(fullResponse, assistantMessageId)
-                    extractFoodLogSuggestion(fullResponse, assistantMessageId)
+                    extractFoodLogSuggestions(fullResponse, assistantMessageId)
                     extractCheckInSuggestion(fullResponse, assistantMessageId)
                     extractGoalSet(fullResponse)
                     extractGoalChange(fullResponse)
@@ -504,49 +538,78 @@ class ChatViewModel(
         updateMessage(messageId) { it.copy(clinicalSuggestion = null) }
     }
 
-    // ── Food Log detectado del chat ───────────────────────────────────────────
-    private fun extractFoodLogSuggestion(
+    // ── Food Logs detectados del chat ─────────────────────────────────────────
+    // Gemini emite un [FOODLOG:] por cada plato distinto → una sugerencia (chip) por plato,
+    // confirmable/descartable de forma independiente.
+    private fun extractFoodLogSuggestions(
         response: String,
         messageId: String,
     ) {
-        val match = FOODLOG_TAG_REGEX.find(response) ?: return
-        val rawJson = match.groupValues[1]
-        val description =
-            runCatching {
-                jsonParser
-                    .parseToJsonElement(rawJson)
-                    .jsonObject["description"]
-                    ?.toString()
-                    ?.trim('"')
-            }.getOrNull() ?: return
+        val suggestions =
+            FOODLOG_TAG_REGEX
+                .findAll(response)
+                .mapNotNull { match ->
+                    val rawJson = match.groupValues[1]
+                    val description =
+                        runCatching {
+                            jsonParser
+                                .parseToJsonElement(rawJson)
+                                .jsonObject["description"]
+                                ?.toString()
+                                ?.trim('"')
+                        }.getOrNull()
+                    description?.takeIf { it.isNotBlank() }?.let { FoodLogSuggestion(description = it) }
+                }.toList()
+                .toImmutableList()
 
+        if (suggestions.isEmpty()) return
+        updateMessage(messageId) { msg -> msg.copy(foodLogSuggestions = suggestions) }
+    }
+
+    private fun updateFoodLog(
+        messageId: String,
+        suggestionId: String,
+        transform: (FoodLogSuggestion) -> FoodLogSuggestion,
+    ) {
         updateMessage(messageId) { msg ->
-            msg.copy(foodLogSuggestion = FoodLogSuggestion(description))
+            msg.copy(
+                foodLogSuggestions =
+                    msg.foodLogSuggestions
+                        .map { if (it.id == suggestionId) transform(it) else it }
+                        .toImmutableList(),
+            )
         }
     }
 
-    fun confirmFoodLogSuggestion(messageId: String) {
-        updateMessage(messageId) { msg ->
-            msg.copy(foodLogSuggestion = msg.foodLogSuggestion?.copy(isLoading = true))
-        }
+    fun confirmFoodLogSuggestion(
+        messageId: String,
+        suggestionId: String,
+    ) {
+        updateFoodLog(messageId, suggestionId) { it.copy(isLoading = true) }
         viewModelScope.launch {
             val msg = _uiState.value.messages.find { it.id == messageId } ?: return@launch
-            val suggestion = msg.foodLogSuggestion ?: return@launch
+            val suggestion = msg.foodLogSuggestions.find { it.id == suggestionId } ?: return@launch
             try {
                 estimateFoodNutritionUseCase.estimateAndSave(
                     foodDescription = suggestion.description,
                     source = FoodLogSource.CHAT_DETECTED,
                 )
-                updateMessage(messageId) { it.copy(foodLogSuggestion = suggestion.copy(confirmed = true)) }
+                updateFoodLog(messageId, suggestionId) { it.copy(confirmed = true, isLoading = false) }
                 buildContext()
             } catch (e: Exception) {
                 log.e(e) { "Failed to save food log" }
+                updateFoodLog(messageId, suggestionId) { it.copy(isLoading = false) }
             }
         }
     }
 
-    fun dismissFoodLogSuggestion(messageId: String) {
-        updateMessage(messageId) { it.copy(foodLogSuggestion = null) }
+    fun dismissFoodLogSuggestion(
+        messageId: String,
+        suggestionId: String,
+    ) {
+        updateMessage(messageId) { msg ->
+            msg.copy(foodLogSuggestions = msg.foodLogSuggestions.filterNot { it.id == suggestionId }.toImmutableList())
+        }
     }
 
     // ── Check-in proactivo ────────────────────────────────────────────────────

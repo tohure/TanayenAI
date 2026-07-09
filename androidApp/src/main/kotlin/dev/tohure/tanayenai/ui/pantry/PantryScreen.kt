@@ -86,6 +86,12 @@ fun PantryScreen() {
     var showAddSheet by remember { mutableStateOf(false) }
     var searchFocused by remember { mutableStateOf(false) }
 
+    // Recarga al entrar al tab (el composable se recrea en cada switch de tab), para reflejar
+    // ingredientes agregados desde el chat sin tener que reiniciar la app.
+    LaunchedEffect(Unit) {
+        viewModel.loadItems()
+    }
+
     Scaffold(
         containerColor = BackgroundColor,
         contentWindowInsets = WindowInsets(0),

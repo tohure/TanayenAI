@@ -21,6 +21,7 @@ import platform.HealthKit.HKObjectType
 import platform.HealthKit.HKQuantityType
 import platform.HealthKit.HKQuantityTypeIdentifier
 import platform.HealthKit.HKQuantityTypeIdentifierActiveEnergyBurned
+import platform.HealthKit.HKQuantityTypeIdentifierBasalEnergyBurned
 import platform.HealthKit.HKQuantityTypeIdentifierBodyMass
 import platform.HealthKit.HKQuantityTypeIdentifierHeartRateVariabilitySDNN
 import platform.HealthKit.HKQuantityTypeIdentifierStepCount
@@ -55,7 +56,7 @@ actual class HealthDataReader {
     suspend fun requestPermissionsIos(permissions: Set<TanayenPermission>): Boolean {
         if (!HKHealthStore.isHealthDataAvailable()) return false
 
-        val readTypes = permissions.mapNotNull { it.toHKType() }.toSet()
+        val readTypes = permissions.flatMap { it.toHKTypes() }.toSet()
 
         return suspendCancellableCoroutine { cont ->
             store.requestAuthorizationToShareTypes(
@@ -86,7 +87,16 @@ actual class HealthDataReader {
                     startDate,
                     endDate,
                 )?.let { it * 1000f }
-            val calories = readCalories(startDate, endDate)?.toInt()
+            // Total quemado = activas + basal (HealthKit no tiene un tipo "total" único como
+            // Health Connect; hay que sumar los dos). Coincide con "Calorías quemadas" de Android.
+            val activeKcal = readEnergy(HKQuantityTypeIdentifierActiveEnergyBurned, startDate, endDate)
+            val basalKcal = readEnergy(HKQuantityTypeIdentifierBasalEnergyBurned, startDate, endDate)
+            val calories =
+                if (activeKcal == null && basalKcal == null) {
+                    null
+                } else {
+                    ((activeKcal ?: 0.0) + (basalKcal ?: 0.0)).toInt()
+                }
             val weight =
                 readQuantity(
                     HKQuantityTypeIdentifierBodyMass,
@@ -217,13 +227,16 @@ actual class HealthDataReader {
             store.executeQuery(query)
         }
 
-    private suspend fun readCalories(
+    // Suma acumulada de un tipo de energía (activa o basal) en el rango. Reutilizable para
+    // componer el total quemado.
+    private suspend fun readEnergy(
+        identifier: HKQuantityTypeIdentifier,
         start: NSDate,
         end: NSDate,
     ): Double? =
         suspendCancellableCoroutine { cont ->
             val caloriesType =
-                HKQuantityType.quantityTypeForIdentifier(HKQuantityTypeIdentifierActiveEnergyBurned)
+                HKQuantityType.quantityTypeForIdentifier(identifier)
                     ?: return@suspendCancellableCoroutine cont.resume(null)
             val predicate = HKSampleQuery.predicateForSamplesWithStartDate(start, end, 0u)
             val query =
@@ -244,30 +257,30 @@ actual class HealthDataReader {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private fun TanayenPermission.toHKType(): HKObjectType? =
+    // Un permiso puede mapear a varios tipos de HealthKit (calorías = activa + basal).
+    private fun TanayenPermission.toHKTypes(): Set<HKObjectType> =
         when (this) {
             TanayenPermission.SLEEP -> {
-                HKCategoryType.categoryTypeForIdentifier(HKCategoryTypeIdentifierSleepAnalysis)
+                setOfNotNull(HKCategoryType.categoryTypeForIdentifier(HKCategoryTypeIdentifierSleepAnalysis))
             }
 
             TanayenPermission.HEART_RATE_VARIABILITY -> {
-                HKQuantityType.quantityTypeForIdentifier(
-                    HKQuantityTypeIdentifierHeartRateVariabilitySDNN,
-                )
+                setOfNotNull(HKQuantityType.quantityTypeForIdentifier(HKQuantityTypeIdentifierHeartRateVariabilitySDNN))
             }
 
             TanayenPermission.CALORIES_BURNED -> {
-                HKQuantityType.quantityTypeForIdentifier(
-                    HKQuantityTypeIdentifierActiveEnergyBurned,
+                setOfNotNull(
+                    HKQuantityType.quantityTypeForIdentifier(HKQuantityTypeIdentifierActiveEnergyBurned),
+                    HKQuantityType.quantityTypeForIdentifier(HKQuantityTypeIdentifierBasalEnergyBurned),
                 )
             }
 
             TanayenPermission.WEIGHT -> {
-                HKQuantityType.quantityTypeForIdentifier(HKQuantityTypeIdentifierBodyMass)
+                setOfNotNull(HKQuantityType.quantityTypeForIdentifier(HKQuantityTypeIdentifierBodyMass))
             }
 
             TanayenPermission.STEPS -> {
-                HKQuantityType.quantityTypeForIdentifier(HKQuantityTypeIdentifierStepCount)
+                setOfNotNull(HKQuantityType.quantityTypeForIdentifier(HKQuantityTypeIdentifierStepCount))
             }
         }
 

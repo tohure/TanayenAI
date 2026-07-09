@@ -8,8 +8,22 @@ struct DashboardView: View {
     var onNavigateToChat: () -> Void = {}
     @StateObject private var viewmodel = DashboardViewModelWrapper()
     @State private var showNotificationSettings = false
+    @State private var showFoodDiary = false
 
     var body: some View {
+        NavigationStack {
+            content
+                .navigationDestination(isPresented: $showFoodDiary) {
+                    FoodDiaryView()
+                }
+                .onChangeCompat(of: showFoodDiary) { presented in
+                    // Al volver del Diario, recalcula la nutrición por si se borró un registro.
+                    if !presented { viewmodel.refreshNutrition() }
+                }
+        }
+    }
+
+    private var content: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
 
@@ -54,27 +68,20 @@ struct DashboardView: View {
                     .padding(.horizontal, 24)
                 }
 
-                // Métricas — fila 1
-                HStack(spacing: 12) {
-                    MetricCardView(emoji: "🌙", value: viewmodel.sleepHours, unit: "h",
-                                   label: "Sueño", tint: TanayenTheme.accentTerra)
-                    StressLevelCardView(hrvValue: viewmodel.hrv)
+                // Métricas — solo las que tienen dato; de a 2 por fila. Sin datos → nada.
+                ForEach(Array(metricCards.chunked(into: 2).enumerated()), id: \.offset) { _, row in
+                    HStack(spacing: 12) {
+                        ForEach(0..<row.count, id: \.self) { idx in row[idx] }
+                        if row.count == 1 { Spacer() }
+                    }
+                    .padding(.horizontal, 24)
                 }
-                .padding(.horizontal, 24)
-
-                // Métricas — fila 2
-                HStack(spacing: 12) {
-                    MetricCardView(emoji: "⚖️", value: viewmodel.weightKg, unit: "kg",
-                                   label: "Peso", tint: TanayenTheme.secondaryMint)
-                    MetricCardView(emoji: "🔥", value: viewmodel.caloriesBurned, unit: "kcal",
-                                   label: "Calorías activas", tint: Color(hex: "#E63946"))
-                }
-                .padding(.horizontal, 24)
 
                 // Lo que comiste hoy
                 TodayFoodCardView(
                     foodLogs: viewmodel.foodLogs,
-                    onAddClick: onNavigateToChat
+                    onAddClick: onNavigateToChat,
+                    onViewAll: { showFoodDiary = true }
                 )
                 .padding(.horizontal, 24)
 
@@ -120,6 +127,27 @@ struct DashboardView: View {
         }
     }
 
+    /// Cards de métricas con dato real ("--" = sin dato → se omite).
+    private var metricCards: [AnyView] {
+        var cards: [AnyView] = []
+        if viewmodel.sleepHours != "--" {
+            cards.append(AnyView(MetricCardView(emoji: "🌙", value: viewmodel.sleepHours, unit: "h",
+                                                label: "Sueño", tint: TanayenTheme.accentTerra)))
+        }
+        if viewmodel.hrv != "--" {
+            cards.append(AnyView(StressLevelCardView(hrvValue: viewmodel.hrv)))
+        }
+        if viewmodel.weightKg != "--" {
+            cards.append(AnyView(MetricCardView(emoji: "⚖️", value: viewmodel.weightKg, unit: "kg",
+                                                label: "Peso", tint: TanayenTheme.secondaryMint)))
+        }
+        if viewmodel.caloriesBurned != "--" {
+            cards.append(AnyView(MetricCardView(emoji: "🔥", value: viewmodel.caloriesBurned, unit: "kcal",
+                                                label: "Calorías quemadas", tint: Color(hex: "#E63946"))))
+        }
+        return cards
+    }
+
     private func greetingByHour() -> String {
         let hour = Calendar.current.component(.hour, from: Date())
         switch hour {
@@ -127,5 +155,12 @@ struct DashboardView: View {
         case 12...17: return "Buenas tardes 🌤️"
         default:      return "Buenas noches 🌙"
         }
+    }
+}
+
+private extension Array {
+    /// Parte el array en sub-arrays de tamaño `size` (para acomodar las cards de a 2 por fila).
+    func chunked(into size: Int) -> [[Element]] {
+        stride(from: 0, to: count, by: size).map { Array(self[$0 ..< Swift.min($0 + size, count)]) }
     }
 }

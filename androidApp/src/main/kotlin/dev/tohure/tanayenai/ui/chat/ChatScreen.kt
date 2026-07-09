@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.tohure.tanayenai.domain.model.PROTOTYPE_USER_ID
 import dev.tohure.tanayenai.presentation.viewmodel.ChatViewModel
+import dev.tohure.tanayenai.presentation.viewmodel.MAX_PENDING_IMAGES
 import dev.tohure.tanayenai.ui.ScreenHeader
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -44,10 +45,10 @@ fun ChatScreen() {
 
     val galleryLauncher =
         rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.PickVisualMedia(),
-            onResult = { uri ->
-                uri?.let {
-                    val base64 = ImageUtils.resizeAndEncodeImage(context, it)
+            contract = ActivityResultContracts.PickMultipleVisualMedia(MAX_PENDING_IMAGES),
+            onResult = { uris ->
+                uris.forEach { uri ->
+                    val base64 = ImageUtils.resizeAndEncodeImage(context, uri)
                     if (base64 != null) {
                         viewModel.attachImage(base64)
                     }
@@ -125,12 +126,12 @@ fun ChatScreen() {
                     )
                 }
 
-                // Chip food log detectado (naranja)
-                message.foodLogSuggestion?.let { suggestion ->
+                // Chips food log detectados (naranja) — uno por plato distinto
+                message.foodLogSuggestions.forEach { suggestion ->
                     FoodLogSuggestionChip(
                         suggestion = suggestion,
-                        onConfirm = { viewModel.confirmFoodLogSuggestion(message.id) },
-                        onDismiss = { viewModel.dismissFoodLogSuggestion(message.id) },
+                        onConfirm = { viewModel.confirmFoodLogSuggestion(message.id, suggestion.id) },
+                        onDismiss = { viewModel.dismissFoodLogSuggestion(message.id, suggestion.id) },
                     )
                 }
 
@@ -155,11 +156,12 @@ fun ChatScreen() {
             )
         }
 
-        // Vista previa de la imagen a enviar
-        uiState.pendingImage?.let { pending ->
-            PendingImagePreview(
-                pendingImage = pending,
-                onRemove = { viewModel.clearPendingImage() },
+        // Vista previa de las imágenes a enviar
+        if (uiState.pendingImages.isNotEmpty()) {
+            PendingImagesPreview(
+                pendingImages = uiState.pendingImages,
+                maxImages = MAX_PENDING_IMAGES,
+                onRemove = { index -> viewModel.removePendingImage(index) },
             )
         }
 
@@ -168,7 +170,7 @@ fun ChatScreen() {
             value = inputText,
             onValueChange = { inputText = it },
             isLoading = uiState.isLoading,
-            hasPendingImage = uiState.pendingImage != null,
+            hasPendingImage = uiState.pendingImages.isNotEmpty(),
             onCameraClick = {
                 val uri = ImageUtils.createImageUri(context)
                 currentCameraUri = uri
