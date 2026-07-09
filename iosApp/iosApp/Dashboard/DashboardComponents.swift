@@ -262,6 +262,7 @@ struct MicroItemView: View {
 struct TodayFoodCardView: View {
     let foodLogs: [(String, String)]
     let onAddClick: () -> Void
+    var onViewAll: (() -> Void)?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -281,14 +282,24 @@ struct TodayFoodCardView: View {
                     .foregroundColor(TanayenTheme.textMuted)
             } else {
                 ForEach(foodLogs, id: \.0) { mealType, foodName in
-                    HStack {
+                    HStack(alignment: .top, spacing: 12) {
                         Text(mealType)
                             .font(.system(.caption, design: .rounded))
                             .foregroundColor(TanayenTheme.textMuted)
-                        Spacer()
                         Text(foodName)
                             .font(.system(.subheadline, design: .rounded))
                             .foregroundColor(TanayenTheme.textDark)
+                            .multilineTextAlignment(.trailing)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                    }
+                }
+
+                if let onViewAll = onViewAll {
+                    Button(action: onViewAll) {
+                        Text("Ver todo →")
+                            .font(.system(.caption, design: .rounded, weight: .medium))
+                            .foregroundColor(TanayenTheme.primaryGreen)
+                            .frame(maxWidth: .infinity, alignment: .trailing)
                     }
                 }
             }

@@ -108,6 +108,23 @@ class DashboardViewModel(
         }
     }
 
+    // Recarga solo la nutrición del día (comidas + resumen), sin re-sincronizar salud.
+    // Se llama al volver al Inicio (p. ej. tras borrar un registro en el Diario) para que
+    // el card refleje las calorías recalculadas.
+    fun refreshNutrition() {
+        viewModelScope.launch {
+            val today = currentIsoDate()
+            val todayNutrition = foodLogRepository.getDailySummary(userId, today)
+            val todayFoodLogs =
+                foodLogRepository.getLatestTodayFoodLogs(userId, today, limit = 4).toImmutableList()
+            _uiState.value =
+                _uiState.value.copy(
+                    todayNutrition = todayNutrition,
+                    todayFoodLogs = todayFoodLogs,
+                )
+        }
+    }
+
     fun saveDisplayName(rawName: String) {
         val trimmed = rawName.trim()
         notificationPrefs.saveDisplayName(trimmed)

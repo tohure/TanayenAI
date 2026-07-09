@@ -45,6 +45,7 @@ import java.util.Calendar
 fun DashboardScreen(
     onNavigateToChat: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
+    onViewFoodDiary: () -> Unit = {},
 ) {
     val viewModel: DashboardViewModel =
         koinViewModel {
@@ -217,14 +218,12 @@ fun DashboardScreen(
                 uiState.todayFoodLogs
                     .map {
                         FoodLogItem(
-                            mealType =
-                                it.mealType.name
-                                    .lowercase()
-                                    .replaceFirstChar { c -> c.uppercase() },
+                            mealType = it.mealType.displayName,
                             foodName = it.foodName,
                         )
                     }.toImmutableList(),
             onAddManuallyClick = onNavigateToChat,
+            onViewAllClick = onViewFoodDiary,
         )
 
         uiState.todayNutrition?.let { nutrition ->

@@ -106,6 +106,9 @@ data class UiChatMessage(
 data class PendingImage(
     val base64Data: String,
     val mimeType: String = "image/jpeg",
+    // Id único por instancia: dos fotos distintas (o la misma tomada dos veces) comparten
+    // el header base64 del JPEG, así que el contenido no sirve como key estable en la UI.
+    val id: String = generateId(),
 )
 
 @Immutable

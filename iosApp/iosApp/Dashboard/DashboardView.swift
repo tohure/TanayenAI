@@ -8,8 +8,22 @@ struct DashboardView: View {
     var onNavigateToChat: () -> Void = {}
     @StateObject private var viewmodel = DashboardViewModelWrapper()
     @State private var showNotificationSettings = false
+    @State private var showFoodDiary = false
 
     var body: some View {
+        NavigationStack {
+            content
+                .navigationDestination(isPresented: $showFoodDiary) {
+                    FoodDiaryView()
+                }
+                .onChangeCompat(of: showFoodDiary) { presented in
+                    // Al volver del Diario, recalcula la nutrición por si se borró un registro.
+                    if !presented { viewmodel.refreshNutrition() }
+                }
+        }
+    }
+
+    private var content: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
 
@@ -74,7 +88,8 @@ struct DashboardView: View {
                 // Lo que comiste hoy
                 TodayFoodCardView(
                     foodLogs: viewmodel.foodLogs,
-                    onAddClick: onNavigateToChat
+                    onAddClick: onNavigateToChat,
+                    onViewAll: { showFoodDiary = true }
                 )
                 .padding(.horizontal, 24)
 

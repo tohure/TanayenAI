@@ -33,6 +33,7 @@ import dev.tohure.tanayenai.R
 import dev.tohure.tanayenai.ui.chat.ChatScreen
 import dev.tohure.tanayenai.ui.clinical.ClinicalProfileScreen
 import dev.tohure.tanayenai.ui.dashboard.DashboardScreen
+import dev.tohure.tanayenai.ui.dashboard.FoodDiaryScreen
 import dev.tohure.tanayenai.ui.notification.NotificationSettingsContent
 import dev.tohure.tanayenai.ui.pantry.PantryScreen
 import dev.tohure.tanayenai.ui.settings.GeminiTokenScreen
@@ -154,7 +155,11 @@ fun TanayenNavigation() {
                         }
                     },
                     onNavigateToSettings = { showNotificationSheet = true },
+                    onViewFoodDiary = { navController.navigate("food_diary") },
                 )
+            }
+            composable("food_diary") {
+                FoodDiaryScreen(onBack = { navController.popBackStack() })
             }
             composable(Screen.Chat.route) { ChatScreen() }
             composable(Screen.Pantry.route) { PantryScreen() }

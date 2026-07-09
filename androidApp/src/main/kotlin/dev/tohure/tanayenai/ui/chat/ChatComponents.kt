@@ -206,7 +206,7 @@ fun PendingImagesPreview(
             modifier = Modifier.padding(start = 2.dp, bottom = 4.dp),
         )
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            itemsIndexed(pendingImages, key = { _, img -> img.base64Data.take(32) }) { index, pending ->
+            itemsIndexed(pendingImages, key = { _, img -> img.id }) { index, pending ->
                 PendingImageThumbnail(
                     pendingImage = pending,
                     onRemove = { onRemove(index) },

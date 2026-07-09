@@ -27,4 +27,16 @@ class UtilsTest {
         val prefix = currentIsoDateTime().take(10)
         assertTrue(isoDateRegex.matches(prefix), "El prefijo del timestamp debe ser 'YYYY-MM-DD', fue: $prefix")
     }
+
+    @Test
+    fun timeFromIso_extractsHourAndMinute() {
+        assertEquals("22:05", timeFromIso("2026-07-07T22:05:30.123"))
+        assertEquals("08:00", timeFromIso("2026-07-07T08:00:00"))
+    }
+
+    @Test
+    fun timeFromIso_malformedInput_returnsEmpty() {
+        assertEquals("", timeFromIso("2026-07-07"))
+        assertEquals("", timeFromIso(""))
+    }
 }
